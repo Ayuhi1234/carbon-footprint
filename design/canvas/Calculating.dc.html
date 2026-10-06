@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Calculating</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&amp;family=Mukta:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Mukta,sans-serif;background:#F5F3EA}
+a{color:#0A5F42}a:hover{color:#13261D}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F5F3EA; color: #13261D; font-family: Mukta, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px; padding: 0 32px">
+  <div style="width: 160px; height: 160px; border-radius: 999px; background: #DCEFE3; display: flex; align-items: center; justify-content: center">
+    <div style="width: 112px; height: 112px; border-radius: 999px; background: #8CCBA6; display: flex; align-items: center; justify-content: center">
+      <div style="width: 72px; height: 72px; border-radius: 999px; background: #0E7A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <h1 style="margin: 0; font-family: 'Baloo 2', sans-serif; font-size: 24px; line-height: 30px; font-weight: 700; text-align: center">Calculating your footprint…</h1>
+
+  <div aria-live="polite" style="width: 100%; display: flex; flex-direction: column; gap: 16px; padding: 20px; box-sizing: border-box; border-radius: 20px; background: #FFFFFF; border: 1px solid #DDE3DC">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="width: 24px; height: 24px; border-radius: 999px; background: #0E7A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></div>
+      <div style="font-size: 16px; line-height: 22px">Answers completed</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="width: 24px; height: 24px; box-sizing: border-box; border-radius: 999px; border: 3px solid #DCEFE3; border-top-color: #0E7A55"></div>
+      <div style="font-size: 16px; line-height: 22px; font-weight: 700">Calculating category impact</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="width: 24px; height: 24px; box-sizing: border-box; border-radius: 999px; border: 2px solid #DDE3DC"></div>
+      <div style="font-size: 16px; line-height: 22px; color: #5F6E66">Preparing your insights</div>
+    </div>
+  </div>
+
+  <a href="Result.dc.html" style="font-size: 13px; line-height: 18px; color: #5F6E66">(Prototype: tap to see the result)</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

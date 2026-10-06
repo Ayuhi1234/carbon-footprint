@@ -1,0 +1,689 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "AllQuestions.dc.html": {
+      "h": 760,
+      "page": "concept",
+      "title": "Question content — all six",
+      "w": 1560,
+      "x": 0,
+      "y": 2700
+    },
+    "App01-Dashboard.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "01 KarmaVerse home",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "App02-DashboardImpact.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "02 Home — Your impact card",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "App03-HubNew.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "03 My carbon footprint — first visit",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "App04-Intro.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "04 Calculate my footprint — intro",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "App05-Q1.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "05 Q1 Transport",
+      "w": 390,
+      "x": 0,
+      "y": 1300
+    },
+    "App06-Q2.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "06 Q2 Electricity",
+      "w": 390,
+      "x": 470,
+      "y": 1300
+    },
+    "App07-Q3.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "07 Q3 Diet",
+      "w": 390,
+      "x": 940,
+      "y": 1300
+    },
+    "App08-Q4.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "08 Q4 Waste",
+      "w": 390,
+      "x": 1410,
+      "y": 1300
+    },
+    "App09-Q5.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "09 Q5 Water",
+      "w": 390,
+      "x": 1880,
+      "y": 1300
+    },
+    "App10-Q6.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "10 Q6 Flights",
+      "w": 390,
+      "x": 2350,
+      "y": 1300
+    },
+    "App11-Calculating.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "11 Calculating",
+      "w": 390,
+      "x": 2820,
+      "y": 1300
+    },
+    "App12-Result.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "12 Result",
+      "w": 390,
+      "x": 3290,
+      "y": 1300
+    },
+    "App13-Hub.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "13 My carbon footprint — returning user",
+      "w": 390,
+      "x": 0,
+      "y": 2600
+    },
+    "App14-HubFull.dc.html": {
+      "h": 1560,
+      "is_interactive": true,
+      "page": "app",
+      "title": "14 My carbon footprint — full page",
+      "w": 390,
+      "x": 470,
+      "y": 2600
+    },
+    "App15-Level.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "18 Level sheet",
+      "w": 390,
+      "x": 2350,
+      "y": 2600
+    },
+    "App16-Log.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "15 Log activity sheet",
+      "w": 390,
+      "x": 940,
+      "y": 2600
+    },
+    "App17-LogSuccess.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "16 Activity logged",
+      "w": 390,
+      "x": 1410,
+      "y": 2600
+    },
+    "App18-Goal.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "17 Set goal sheet",
+      "w": 390,
+      "x": 1880,
+      "y": 2600
+    },
+    "App19-Journey.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "19 My carbon journey",
+      "w": 390,
+      "x": 0,
+      "y": 4460
+    },
+    "App20-JourneyFull.dc.html": {
+      "h": 1180,
+      "is_interactive": true,
+      "page": "app",
+      "title": "20 My carbon journey — full page",
+      "w": 390,
+      "x": 470,
+      "y": 4460
+    },
+    "App21-ComingSoon.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "22 Coming soon (backend not live)",
+      "w": 390,
+      "x": 0,
+      "y": 5940
+    },
+    "App22-JourneyEmpty.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "21 My carbon journey — empty",
+      "w": 390,
+      "x": 940,
+      "y": 4460
+    },
+    "App23-LeaveConfirm.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "app",
+      "title": "23 Leave assessment?",
+      "w": 390,
+      "x": 470,
+      "y": 5940
+    },
+    "App24-HubDesktop.dc.html": {
+      "h": 900,
+      "page": "app",
+      "title": "24 Desktop web",
+      "w": 1280,
+      "x": 940,
+      "y": 5940
+    },
+    "Breakdown.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "06 Breakdown",
+      "w": 390,
+      "x": 2350,
+      "y": 0
+    },
+    "Calculating.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "04 Calculating",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "DesignSystem.dc.html": {
+      "h": 1180,
+      "page": "concept",
+      "title": "Design system",
+      "w": 1440,
+      "x": 1640,
+      "y": 2700
+    },
+    "Intro.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "02 Intro",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "Journey.dc.html": {
+      "h": 960,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "09 My Carbon Journey",
+      "w": 390,
+      "x": 940,
+      "y": 1300
+    },
+    "JourneyEmpty.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "09b Journey — Empty",
+      "w": 390,
+      "x": 1410,
+      "y": 1300
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "01 Entry",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "MethodSheet.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "05b How is this calculated?",
+      "w": 390,
+      "x": 2350,
+      "y": 1300
+    },
+    "Question.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "03 Question (reusable)",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "QuestionStates.dc.html": {
+      "h": 844,
+      "page": "concept",
+      "title": "03b Question — States",
+      "w": 390,
+      "x": 2820,
+      "y": 1300
+    },
+    "Result.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "05 Result",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "Resume.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "10 Resume",
+      "w": 390,
+      "x": 1880,
+      "y": 1300
+    },
+    "Reward.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "08 Reward — Complete",
+      "w": 390,
+      "x": 0,
+      "y": 1300
+    },
+    "RewardImproved.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "08b Reward — Improved",
+      "w": 390,
+      "x": 470,
+      "y": 1300
+    },
+    "Tips.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "concept",
+      "title": "07 Tips",
+      "w": 390,
+      "x": 2820,
+      "y": 0
+    },
+    "V01-Dashboard.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "01 Home — bell in header, 5 tabs",
+      "page": "review2",
+      "is_interactive": true
+    },
+    "V02-Discover.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "02 Discover features — Carbon footprint card",
+      "page": "review2",
+      "is_interactive": true
+    },
+    "V11-LandingMobile.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "03 Logged out — landing teaser",
+      "page": "review2"
+    },
+    "V12-LandingDesktop.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 1280,
+      "h": 820,
+      "title": "04 Logged out — landing teaser, desktop",
+      "page": "review2"
+    },
+    "V03-ChatStart.dc.html": {
+      "x": 0,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "05 Chat — personal greeting",
+      "page": "review2",
+      "is_interactive": true
+    },
+    "V04-Q1.dc.html": {
+      "x": 470,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "06 Q1 from profile (work · Gurugram)",
+      "page": "review2",
+      "is_interactive": true
+    },
+    "V05-Transport.dc.html": {
+      "x": 940,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "07 Tap answers + follow-ups",
+      "page": "review2",
+      "is_interactive": true
+    },
+    "V06-Typed.dc.html": {
+      "x": 1410,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "08 Type or speak instead",
+      "page": "review2",
+      "is_interactive": true
+    },
+    "V07-Multi.dc.html": {
+      "x": 1880,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "09 Pick all that apply",
+      "page": "review2",
+      "is_interactive": true
+    },
+    "V08-AllDone.dc.html": {
+      "x": 2350,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "10 All answered",
+      "page": "review2",
+      "is_interactive": true
+    },
+    "V09-Calculating.dc.html": {
+      "x": 2820,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "11 Calculating",
+      "page": "review2",
+      "is_interactive": true
+    },
+    "V10-Result.dc.html": {
+      "x": 3290,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "12 Result",
+      "page": "review2",
+      "is_interactive": true
+    },
+    "V13-MailInvite.dc.html": {
+      "x": 0,
+      "y": 2600,
+      "w": 1180,
+      "h": 900,
+      "title": "13 Push + email — invite",
+      "page": "review2"
+    },
+    "V14-MailCheckin.dc.html": {
+      "x": 1260,
+      "y": 2600,
+      "w": 1180,
+      "h": 900,
+      "title": "14 Push + email — monthly check-in",
+      "page": "review2"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-28T10:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas",
+    "page": "review2"
+  },
+  "notes": {
+    "appAbout": {
+      "fill": "green",
+      "maxH": 420,
+      "page": "app",
+      "text": "These are real screens from the KarmaCredits app build (web, 390 px), with sample data. Tap any screen in Play to follow the flow.\n\nThe carbon backend isn't live yet, so today users see the empty states and 'Coming soon!' (row 5).",
+      "w": 360,
+      "x": 1880,
+      "y": 0
+    },
+    "appRow1": {
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "app",
+      "text": "1 · From KarmaVerse home into Carbon footprint",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "appRow2": {
+      "kind": "title1",
+      "maxW": 3680,
+      "page": "app",
+      "text": "2 · Assessment v1 — six free-text questions (replaced by the chat, see Review round 2)",
+      "w": 240,
+      "x": 0,
+      "y": 1000
+    },
+    "appRow3": {
+      "kind": "title1",
+      "maxW": 2740,
+      "page": "app",
+      "text": "3 · My carbon footprint — returning user, sheets",
+      "w": 240,
+      "x": 0,
+      "y": 2300
+    },
+    "appRow4": {
+      "kind": "title1",
+      "maxW": 1330,
+      "page": "app",
+      "text": "4 · My carbon journey — history",
+      "w": 240,
+      "x": 0,
+      "y": 4160
+    },
+    "appRow5": {
+      "kind": "title1",
+      "maxW": 2220,
+      "page": "app",
+      "text": "5 · States and desktop web",
+      "w": 240,
+      "x": 0,
+      "y": 5640
+    },
+    "flowTitle": {
+      "kind": "title1",
+      "maxW": 3210,
+      "page": "concept",
+      "text": "Primary flow — Entry → Questions → Result → Breakdown → Tips",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "stateTitle": {
+      "kind": "title1",
+      "maxW": 3210,
+      "page": "concept",
+      "text": "Reward, history, resume and states",
+      "w": 240,
+      "x": 0,
+      "y": 1000
+    },
+    "systemTitle": {
+      "kind": "title1",
+      "maxW": 3080,
+      "page": "concept",
+      "text": "Content and design system",
+      "w": 240,
+      "x": 0,
+      "y": 2400
+    },
+    "r2Row1": {
+      "x": 0,
+      "y": -300,
+      "text": "1 · Discoverability — dashboard, Discover features, logged-out landing",
+      "kind": "title1",
+      "maxW": 2690,
+      "page": "review2"
+    },
+    "r2Row2": {
+      "x": 0,
+      "y": 1000,
+      "text": "2 · Chat assessment — tap, type or speak",
+      "kind": "title1",
+      "maxW": 3680,
+      "page": "review2"
+    },
+    "r2Row3": {
+      "x": 0,
+      "y": 2300,
+      "text": "3 · Mailer and push notifications",
+      "kind": "title1",
+      "maxW": 2440,
+      "page": "review2"
+    },
+    "r2Feedback": {
+      "x": 2780,
+      "y": 0,
+      "w": 440,
+      "maxH": 900,
+      "fill": "green",
+      "page": "review2",
+      "text": "Review feedback → what changed\n\n• 6 bottom tabs → 5 on mobile web (Alerts moved to a bell on Home, as on native). Native already has 4.\n• Carbon footprint now in Discover features (native + web).\n• Q1 uses the profile: work / college / everyday travel, plus city.\n• No Back button — the ✕ closes; 'Change' undoes your last answer.\n• Every question has tap options. Typing and voice are optional (voice works in the browser today; on phones the keyboard mic until in-app voice is added).\n• 25 questions across 7 topics (Shopping added); follow-ups only when relevant.\n• Logged out: teaser on the landing page; using it needs login (results are personal and saved). After login you land back on Carbon footprint.\n• Push + email: invite and monthly check-in. Tapping a push now opens its screen."
+    },
+    "r2B2B": {
+      "x": 2520,
+      "y": 2600,
+      "w": 440,
+      "maxH": 900,
+      "fill": "blue",
+      "page": "review2",
+      "text": "B2B (housing societies, corporates, schools)\n\nNot in the app today — there are no business accounts, only a mention on the landing page. If we add it, design changes:\n\n• Organisation account + roles (admin, member).\n• Org assessment: offices/sites, headcount, electricity & DG diesel, fleet, business travel, waste by stream — mapped to Scope 1/2/3.\n• Org dashboard: total + per-employee footprint, site breakdown, trend, member participation.\n• Members' personal results roll up anonymously (opt-in).\n• Team challenges + leaderboard, bulk KarmaVerse pickups.\n• Downloadable ESG / BRSR-ready report.\n• Desktop-first admin web; members keep the same mobile flow."
+    }
+  },
+  "order": [
+    "V01-Dashboard.dc.html",
+    "V02-Discover.dc.html",
+    "V11-LandingMobile.dc.html",
+    "V12-LandingDesktop.dc.html",
+    "V03-ChatStart.dc.html",
+    "V04-Q1.dc.html",
+    "V05-Transport.dc.html",
+    "V06-Typed.dc.html",
+    "V07-Multi.dc.html",
+    "V08-AllDone.dc.html",
+    "V09-Calculating.dc.html",
+    "V10-Result.dc.html",
+    "V13-MailInvite.dc.html",
+    "V14-MailCheckin.dc.html",
+    "App01-Dashboard.dc.html",
+    "App02-DashboardImpact.dc.html",
+    "App03-HubNew.dc.html",
+    "App04-Intro.dc.html",
+    "App05-Q1.dc.html",
+    "App06-Q2.dc.html",
+    "App07-Q3.dc.html",
+    "App08-Q4.dc.html",
+    "App09-Q5.dc.html",
+    "App10-Q6.dc.html",
+    "App11-Calculating.dc.html",
+    "App12-Result.dc.html",
+    "App13-Hub.dc.html",
+    "App14-HubFull.dc.html",
+    "App16-Log.dc.html",
+    "App17-LogSuccess.dc.html",
+    "App18-Goal.dc.html",
+    "App15-Level.dc.html",
+    "App19-Journey.dc.html",
+    "App20-JourneyFull.dc.html",
+    "App22-JourneyEmpty.dc.html",
+    "App21-ComingSoon.dc.html",
+    "App23-LeaveConfirm.dc.html",
+    "App24-HubDesktop.dc.html",
+    "Main.dc.html",
+    "Intro.dc.html",
+    "Question.dc.html",
+    "Calculating.dc.html",
+    "Result.dc.html",
+    "Breakdown.dc.html",
+    "Tips.dc.html",
+    "Reward.dc.html",
+    "RewardImproved.dc.html",
+    "Journey.dc.html",
+    "JourneyEmpty.dc.html",
+    "Resume.dc.html",
+    "MethodSheet.dc.html",
+    "QuestionStates.dc.html",
+    "AllQuestions.dc.html",
+    "DesignSystem.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "review2",
+      "name": "Review round 2 (built)"
+    },
+    {
+      "id": "app",
+      "name": "App flow v1 (built)"
+    },
+    {
+      "id": "concept",
+      "name": "Concept v1"
+    }
+  ],
+  "title": "KarmaVerse Carbon Footprint Screens"
+}

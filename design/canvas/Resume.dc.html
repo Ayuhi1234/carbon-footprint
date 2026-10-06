@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Resume Assessment</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&amp;family=Mukta:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Mukta,sans-serif;background:#F5F3EA}
+a{color:#0A5F42}a:hover{color:#13261D}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F5F3EA; color: #13261D; font-family: Mukta, sans-serif; display: flex; flex-direction: column; overflow: hidden; position: relative">
+  <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 8px">
+    <a href="Main.dc.html" aria-label="Back" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; color: #13261D"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg></a>
+    <div style="flex-grow: 1; font-size: 17px; font-weight: 700">Carbon Footprint</div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 8px 20px 16px; display: flex; flex-direction: column; gap: 18px">
+    <div style="width: 64px; height: 64px; border-radius: 20px; background: #DCEFE3; color: #0A5F42; display: flex; align-items: center; justify-content: center"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg></div>
+    <div>
+      <h1 style="margin: 0; font-family: 'Baloo 2', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700">Welcome back!</h1>
+      <p style="margin: 2px 0 0; font-size: 18px; line-height: 26px">You were on <strong>Question 4 of 6</strong>.</p>
+      <p style="margin: 2px 0 0; font-size: 15px; line-height: 22px; color: #4B5B53">Your first 3 answers are saved.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px">
+      <div style="height: 6px; border-radius: 3px; background: #0E7A55"></div>
+      <div style="height: 6px; border-radius: 3px; background: #0E7A55"></div>
+      <div style="height: 6px; border-radius: 3px; background: #0E7A55"></div>
+      <div style="height: 6px; border-radius: 3px; background: #DCEFE3"></div>
+      <div style="height: 6px; border-radius: 3px; background: #DCEFE3"></div>
+      <div style="height: 6px; border-radius: 3px; background: #DCEFE3"></div>
+    </div>
+
+    <div style="border-radius: 20px; background: #FFFFFF; border: 1px solid #DDE3DC; padding: 4px 16px">
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+        <div style="min-height: 48px; display: flex; align-items: center; gap: 12px; border-bottom: {{ r.border }}">
+          <sc-if value="{{ r.done }}" hint-placeholder-val="{{ true }}">
+            <div style="width: 24px; height: 24px; border-radius: 999px; background: #0E7A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></div>
+          </sc-if>
+          <sc-if value="{{ r.next }}" hint-placeholder-val="{{ false }}">
+            <div style="width: 24px; height: 24px; box-sizing: border-box; border-radius: 999px; border: 3px solid #0E7A55"></div>
+          </sc-if>
+          <sc-if value="{{ r.pending }}" hint-placeholder-val="{{ false }}">
+            <div style="width: 24px; height: 24px; box-sizing: border-box; border-radius: 999px; border: 2px solid #DDE3DC"></div>
+          </sc-if>
+          <div style="flex-grow: 1; font-size: 15px; font-weight: {{ r.weight }}; color: {{ r.color }}">{{ r.label }}</div>
+          <sc-if value="{{ r.next }}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: #DCEFE3; color: #0A5F42">Up next</span></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex-shrink: 0; padding: 12px 20px 24px; background: #FFFFFF; border-top: 1px solid #DDE3DC; display: flex; flex-direction: column; gap: 4px">
+    <a href="Question.dc.html" style="height: 52px; border-radius: 999px; background: #0E7A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; text-decoration: none">Continue Assessment</a>
+    <button onClick="{{ openConfirm }}" style="height: 48px; border: 0; border-radius: 999px; background: transparent; color: #0A5F42; font-family: Mukta, sans-serif; font-size: 16px; font-weight: 600; cursor: pointer">Start Over</button>
+  </div>
+
+  <sc-if value="{{ confirm }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; top: 0; left: 0; width: 390px; height: 844px; background: rgba(19, 38, 29, 0.45); display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box">
+      <div role="dialog" aria-modal="true" aria-labelledby="so-title" style="width: 100%; background: #FFFFFF; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="so-title" style="margin: 0; font-family: 'Baloo 2', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Start a new assessment?</h2>
+        <p style="margin: 0; font-size: 15px; line-height: 22px; color: #4B5B53">The answers from this attempt will be cleared. Your past results stay safe.</p>
+        <div style="display: flex; gap: 8px; margin-top: 8px">
+          <button onClick="{{ closeConfirm }}" style="flex-grow: 1; height: 48px; border: 1px solid #DDE3DC; border-radius: 999px; background: #FFFFFF; font-family: Mukta, sans-serif; font-size: 15px; font-weight: 600; color: #13261D; cursor: pointer">Cancel</button>
+          <a href="Intro.dc.html" style="flex-grow: 1; height: 48px; border-radius: 999px; background: #B3261E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; text-decoration: none">Start Over</a>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { confirm: false }; }
+  renderVals() {
+    const labels = ['Transport', 'Electricity', 'Diet', 'Waste', 'Water', 'Flights'];
+    return {
+      confirm: this.state.confirm,
+      openConfirm: () => this.setState({ confirm: true }),
+      closeConfirm: () => this.setState({ confirm: false }),
+      rows: labels.map((label, i) => ({
+        label,
+        done: i < 3, next: i === 3, pending: i > 3,
+        weight: i === 3 ? 700 : 500,
+        color: i > 3 ? '#5F6E66' : '#13261D',
+        border: i === 5 ? '0' : '1px solid #DDE3DC'
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

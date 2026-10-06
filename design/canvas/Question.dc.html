@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Question screen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&amp;family=Mukta:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Mukta,sans-serif;background:#F5F3EA}
+a{color:#0A5F42}a:hover{color:#13261D}
+textarea::placeholder{color:#5F6E66;font-style:italic}
+textarea:focus{outline:none;border-color:#0E7A55}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F5F3EA; color: #13261D; font-family: Mukta, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="flex-shrink: 0; padding: 0 8px">
+    <div style="height: 56px; display: flex; align-items: center">
+      <button aria-label="Previous question" onClick="{{ back }}" style="width: 48px; height: 48px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #13261D; cursor: pointer"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg></button>
+      <div style="flex-grow: 1; text-align: center; font-size: 15px; font-weight: 700">Question {{ n }} of 6</div>
+      <a href="Resume.dc.html" aria-label="Save and exit" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; color: #13261D"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="M6 6l12 12"></path></svg></a>
+    </div>
+    <div role="progressbar" aria-valuemin="1" aria-valuemax="6" aria-valuenow="{{ n }}" aria-label="Assessment progress" style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; padding: 0 12px 8px">
+      <sc-for list="{{ segs }}" as="s" hint-placeholder-count="6">
+        <div style="height: 6px; border-radius: 3px; background: {{ s.bg }}"></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 20px 20px 16px; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div style="width: 40px; height: 40px; border-radius: 12px; background: #0E7A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+        <sc-if value="{{ is1 }}" hint-placeholder-val="{{ true }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.5"></circle><circle cx="18.5" cy="17.5" r="3.5"></circle><circle cx="15" cy="5" r="1"></circle><path d="M12 17.5V14l-3-3 4-3 2 3h2"></path></svg></sc-if>
+        <sc-if value="{{ is2 }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path></svg></sc-if>
+        <sc-if value="{{ is3 }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path></svg></sc-if>
+        <sc-if value="{{ is4 }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></sc-if>
+        <sc-if value="{{ is5 }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path></svg></sc-if>
+        <sc-if value="{{ is6 }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.3c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"></path></svg></sc-if>
+      </div>
+      <div style="font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.08em; color: #0A5F42">{{ q.label }}</div>
+    </div>
+    <h1 id="q" style="margin: 0; font-family: 'Baloo 2', sans-serif; font-size: 23px; line-height: 29px; font-weight: 700">{{ q.question }}</h1>
+    <p style="margin: 0; font-size: 15px; line-height: 22px; color: #4B5B53">{{ q.support }}</p>
+    <label for="answer" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">{{ q.question }}</label>
+    <textarea id="answer" aria-describedby="hint" placeholder="{{ q.placeholder }}" value="{{ answer }}" onChange="{{ onType }}" style="box-sizing: border-box; width: 100%; height: 168px; resize: none; padding: 14px 16px; border-radius: 12px; border: 2px solid #DDE3DC; background: #FFFFFF; font-family: Mukta, sans-serif; font-size: 17px; line-height: 25px; color: #13261D"></textarea>
+    <div id="hint" style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: #5F6E66">
+      <span>Rough is fine — write it however you like.</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; color: #5F6E66">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E7A55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+      Your answers save as you go
+    </div>
+  </div>
+
+  <div style="flex-shrink: 0; padding: 12px 20px 24px; background: #FFFFFF; border-top: 1px solid #DDE3DC">
+    <sc-if value="{{ notLast }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ next }}" aria-disabled="{{ disabled }}" style="width: 100%; height: 52px; border: 0; border-radius: 999px; background: #0E7A55; opacity: {{ btnOpacity }}; color: #FFFFFF; font-family: Mukta, sans-serif; font-size: 16px; font-weight: 600; cursor: pointer">Continue</button>
+    </sc-if>
+    <sc-if value="{{ isLast }}" hint-placeholder-val="{{ false }}">
+      <a href="Calculating.dc.html" style="height: 52px; border-radius: 999px; background: #0E7A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; text-decoration: none">Calculate My Footprint</a>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"startAt":{"editor":"int","default":1,"min":1,"max":6},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = { n: null, answers: {} };
+  }
+  renderVals() {
+    const Q = [
+      { label: 'TRANSPORT', question: 'How do you usually travel to work or college, and roughly how far each day?', support: 'Mention your vehicle and fuel if you know it. Rough distances are fine.', placeholder: 'e.g. I travel around 15 km daily on my petrol bike.' },
+      { label: 'ELECTRICITY', question: 'How much electricity does your home use in a month?', support: 'Your bill amount or the units on your bill both work. A rough number is fine.', placeholder: 'e.g. Our bill is around ₹1,800 a month, roughly 220 units.' },
+      { label: 'DIET', question: 'What does a typical week of meals look like for you?', support: 'Tell us what you usually eat — veg, non-veg, eggs, dairy — and how often.', placeholder: 'e.g. Mostly vegetarian. Chicken twice a week, and milk and curd every day.' },
+      { label: 'WASTE', question: 'How much waste does your home throw out, and do you segregate or recycle any of it?', support: 'For example: one small bin a day, wet and dry waste separated.', placeholder: 'e.g. About one small bin a day. We separate wet and dry waste and give plastic to the kabadiwala.' },
+      { label: 'WATER', question: 'How do you use water at home on a typical day?', support: 'Baths or showers, washing machine, gardening — whatever comes to mind.', placeholder: 'e.g. One bucket bath a day, and the washing machine runs three times a week.' },
+      { label: 'FLIGHTS', question: 'How many flights have you taken in the last 12 months?', support: 'Rough routes help. "None" is a perfectly good answer.', placeholder: 'e.g. Two return trips, Delhi to Mumbai. No international flights.' }
+    ];
+    const n = this.state.n ?? Math.min(6, Math.max(1, this.props.startAt ?? 1));
+    const answer = this.state.answers[n] ?? '';
+    const valid = answer.trim().length >= 2;
+    const flags = {};
+    for (let i = 1; i <= 6; i++) flags['is' + i] = n === i;
+    return {
+      n, q: Q[n - 1], answer, ...flags,
+      segs: [1, 2, 3, 4, 5, 6].map((i) => ({ bg: i <= n ? '#0E7A55' : '#DCEFE3' })),
+      notLast: n < 6, isLast: n === 6,
+      disabled: valid ? 'false' : 'true',
+      btnOpacity: valid ? 1 : 0.4,
+      onType: (e) => this.setState({ n, answers: { ...this.state.answers, [n]: e.target.value } }),
+      next: () => { if (valid) this.setState({ n: n + 1 }); },
+      back: () => { if (n > 1) this.setState({ n: n - 1 }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

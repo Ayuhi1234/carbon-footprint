@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Carbon Footprint design system</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&amp;family=Mukta:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Mukta,sans-serif;background:#F5F3EA}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1180px; box-sizing: border-box; background: #F5F3EA; color: #13261D; font-family: Mukta, sans-serif; padding: 40px 48px; display: flex; flex-direction: column; gap: 28px">
+  <div>
+    <h1 style="margin: 0; font-family: 'Baloo 2', sans-serif; font-size: 32px; line-height: 38px; font-weight: 700">Carbon Footprint — design system</h1>
+    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #4B5B53">Proposed tokens. If KarmaVerse already has brand tokens, swap the values and keep the roles. Gold is reserved for KarmaCoins.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+    <div style="background: #FFFFFF; border: 1px solid #DDE3DC; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #5F6E66">COLOR</div>
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px">
+        <sc-for list="{{ colors }}" as="c" hint-placeholder-count="18">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div style="height: 52px; border-radius: 12px; background: {{ c.hex }}; border: 1px solid #DDE3DC"></div>
+            <div style="font-size: 12px; line-height: 16px; font-weight: 700">{{ c.name }}</div>
+            <div style="font-size: 12px; line-height: 16px; color: #5F6E66">{{ c.hex }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border: 1px solid #DDE3DC; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #5F6E66">TYPE — Baloo 2 (display) · Mukta (text) · both support Devanagari</div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 110px; font-size: 12px; color: #5F6E66">display-xl 64</span><span style="font-family: 'Baloo 2', sans-serif; font-size: 64px; line-height: 64px; font-weight: 700">184</span></div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 110px; font-size: 12px; color: #5F6E66">h1 28/34</span><span style="font-family: 'Baloo 2', sans-serif; font-size: 28px; line-height: 34px; font-weight: 700">Carbon Footprint</span></div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 110px; font-size: 12px; color: #5F6E66">h2 22/28</span><span style="font-family: 'Baloo 2', sans-serif; font-size: 22px; line-height: 28px; font-weight: 600">How do you usually travel?</span></div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 110px; font-size: 12px; color: #5F6E66">body-l 17/26</span><span style="font-size: 17px; line-height: 26px">See how your everyday habits add up.</span></div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 110px; font-size: 12px; color: #5F6E66">body 15/22</span><span style="font-size: 15px; line-height: 22px">Rough is fine — write it however you like.</span></div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 110px; font-size: 12px; color: #5F6E66">caption 13/18</span><span style="font-size: 13px; line-height: 18px; color: #5F6E66">28 Sep 2026 · Medium Impact</span></div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 110px; font-size: 12px; color: #5F6E66">overline 12/16</span><span style="font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.08em; color: #0A5F42">YOUR CARBON FOOTPRINT</span></div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+    <div style="background: #FFFFFF; border: 1px solid #DDE3DC; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #5F6E66">BUTTONS</div>
+      <div style="height: 52px; border-radius: 999px; background: #0E7A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600">Primary · default</div>
+      <div style="height: 52px; border-radius: 999px; background: #0A5F42; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600">Primary · pressed</div>
+      <div style="height: 52px; border-radius: 999px; background: #0E7A55; opacity: 0.4; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600">Primary · disabled</div>
+      <div style="height: 52px; border-radius: 999px; background: #0E7A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; outline: 2px solid #0E7A55; outline-offset: 2px">Primary · focus</div>
+      <div style="height: 48px; border-radius: 999px; color: #0A5F42; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600">Secondary (text)</div>
+    </div>
+
+    <div style="background: #FFFFFF; border: 1px solid #DDE3DC; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #5F6E66">PROGRESS &amp; BARS</div>
+      <div style="font-size: 13px; font-weight: 700">Question progress (4 of 6)</div>
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px">
+        <div style="height: 6px; border-radius: 3px; background: #0E7A55"></div><div style="height: 6px; border-radius: 3px; background: #0E7A55"></div><div style="height: 6px; border-radius: 3px; background: #0E7A55"></div><div style="height: 6px; border-radius: 3px; background: #0E7A55"></div><div style="height: 6px; border-radius: 3px; background: #DCEFE3"></div><div style="height: 6px; border-radius: 3px; background: #DCEFE3"></div>
+      </div>
+      <div style="font-size: 13px; font-weight: 700">Breakdown bars (top vs others)</div>
+      <div style="height: 8px; border-radius: 4px; background: #EEF7F1"><div style="height: 8px; width: 100%; border-radius: 4px; background: #0E7A55"></div></div>
+      <div style="height: 8px; border-radius: 4px; background: #EEF7F1"><div style="height: 8px; width: 64%; border-radius: 4px; background: #8CCBA6"></div></div>
+      <div style="height: 8px; border-radius: 4px; background: #EEF7F1"><div style="height: 8px; width: 19%; border-radius: 4px; background: #8CCBA6"></div></div>
+      <div style="font-size: 13px; font-weight: 700">Change chips</div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <span style="font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: #DCEFE3; color: #0A5F42">↓ 12%</span>
+        <span style="font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: #FBEBD3; color: #8A4B00">↑ 6%</span>
+        <span style="font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: #F5F3EA; color: #4B5B53">First</span>
+        <span style="font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: #F5F3EA; color: #4B5B53">No change</span>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border: 1px solid #DDE3DC; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #5F6E66">SCORE GAUGE — arc color follows the band</div>
+      <div style="display: flex; justify-content: space-around">
+        <sc-for list="{{ gauges }}" as="g" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
+            <svg width="96" height="96" viewBox="0 0 200 200" aria-hidden="true">
+              <circle cx="100" cy="100" r="84" fill="none" stroke="#DCEFE3" stroke-width="18" stroke-linecap="round" stroke-dasharray="395.84 527.79" transform="rotate(135 100 100)"></circle>
+              <circle cx="100" cy="100" r="84" fill="none" stroke="{{ g.color }}" stroke-width="18" stroke-linecap="round" stroke-dasharray="{{ g.dash }}" transform="rotate(135 100 100)"></circle>
+              <text x="100" y="112" text-anchor="middle" font-family="Baloo 2, sans-serif" font-size="44" font-weight="700" fill="#13261D">{{ g.score }}</text>
+            </svg>
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700"><span style="width: 8px; height: 8px; border-radius: 999px; background: {{ g.color }}"></span>{{ g.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size: 12px; line-height: 16px; color: #5F6E66">Illustrative scores only. Band names and thresholds come from the backend (open question 1).</div>
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #5F6E66; margin-top: 8px">RADIUS · SPACING</div>
+      <div style="display: flex; gap: 10px; align-items: flex-end">
+        <div style="width: 40px; height: 40px; background: #DCEFE3; border-radius: 8px"></div>
+        <div style="width: 40px; height: 40px; background: #DCEFE3; border-radius: 12px"></div>
+        <div style="width: 40px; height: 40px; background: #DCEFE3; border-radius: 20px"></div>
+        <div style="width: 64px; height: 40px; background: #DCEFE3; border-radius: 999px"></div>
+      </div>
+      <div style="font-size: 12px; line-height: 16px; color: #5F6E66">Radius 8 · 12 · 20 · 28 · pill. Spacing 4-base: 4 8 12 16 20 24 32 40 48. Gutter 20.</div>
+    </div>
+  </div>
+
+  <div style="background: #FFFFFF; border: 1px solid #DDE3DC; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #5F6E66">CATEGORY ICONS — 24 px, 2 px stroke, in 40 px tiles</div>
+    <div style="display: flex; gap: 32px">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><div style="width: 40px; height: 40px; border-radius: 12px; background: #DCEFE3; color: #0A5F42; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.5"></circle><circle cx="18.5" cy="17.5" r="3.5"></circle><circle cx="15" cy="5" r="1"></circle><path d="M12 17.5V14l-3-3 4-3 2 3h2"></path></svg></div>Transport</div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><div style="width: 40px; height: 40px; border-radius: 12px; background: #DCEFE3; color: #0A5F42; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path></svg></div>Electricity</div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><div style="width: 40px; height: 40px; border-radius: 12px; background: #DCEFE3; color: #0A5F42; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path></svg></div>Diet</div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><div style="width: 40px; height: 40px; border-radius: 12px; background: #DCEFE3; color: #0A5F42; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></div>Waste</div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><div style="width: 40px; height: 40px; border-radius: 12px; background: #DCEFE3; color: #0A5F42; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path></svg></div>Water</div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><div style="width: 40px; height: 40px; border-radius: 12px; background: #DCEFE3; color: #0A5F42; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.3c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"></path></svg></div>Flights</div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><div style="width: 40px; height: 40px; border-radius: 12px; background: #FFF1C7; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#F5B700"></circle><circle cx="12" cy="12" r="7" fill="none" stroke="#7A5200" stroke-width="1.5"></circle><path d="M10 8v8M10 12l4-4M11.5 11l2.5 5" stroke="#7A5200" stroke-width="1.8" stroke-linecap="round" fill="none"></path></svg></div>KarmaCoin</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const colors = [
+      ['bg', '#F5F3EA'], ['surface', '#FFFFFF'], ['green-50', '#EEF7F1'], ['green-100', '#DCEFE3'], ['green-300', '#8CCBA6'], ['line', '#DDE3DC'],
+      ['green-600', '#0E7A55'], ['green-700', '#0A5F42'], ['ink', '#13261D'], ['ink-2', '#4B5B53'], ['ink-3', '#5F6E66'], ['danger', '#B3261E'],
+      ['gold-400', '#F5B700'], ['gold-100', '#FFF1C7'], ['gold-800', '#7A5200'], ['band-low', '#1E8E5A'], ['band-medium', '#C77700'], ['band-high', '#C8472D']
+    ];
+    const C = 527.79;
+    const g = (score, color, label) => ({ score, color, label, dash: (395.84 * score / 100).toFixed(2) + ' ' + C });
+    return {
+      colors: colors.map(([name, hex]) => ({ name, hex })),
+      gauges: [g(28, '#1E8E5A', 'Low Impact'), g(68, '#C77700', 'Medium Impact'), g(88, '#C8472D', 'High Impact')]
+    };
+  }
+}
+</script>
+</body>
+</html>

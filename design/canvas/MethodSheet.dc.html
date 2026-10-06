@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How is this calculated</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&amp;family=Mukta:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Mukta,sans-serif;background:#F5F3EA}
+a{color:#0A5F42}a:hover{color:#13261D}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #7C8680; color: #13261D; font-family: Mukta, sans-serif; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden">
+  <div role="dialog" aria-modal="true" aria-labelledby="ms-title" style="background: #FFFFFF; border-radius: 28px 28px 0 0; padding: 12px 20px 24px; display: flex; flex-direction: column; gap: 16px">
+    <div style="align-self: center; width: 40px; height: 4px; border-radius: 2px; background: #DDE3DC"></div>
+    <h2 id="ms-title" style="margin: 0; font-family: 'Baloo 2', sans-serif; font-size: 24px; line-height: 30px; font-weight: 700">How we calculate your footprint</h2>
+
+    <div style="display: flex; gap: 14px">
+      <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #DCEFE3; color: #0A5F42; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"></path></svg></div>
+      <div><div style="font-size: 16px; line-height: 22px; font-weight: 700">You answer in your own words</div><div style="font-size: 14px; line-height: 20px; color: #4B5B53">We never ask for exact numbers.</div></div>
+    </div>
+    <div style="display: flex; gap: 14px">
+      <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #DCEFE3; color: #0A5F42; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></div>
+      <div><div style="font-size: 16px; line-height: 22px; font-weight: 700">AI reads your answers</div><div style="font-size: 14px; line-height: 20px; color: #4B5B53">It picks out the key details — like distance, fuel type or how often.</div></div>
+    </div>
+    <div style="display: flex; gap: 14px">
+      <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #0E7A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"></rect><path d="M8 6h8"></path><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h8"></path></svg></div>
+      <div><div style="font-size: 16px; line-height: 22px; font-weight: 700">Fixed formulas do the maths</div><div style="font-size: 14px; line-height: 20px; color: #4B5B53">Those details go through fixed formulas with standard conversion factors to get kg CO₂e for each category.</div></div>
+    </div>
+
+    <div style="padding: 12px 14px; border-radius: 12px; background: #EEF7F1; font-size: 14px; line-height: 20px">
+      <strong>The AI never decides your number — the formulas do.</strong> Your result is saved with the factor version used (v{factorVersion}), so past results never change.
+    </div>
+
+    <a href="Result.dc.html" style="height: 52px; border-radius: 999px; background: #0E7A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; text-decoration: none">Got It</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
