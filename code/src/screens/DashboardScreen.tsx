@@ -1,0 +1,908 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Animated, Dimensions, Platform, Image } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getToken } from '../utils/tokenStore';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Bell, ChevronRight, Truck, Camera, Clock, Users, Package, Flame, Gamepad2, Gift, Star, ShieldCheck, Coins, BadgeCheck, ArrowRight, X, WifiOff, RefreshCw, Trophy, Sparkles, Leaf } from 'lucide-react-native';
+import { useTheme, makeStyles } from '../theme';
+import { KarmaCoin } from '../components/shared/KarmaCoin';
+import { NotificationPanel } from '../components/shared/NotificationPanel';
+import NotificationPermissionBanner from '../components/shared/NotificationPermissionBanner';
+import NotificationPrimerModal from '../components/shared/NotificationPrimerModal';
+import { UserAvatar } from '../components/shared/UserAvatar';
+import { Avatar } from '../components/shared/Avatar';
+import { getStoredAvatarId, setStoredAvatarId } from '../utils/avatar';
+import { AnimatedPickupCta } from '../components/shared/AnimatedPickupCta';
+import { QuizCalendarModal } from '../components/shared/QuizCalendarModal';
+import { StreakModal } from '../components/shared/StreakModal';
+import { LaunchDayPopup } from '../components/shared/LaunchDayPopup';
+import { useNotifications } from '../context/NotificationContext';
+import { profileService } from '../services/profile';
+import { getLocalDateStr, getLocalYesterdayStr } from '../utils/quizDate';
+import { bookingService } from '../services/booking';
+import { BACKEND_BASE } from '../services/api';
+import { REDEEM_INFO_MESSAGE, showRedeemInfoOnce } from '../utils/redeemInfo';
+import { getStableUserSuffix } from '../utils/userId';
+import { isLaunchDay } from '../utils/launchDay';
+import { EARLY_BIRD_COINS } from '../utils/earlyBird';
+
+
+const STATUS_COLOR: any = {
+  Completed: { bg: "rgba(22,163,74,0.1)", text: "#16a34a", dot: "#16a34a" },
+  "In Transit": { bg: "rgba(245,158,11,0.1)", text: "#d97706", dot: "#f59e0b" },
+};
+
+const CARD_WIDTH = Math.round(Dimensions.get('window').width * 0.42);
+
+const FEATURES = [
+  {
+    id: 'pickup',
+    emoji: '🚛',
+    tag: 'PICKUP',
+    title: 'Schedule a pickup',
+    desc: 'Give your old items a second life — book a pickup in 3 taps and earn KarmaCoins for going green.',
+    benefit: 'Earn Credits on Pickup',
+    benefitIcon: <Coins size={16} color="#f59e0b" />,
+    bg: ['#064e3b', '#065f46'] as [string, string],
+    accent: '#4ade80',
+    steps: ['Select item type', 'Choose time slot', 'Earn Credits ✅'],
+    navTarget: 'SchedulePickup',
+    ctaLabel: 'Schedule now',
+  },
+  {
+    id: 'carbon',
+    emoji: '🌱',
+    tag: 'CARBON',
+    title: 'Carbon footprint',
+    desc: 'Answer a few quick questions about your day to see your carbon footprint, where it comes from, and simple ways to cut it.',
+    benefit: 'Know & cut your CO₂',
+    benefitIcon: <Leaf size={16} color="#bef264" />,
+    bg: ['#365314', '#4d7c0f'] as [string, string],
+    accent: '#bef264',
+    steps: ['Tap your answers', 'See your footprint 🌍', 'Track it monthly'],
+    navTarget: 'CarbonFootprint',
+    ctaLabel: 'Calculate my footprint',
+  },
+  {
+    id: 'earn',
+    emoji: '🪙',
+    tag: 'EARN',
+    title: 'KarmaCoins XP',
+    desc: 'Your coins live in two wallets — Pickup coins from every pickup (always 10 = ₹1), and Reward coins from quizzes, referrals and more that grow in value as your streak runs.',
+    benefit: 'Pickup + Reward coins',
+    benefitIcon: <Star size={16} color="#fbbf24" fill="#fbbf24" />,
+    bg: ['#312e81', '#4338ca'] as [string, string],
+    accent: '#a78bfa',
+    steps: ['Earn in 2 wallets', 'Grow your streak 🔥', 'Redeem for cash'],
+    navTarget: 'Wallet',
+    ctaLabel: 'View my wallet',
+  },
+  {
+    id: 'redeem',
+    emoji: '🎁',
+    tag: 'REDEEM',
+    title: 'Amazing rewards',
+    desc: 'Use your credits for eco products, vouchers, plant trees, or donate to green causes. Real rewards, real impact.',
+    benefit: 'Eco-friendly Goodies',
+    benefitIcon: <Gift size={16} color="#f472b6" />,
+    bg: ['#831843', '#9d174d'] as [string, string],
+    accent: '#f472b6',
+    steps: ['Earn credits', 'Open Store 🛍️', 'Redeem & smile'],
+    navTarget: 'Store',
+    ctaLabel: 'Open store',
+  },
+  {
+    id: 'impact',
+    emoji: '🌍',
+    tag: 'IMPACT',
+    title: 'Your green impact',
+    desc: 'See your personal contribution — CO₂ saved, trees equivalent, and your rank among eco heroes in your city.',
+    benefit: 'Track Your Journey',
+    benefitIcon: <ShieldCheck size={16} color="#34d399" />,
+    bg: ['#0c4a6e', '#0369a1'] as [string, string],
+    accent: '#38bdf8',
+    steps: ['Recover more', 'Climb ranks 📊', 'Become Eco Hero 🏆'],
+    navTarget: 'Profile',
+    ctaLabel: 'See my impact',
+  },
+  {
+    id: 'refer',
+    emoji: '👥',
+    tag: 'REFER',
+    title: 'Invite friends',
+    desc: 'Share your referral code. When your friend makes their first pickup, you both get bonus KarmaCoins XP!',
+    benefit: 'Bonus for Every Friend',
+    benefitIcon: <Coins size={16} color="#fb923c" />,
+    bg: ['#134e4a', '#0f766e'] as [string, string],
+    accent: '#2dd4bf',
+    steps: ['Share code', 'Friend joins 🤝', 'Both get rewards!'],
+    navTarget: 'Referral',
+    ctaLabel: 'Invite friends',
+  },
+];
+
+function FeatureCard({ feature, onPress }: { feature: typeof FEATURES[0], onPress: () => void }) {
+  const styles = useStyles();
+  return (
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress}>
+      <LinearGradient colors={feature.bg} style={[styles.featureCard, { width: CARD_WIDTH }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <View style={styles.featureTagRow}>
+          <View style={[styles.featureTag, { backgroundColor: feature.accent + '30', borderColor: feature.accent + '60' }]}>
+            <Text style={[styles.featureTagText, { color: feature.accent }]}>{feature.tag}</Text>
+          </View>
+        </View>
+
+        <View style={styles.featureMedia}>
+          {feature.id === 'earn'
+            ? <KarmaCoin size={40} />
+            : <Text style={styles.featureEmoji}>{feature.emoji}</Text>}
+        </View>
+        <Text style={styles.featureTitle} numberOfLines={2}>{feature.title}</Text>
+
+        <View style={styles.featureActionRow}>
+          <Text style={[styles.featureActionText, { color: feature.accent }]}>Learn more</Text>
+          <ArrowRight size={12} color={feature.accent} />
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 5) return 'Still awake, night owl? 🦉';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+export function DashboardScreen({ navigation, route }: any) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const [userName, setUserName] = useState('Loading...');
+  const [userGender, setUserGender] = useState<string | null>(null);
+  const [avatarId, setAvatarId] = useState<string | null>(null);
+  const [balance, setBalance] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [quizStreak, setQuizStreak] = useState(0);
+  const [isOffline, setIsOffline] = useState(false);
+  const offlineAnim = useRef(new Animated.Value(0)).current;
+  // Subtle shine sweep across the quiz "Play now" button.
+  const quizShine = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(quizShine, { toValue: 1, duration: 1100, delay: 900, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(quizShine, { toValue: 0, duration: 0, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.delay(1500),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, []);
+  // Ambient twinkle for the quiz card's sparkles (visible in every state).
+  const quizTwinkle = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const t = Animated.loop(
+      Animated.sequence([
+        Animated.timing(quizTwinkle, { toValue: 1, duration: 1200, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(quizTwinkle, { toValue: 0, duration: 1200, useNativeDriver: Platform.OS !== 'web' }),
+      ])
+    );
+    t.start();
+    return () => t.stop();
+  }, []);
+  const [quizHistory, setQuizHistory] = useState<string[]>([]);
+  const [showQuizCal, setShowQuizCal] = useState(false);
+  const [showStreak, setShowStreak] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [totalPickups, setTotalPickups] = useState(0);
+  const [selectedFeature, setSelectedFeature] = useState<typeof FEATURES[0] | null>(null);
+  const [quizPlayedToday, setQuizPlayedToday] = useState(false);
+  const [showLaunchPopup, setShowLaunchPopup] = useState(false);
+  const [showWelcomeBonusBanner, setShowWelcomeBonusBanner] = useState(false);
+
+  // New signup arriving straight from the Welcome Celebration scratch card —
+  // show the "coins added" banner once, then clear the param so it doesn't
+  // reappear on the next tab focus.
+  useEffect(() => {
+    if (route?.params?.justClaimedWelcomeBonus) {
+      setShowWelcomeBonusBanner(true);
+      navigation.setParams({ justClaimedWelcomeBonus: undefined });
+    }
+  }, [route?.params?.justClaimedWelcomeBonus]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [profileData, ordersData] = await Promise.all([
+          profileService.getProfile().catch(() => ({})),
+          bookingService.getMyBookings().catch(() => [])
+        ]);
+
+        if (profileData.name) setUserName(
+          profileData.name
+            .split(' ')
+            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join(' ')
+        );
+        setUserGender(profileData.demographics?.gender || profileData.gender || null);
+        const resolvedAvatar = profileData.avatarId || (await getStoredAvatarId());
+        if (resolvedAvatar) {
+          setAvatarId(resolvedAvatar);
+          if (profileData.avatarId) setStoredAvatarId(profileData.avatarId);
+        }
+        setBalance(profileData.karmaCoins || profileData.coins || 0);
+        // Day streak is tracked on-device from app visits (see computeVisitStreak), not the backend.
+
+        if (ordersData && Array.isArray(ordersData)) {
+          const formattedOrders = ordersData.slice(0, 2).map((order: any) => {
+            let uiStatus = 'Scheduled';
+            if (order.status === 'COMPLETED') uiStatus = 'Completed';
+            if (order.status === 'IN_TRANSIT' || order.status === 'ACCEPTED') uiStatus = 'In Transit';
+
+            const dateObj = new Date(order.pickupDate);
+            const dateStr = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+            const mainCategory = order.categories?.[0]?.subCategory || order.categories?.[0]?.category || 'Mixed Waste';
+            
+            const rawId = order._id || order.id || '00000000';
+            return {
+              id: `#${rawId.substring(0, 8).toUpperCase()}`,
+              type: mainCategory,
+              date: dateStr,
+              status: uiStatus,
+              credits: order.totalKarmaCoins || 0
+            };
+          });
+          setRecentOrders(formattedOrders);
+          setTotalPickups(ordersData.filter((o: any) => o.status === 'COMPLETED').length);
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard data", error);
+      }
+    };
+    
+    const fetchQuizStreak = async () => {
+      const token = await getToken();
+      const suffix = getStableUserSuffix(token);
+      const [storedDate, storedStreak, storedHistory] = await Promise.all([
+        AsyncStorage.getItem(`lastQuizDate_${suffix}`),
+        AsyncStorage.getItem(`quizStreak_${suffix}`),
+        AsyncStorage.getItem(`quizHistory_${suffix}`),
+      ]);
+      let history: string[] = storedHistory ? JSON.parse(storedHistory) : [];
+      // If history is empty but lastQuizDate exists, seed it (quiz played before history tracking was added)
+      if (history.length === 0 && storedDate && /^\d{4}-\d{2}-\d{2}$/.test(storedDate)) {
+        history = [storedDate];
+        await AsyncStorage.setItem(`quizHistory_${suffix}`, JSON.stringify(history));
+      }
+      setQuizHistory(history);
+      if (!storedDate) { setQuizStreak(0); return; }
+      const todayStr = getLocalDateStr();
+      const yesterdayStr = getLocalYesterdayStr();
+      setQuizPlayedToday(storedDate === todayStr);
+      const valid = storedDate === todayStr || storedDate === yesterdayStr;
+      if (!valid) {
+        await AsyncStorage.setItem(`quizStreak_${suffix}`, '0');
+        setQuizStreak(0);
+      } else {
+        setQuizStreak(Number(storedStreak) || 0);
+      }
+    };
+
+    // Day streak (on-device): +1 for each consecutive day the app is opened.
+    // Same day = no change; a missed day resets to 1. No backend involved.
+    const computeVisitStreak = async () => {
+      const token = await getToken();
+      const suffix = getStableUserSuffix(token);
+      const todayStr = getLocalDateStr();
+      const yesterdayStr = getLocalYesterdayStr();
+      const [lastVisit, storedStreak] = await Promise.all([
+        AsyncStorage.getItem(`lastVisitDate_${suffix}`),
+        AsyncStorage.getItem(`visitStreak_${suffix}`),
+      ]);
+      let streakVal = Number(storedStreak) || 0;
+      if (lastVisit === todayStr) {
+        streakVal = streakVal || 1;
+      } else {
+        streakVal = lastVisit === yesterdayStr ? streakVal + 1 : 1;
+        await AsyncStorage.multiSet([
+          [`visitStreak_${suffix}`, String(streakVal)],
+          [`lastVisitDate_${suffix}`, todayStr],
+        ]);
+      }
+      setStreak(streakVal);
+    };
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchDashboardData();
+      fetchQuizStreak();
+      computeVisitStreak();
+    });
+    fetchDashboardData();
+    fetchQuizStreak();
+    computeVisitStreak();
+
+    (async () => {
+      const token = await getToken();
+      showRedeemInfoOnce(`firstHomeRedeemInfo_${getStableUserSuffix(token)}`);
+
+      if (isLaunchDay()) {
+        const suffix = getStableUserSuffix(token);
+        const todayStr = getLocalDateStr();
+        const key = `launchDayConfettiSeen_${suffix}`;
+        const lastSeen = await AsyncStorage.getItem(key);
+        if (lastSeen !== todayStr) {
+          setShowLaunchPopup(true);
+          await AsyncStorage.setItem(key, todayStr);
+        }
+      }
+    })();
+
+    return unsubscribe;
+  }, [navigation]);
+
+  // Network connectivity check
+  const isOfflineRef = useRef(false);
+  useEffect(() => {
+    const setOnline = () => {
+      if (isOfflineRef.current) {
+        isOfflineRef.current = false;
+        Animated.timing(offlineAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setIsOffline(false));
+      }
+    };
+    const setOffline = () => {
+      if (!isOfflineRef.current) {
+        isOfflineRef.current = true;
+        setIsOffline(true);
+        Animated.timing(offlineAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (!navigator.onLine) setOffline();
+      window.addEventListener('online', setOnline);
+      window.addEventListener('offline', setOffline);
+      return () => {
+        window.removeEventListener('online', setOnline);
+        window.removeEventListener('offline', setOffline);
+      };
+    } else {
+      const checkNet = () => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        fetch(`${BACKEND_BASE}/`, { method: 'HEAD', cache: 'no-store', signal: controller.signal })
+          .then(() => { clearTimeout(timer); setOnline(); })
+          .catch(() => { clearTimeout(timer); setOffline(); });
+      };
+      checkNet();
+      const interval = setInterval(checkNet, 8000);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+
+    {/* Offline banner */}
+    {isOffline && (
+      <Animated.View style={[styles.offlineBanner, { opacity: offlineAnim, transform: [{ translateY: offlineAnim.interpolate({ inputRange: [0, 1], outputRange: [-48, 0] }) }] }]}>
+        <WifiOff size={15} color="white" />
+        <Text style={styles.offlineText}>No internet connection</Text>
+        <TouchableOpacity onPress={() => {
+          fetch(`${BACKEND_BASE}/`, { method: 'HEAD', cache: 'no-store' })
+            .then(() => { setIsOffline(false); })
+            .catch(() => {});
+        }}>
+          <RefreshCw size={14} color="rgba(255,255,255,0.8)" />
+        </TouchableOpacity>
+      </Animated.View>
+    )}
+
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+      {/* Green Header */}
+      <LinearGradient colors={['#052e16', '#166534', '#15803d']} style={styles.header}>
+        {/* Top bar */}
+        <View style={styles.topBar}>
+          <View style={styles.userInfo}>
+            <TouchableOpacity style={styles.avatar} onPress={() => navigation.navigate('Profile')}>
+              {avatarId ? (
+                <Avatar avatarId={avatarId} size={40} ring />
+              ) : (
+                <UserAvatar gender={userGender} size={40} ring />
+              )}
+            </TouchableOpacity>
+            <View>
+              <Text style={styles.greetingText}>{getGreeting()},</Text>
+              <Text style={styles.nameText}>{userName.split(' ')[0]} 👋</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity style={styles.bellButton} onPress={() => setShowNotifications(true)}>
+              <Bell size={20} color="white" />
+              {unreadCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* KarmaCoins XP card */}
+        <View style={styles.creditsCard}>
+          <View style={styles.creditsHeader}>
+            <Text style={styles.creditsLabel}>KarmaCoins XP balance</Text>
+            <TouchableOpacity style={styles.walletLink} onPress={() => navigation.navigate('Wallet')}>
+              <Text style={styles.walletLinkText}>Wallet</Text>
+              <ChevronRight size={14} color="#86efac" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.balanceRow}>
+            <KarmaCoin size={44} glow animated />
+            <Text style={styles.balanceText}>{balance.toLocaleString()}</Text>
+          </View>
+
+          {/* Redeem info banner */}
+          <View style={[styles.redeemBanner, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+            <KarmaCoin size={18} />
+            <Text style={[styles.redeemBannerText, { flex: 1 }]}>{REDEEM_INFO_MESSAGE}</Text>
+          </View>
+        </View>
+
+        {/* Stats grid — mirrors the web dashboard (Total Karma Coins / Day streak / Eco Quiz Streak / Sustainability Actions) */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
+          {[
+            { Icon: Coins, color: '#4ade80', val: balance.toLocaleString(), label: 'Total Karma Coins', onPress: () => navigation.navigate('Wallet') },
+            { Icon: Flame, color: '#fb923c', val: `${streak}`, label: 'Day streak', onPress: () => setShowStreak(true) },
+            { Icon: Trophy, color: '#fde68a', val: `${quizStreak}`, label: 'Eco Quiz Streak', onPress: () => setShowQuizCal(true) },
+            { Icon: Package, color: '#22d3ee', val: `${totalPickups}`, label: 'Sustainability Actions', onPress: () => navigation.navigate('Orders', { tab: 'History' }) },
+          ].map((st, i) => (
+            <TouchableOpacity key={i} style={styles.statTile} activeOpacity={0.7} onPress={st.onPress}>
+              <View style={styles.statTileTop}>
+                <View style={[styles.statTileIcon, { backgroundColor: st.color + '22' }]}>
+                  <st.Icon size={14} color={st.color} />
+                </View>
+                <Text style={styles.statTileLabel} numberOfLines={1}>{st.label}</Text>
+                <ChevronRight size={13} color="rgba(255,255,255,0.4)" />
+              </View>
+              <Text style={[styles.statTileVal, { color: st.color }]}>{st.val}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </LinearGradient>
+
+      <QuizCalendarModal visible={showQuizCal} onClose={() => setShowQuizCal(false)} playedDates={quizHistory} streak={quizStreak} />
+      <StreakModal visible={showStreak} onClose={() => setShowStreak(false)} streak={streak} />
+
+      {/* Notifications-off nudge — links to OS settings when the user turned push off */}
+      <NotificationPermissionBanner />
+
+      {/* Welcome bonus banner — shown once, right after claiming on the scratch card */}
+      {showWelcomeBonusBanner && (
+        <View style={styles.section}>
+          <TouchableOpacity activeOpacity={0.9} onPress={() => setShowWelcomeBonusBanner(false)}>
+            <LinearGradient colors={['#166534', '#15803d', '#22c55e']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.welcomeBonusBanner}>
+              <KarmaCoin size={26} />
+              <Text style={styles.welcomeBonusText}>🎁 Welcome, Early Bird! Your {EARLY_BIRD_COINS.toLocaleString()} Karma Coins have been credited successfully. Schedule your first pickup today and unlock even more rewards, badges, and exclusive partner vouchers.</Text>
+              <X size={16} color="rgba(255,255,255,0.7)" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Schedule pickup CTA (Featured-rewards partner cards removed to match web) */}
+      <View style={styles.section}>
+        <AnimatedPickupCta
+          label={recentOrders.length > 0 ? 'Schedule a Pickup' : 'Schedule Your First Pickup'}
+          onPress={() => navigation.navigate('SchedulePickup')}
+        />
+      </View>
+
+      {/* Impact — carbon footprint entry (reuses the Recent orders card styles) */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Your impact</Text>
+        <TouchableOpacity
+          style={styles.orderCard}
+          onPress={() => navigation.navigate('CarbonFootprint')}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Carbon footprint. Track and reduce your impact"
+        >
+          <View style={styles.orderIconBg}><Leaf size={20} color={colors.primary} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.orderTitle}>Carbon footprint</Text>
+            <Text style={styles.orderSub}>Track and reduce your impact</Text>
+          </View>
+          <View style={styles.seeAllBtn}>
+            <Text style={styles.seeAllText}>View</Text>
+            <ChevronRight size={14} color={colors.primary} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Impact Cards */}
+      {/* Feature Discovery — Swipeable Cards */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text numberOfLines={1} style={[styles.sectionTitle, { marginBottom: 0, flexShrink: 0 }]}>Discover the feature ✨</Text>
+          <Text numberOfLines={1} style={styles.discoverSub}>Swipe to explore →</Text>
+        </View>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          snapToInterval={CARD_WIDTH + 16}
+          snapToAlignment="start"
+          contentContainerStyle={{ paddingHorizontal: 4, gap: 16, paddingBottom: 8 }}
+        >
+          {FEATURES.map((feature) => (
+            <FeatureCard key={feature.id} feature={feature} onPress={() => setSelectedFeature(feature)} />
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Daily Eco-Quiz Banner */}
+      <View style={styles.section}>
+        <LinearGradient colors={['#4c1d95', '#6d28d9', '#9333ea']} style={styles.quizCard} start={{x:0, y:0}} end={{x:1,y:1}}>
+          {/* Decorative background — coin + twinkling sparkles */}
+          <View pointerEvents="none" style={styles.quizDecor}>
+            <View style={{ position: 'absolute', top: 6, right: 14, opacity: 0.16 }}><KarmaCoin size={72} /></View>
+            <Animated.View style={{ position: 'absolute', top: 20, right: 92, opacity: quizTwinkle.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.95] }) }}>
+              <Sparkles size={16} color="#fcd34d" />
+            </Animated.View>
+            <Animated.View style={{ position: 'absolute', top: 54, right: 34, opacity: quizTwinkle.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0.25] }) }}>
+              <Sparkles size={11} color="#ffffff" />
+            </Animated.View>
+            <Animated.View style={{ position: 'absolute', bottom: 62, left: 26, opacity: quizTwinkle.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.8] }) }}>
+              <Sparkles size={13} color="#e9d5ff" />
+            </Animated.View>
+          </View>
+
+          <View style={styles.quizContent}>
+            <View style={styles.quizIconBg}>
+              <Gamepad2 size={24} color="#fbbf24" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.quizTitle}>Daily eco-quiz</Text>
+              <Text style={styles.quizSub}>Test your green IQ and earn KarmaCoins XP.</Text>
+              <View style={styles.quizChipsRow}>
+                <View style={styles.quizChip}><Text style={styles.quizChipText}>3 questions</Text></View>
+                <View style={styles.quizChip}><Text style={styles.quizChipText}>~1 min</Text></View>
+              </View>
+            </View>
+          </View>
+
+          {quizPlayedToday ? (
+            <View style={[styles.quizBtn, styles.quizBtnDone]}>
+              <BadgeCheck size={18} color="#6d28d9" />
+              <Text style={styles.quizBtnDoneText}>Played today · unlocks 12:00 AM</Text>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.quizBtn} onPress={() => navigation.navigate('Quiz')} activeOpacity={0.9}>
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.quizShine, { transform: [{ translateX: quizShine.interpolate({ inputRange: [0, 1], outputRange: [-70, 380] }) }, { skewX: '-20deg' }] }]}
+              />
+              <Text style={styles.quizBtnText}>Play now</Text>
+              <ArrowRight size={18} color="#78350f" />
+            </TouchableOpacity>
+          )}
+        </LinearGradient>
+      </View>
+
+      {/* Smart Quick Actions — context-aware based on user state */}
+      {(() => {
+        const hasActiveOrder = recentOrders.some(o => o.status === 'In Transit' || o.status === 'Scheduled');
+        type ActionConfig = { id: string; label: string; IconComp: any; color: string; bg: string; iconBg: string; navTarget: string; badge?: string };
+        const picked: ActionConfig[] = [];
+
+        if (!quizPlayedToday) picked.push({ id: 'quiz', label: "Today's\nquiz", IconComp: Gamepad2, color: '#d97706', bg: '#fffbeb', iconBg: 'rgba(217,119,6,0.1)', navTarget: 'Quiz', badge: '🔥 New' });
+        if (hasActiveOrder) picked.push({ id: 'track', label: 'Track\npickup', IconComp: Truck, color: '#0891b2', bg: '#f0f9ff', iconBg: 'rgba(8,145,178,0.1)', navTarget: 'Orders', badge: '● Live' });
+
+        // Redeem sits AFTER the pickup actions (never between Track and Schedule).
+        const defaults: ActionConfig[] = [
+          { id: 'pickup',  label: 'Schedule\npickup', IconComp: Truck,  color: '#16a34a', bg: '#f0fdf4', iconBg: 'rgba(22,163,74,0.1)',    navTarget: 'SchedulePickup' },
+          ...(balance >= 1000 ? [{ id: 'redeem', label: 'Redeem\nrewards', IconComp: Gift, color: '#db2777', bg: '#fdf2f8', iconBg: 'rgba(219,39,119,0.1)', navTarget: 'Store' }] : []),
+          { id: 'refer',   label: 'Refer\n& earn',    IconComp: Users,  color: '#db2777', bg: '#fdf2f8', iconBg: 'rgba(219,39,119,0.1)',   navTarget: 'Referral' },
+          { id: 'orders',  label: 'My\norders',       IconComp: Clock,  color: '#7c3aed', bg: '#faf5ff', iconBg: 'rgba(124,58,237,0.1)',   navTarget: 'Orders' },
+          { id: 'wallet',  label: 'My\nwallet',       IconComp: Coins,  color: '#d97706', bg: '#fffbeb', iconBg: 'rgba(217,119,6,0.1)',    navTarget: 'Wallet' },
+          { id: 'quiz_d',  label: "Today's\nquiz",    IconComp: Gamepad2, color: '#d97706', bg: '#fffbeb', iconBg: 'rgba(217,119,6,0.1)', navTarget: 'Quiz' },
+        ];
+        for (const def of defaults) {
+          if (picked.length >= 4) break;
+          if (!picked.find(a => a.id === def.id && a.id !== 'quiz_d')) picked.push(def);
+        }
+        const actions = picked.slice(0, 4);
+
+        return (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick actions</Text>
+            <View style={styles.actionsGrid}>
+              {actions.map((action) => (
+                <TouchableOpacity key={action.id} style={[styles.actionBtn, { backgroundColor: action.bg }]} onPress={() => navigation.navigate(action.navTarget)}>
+                  {action.badge && (
+                    <View style={styles.actionBadge}>
+                      <Text style={styles.actionBadgeText}>{action.badge}</Text>
+                    </View>
+                  )}
+                  <View style={[styles.actionIconBg, { backgroundColor: action.iconBg }]}>
+                    <action.IconComp size={20} color={action.color} />
+                  </View>
+                  <Text style={styles.actionText} numberOfLines={2} adjustsFontSizeToFit allowFontScaling={false}>{action.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        );
+      })()}
+
+      {/* Recent Orders */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Recent orders</Text>
+          <TouchableOpacity style={styles.seeAllBtn} onPress={() => navigation.navigate('Orders')}>
+            <Text style={styles.seeAllText}>See all</Text>
+            <ChevronRight size={14} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.ordersList}>
+          {recentOrders.length === 0 ? (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: colors.textFaint }}>No recent orders.</Text>
+            </View>
+          ) : recentOrders.map((order) => {
+            const sc = STATUS_COLOR[order.status] || STATUS_COLOR['Completed'];
+            return (
+              <TouchableOpacity key={order.id} style={styles.orderCard} activeOpacity={0.7}
+                onPress={() => navigation.navigate('Orders')}>
+                <View style={styles.orderIconBg}>
+                  <Package size={18} color={colors.primary} />
+                </View>
+                <View style={styles.orderContent}>
+                  <View style={styles.orderRowJustify}>
+                    <Text style={styles.orderTitle}>{order.type}</Text>
+                    <View style={[styles.orderStatusBadge, { backgroundColor: sc.bg }]}>
+                      <View style={[styles.orderStatusDot, { backgroundColor: sc.dot }]} />
+                      <Text style={[styles.orderStatusText, { color: sc.text }]}>{order.status}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.orderRowJustify}>
+                    <Text style={styles.orderSub}>{order.id} • {order.date}</Text>
+                    <View style={styles.orderCreditsBadge}>
+                      <KarmaCoin size={14} />
+                      <Text style={styles.orderCreditsText}>+{order.credits}</Text>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Knowledge Hub (LinkedIn Articles) */}
+      <View style={[styles.section, { marginBottom: 40 }]}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Knowledge hub</Text>
+          <TouchableOpacity style={styles.seeAllBtn} onPress={() => navigation.navigate('KnowledgeHub')}>
+            <Text style={styles.seeAllText}>More articles</Text>
+            <ChevronRight size={14} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 16 }}>
+          <TouchableOpacity style={styles.articleCard} activeOpacity={0.8} onPress={() => navigation.navigate('ArticleDetail', { id: 'cut-plastic-at-home' })}>
+            <Image source={require('../../assets/catalogue/hard-plastic.jpg')} style={[styles.articleImgPlaceholder, { backgroundColor: '#dcfce7' }]} resizeMode="cover" />
+            <Text style={styles.articleTitle}>5 easy ways to cut plastic waste at home</Text>
+            <Text style={styles.articleSource}>KarmaVerse editorial</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.articleCard} activeOpacity={0.8} onPress={() => navigation.navigate('ArticleDetail', { id: 'india-ewaste' })}>
+            <Image source={require('../../assets/catalogue/desktop.jpg')} style={[styles.articleImgPlaceholder, { backgroundColor: '#e0f2fe' }]} resizeMode="cover" />
+            <Text style={styles.articleTitle}>India's e-waste mountain — and the opportunity inside it</Text>
+            <Text style={styles.articleSource}>KarmaVerse editorial</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+
+      {/* Feature Details Modal */}
+      <Modal visible={!!selectedFeature} transparent animationType="slide" onRequestClose={() => setSelectedFeature(null)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setSelectedFeature(null)} />
+          {selectedFeature && (
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <View style={{ flex: 1 }}>
+                  {selectedFeature.id === 'earn'
+                    ? <View style={{ marginBottom: 8 }}><KarmaCoin size={36} /></View>
+                    : <Text style={styles.modalEmoji}>{selectedFeature.emoji}</Text>}
+                  <Text style={styles.modalTitle}>{selectedFeature.title}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setSelectedFeature(null)} style={styles.closeBtn}>
+                  <X size={20} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalDesc}>{selectedFeature.desc}</Text>
+
+              <View style={styles.modalStepsContainer}>
+                {selectedFeature.steps.map((step, index) => (
+                  <View key={index} style={styles.modalStepRow}>
+                    <View style={[styles.stepCircle, { backgroundColor: selectedFeature.accent + '20' }]}>
+                      <Text style={{ color: selectedFeature.accent, fontWeight: '900' }}>{index + 1}</Text>
+                    </View>
+                    <Text style={styles.modalStepText}>{step}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={[styles.modalBenefit, { backgroundColor: selectedFeature.accent + '15', borderColor: selectedFeature.accent + '30' }]}>
+                {selectedFeature.benefitIcon}
+                <Text style={[styles.modalBenefitText, { color: selectedFeature.accent }]}>{selectedFeature.benefit}</Text>
+              </View>
+
+              {(selectedFeature as any).navTarget && (
+                <TouchableOpacity
+                  style={[styles.modalCta, { backgroundColor: selectedFeature.accent }]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setSelectedFeature(null);
+                    navigation.navigate((selectedFeature as any).navTarget);
+                  }}
+                >
+                  <Text style={styles.modalCtaText}>{(selectedFeature as any).ctaLabel || 'Open'}</Text>
+                  <ArrowRight size={16} color="white" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+      </Modal>
+
+    </ScrollView>
+
+    <NotificationPrimerModal />
+
+    <NotificationPanel
+      visible={showNotifications}
+      onClose={() => setShowNotifications(false)}
+      notifications={notifications}
+      unreadCount={unreadCount}
+      onMarkRead={markRead}
+      onMarkAllRead={markAllRead}
+      onClearAll={clearAll}
+    />
+
+    {showLaunchPopup && <LaunchDayPopup onClose={() => setShowLaunchPopup(false)} />}
+    </View>
+  );
+}
+
+const useStyles = makeStyles((c) => ({
+  container: { flex: 1, backgroundColor: c.bg },
+  offlineBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#ef4444', paddingVertical: 10, paddingHorizontal: 16, zIndex: 99 },
+  offlineText: { flex: 1, textAlign: 'center', fontSize: 13, fontWeight: '700', color: 'white' },
+  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 24, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  userInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  greetingText: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '500' },
+  nameText: { color: 'white', fontSize: 16, fontWeight: '700' },
+  bellButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  bellBadge: { position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#052e16', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  bellBadgeText: { fontSize: 10, fontWeight: '800', color: 'white' },
+  creditsCard: { borderRadius: 24, padding: 20, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  creditsHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  creditsLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600', letterSpacing: 1 },
+  walletLink: { flexDirection: 'row', alignItems: 'center' },
+  walletLinkText: { fontSize: 12, color: '#86efac', fontWeight: '600' },
+  balanceRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
+  balanceText: { fontSize: 42, color: 'white', fontWeight: '800' },
+  redeemBanner: { marginTop: 14, padding: 12, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  redeemBannerText: { color: 'rgba(255,255,255,0.75)', fontSize: 11.5, fontWeight: '600', lineHeight: 16 },
+  statTile: { flexGrow: 1, flexBasis: '46%', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  statTileTop: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  statTileIcon: { width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  statTileLabel: { flex: 1, fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: '600' },
+  statTileVal: { fontSize: 20, fontWeight: '900' },
+  section: { paddingHorizontal: 20, marginTop: 24 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: c.text, marginBottom: 12 },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  seeAllBtn: { flexDirection: 'row', alignItems: 'center' },
+  seeAllText: { fontSize: 12, color: c.primary, fontWeight: '600' },
+  actionsGrid: { flexDirection: 'row', gap: 12, justifyContent: 'space-between' },
+  actionBtn: { flex: 1, padding: 12, borderRadius: 16, alignItems: 'center', gap: 8, position: 'relative' },
+  actionIconBg: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  actionText: { fontSize: 10, color: '#374151', fontWeight: '600', textAlign: 'center' },
+  actionBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: '#16a34a', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
+  actionBadgeText: { color: 'white', fontSize: 8, fontWeight: '800' },
+  impactGrid: { flexDirection: 'row', gap: 12 },
+  impactCard: { flex: 1, padding: 16, borderRadius: 16, elevation: 1 },
+  impactCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  impactIconWrapper: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  impactValue: { fontSize: 20, fontWeight: '800', color: '#111827' },
+  impactLabel: { fontSize: 12, fontWeight: '600', color: '#374151' },
+  impactSub: { fontSize: 10, fontWeight: '500', color: '#9ca3af', marginTop: 2 },
+  ordersList: { gap: 12 },
+  orderCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, backgroundColor: c.surface, borderRadius: 16, elevation: 2, borderWidth: 1, borderColor: c.border },
+  orderIconBg: { width: 40, height: 40, borderRadius: 12, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  orderContent: { flex: 1 },
+  orderRowJustify: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  orderTitle: { fontSize: 14, fontWeight: '700', color: c.text },
+  orderStatusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
+  orderStatusDot: { width: 6, height: 6, borderRadius: 3 },
+  orderStatusText: { fontSize: 11, fontWeight: '600' },
+  orderSub: { fontSize: 12, color: c.textFaint, fontWeight: '500' },
+  orderCreditsBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  orderCreditsText: { fontSize: 13, color: '#d97706', fontWeight: '700' },
+  quizCard: { borderRadius: 24, padding: 20, overflow: 'hidden', elevation: 6, shadowColor: '#6d28d9', shadowOffset: {width: 0, height: 6}, shadowOpacity: 0.35, shadowRadius: 12, borderWidth: 1, borderColor: '#a855f7' },
+  quizDecor: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  quizContent: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
+  quizIconBg: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  quizTitle: { fontSize: 18, fontWeight: '900', color: 'white' },
+  quizSub: { fontSize: 13, color: '#e9d5ff', fontWeight: '600', lineHeight: 18, marginTop: 4 },
+  quizChipsRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  quizChip: { backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  quizChipText: { color: '#f3e8ff', fontSize: 11, fontWeight: '700' },
+  quizBtn: { backgroundColor: '#fbbf24', paddingVertical: 14, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, overflow: 'hidden', shadowColor: '#f59e0b', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
+  quizShine: { position: 'absolute', top: 0, bottom: 0, width: 40, backgroundColor: 'rgba(255,255,255,0.45)' },
+  quizBtnText: { color: '#78350f', fontSize: 15, fontWeight: '900' },
+  quizBtnDone: { backgroundColor: 'rgba(255,255,255,0.92)' },
+  quizBtnDoneText: { color: '#6d28d9', fontSize: 14, fontWeight: '800' },
+  quizStreakRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 14 },
+  quizStreakLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  quizStreakCount: { fontSize: 18, fontWeight: '900', color: 'white' },
+  quizStreakLabel: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.8)' },
+  quizStreakTap: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
+  articleCard: { width: 220, backgroundColor: c.surface, borderRadius: 16, overflow: 'hidden', elevation: 2, borderWidth: 1, borderColor: c.border },
+  articleImgPlaceholder: { height: 120, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  articleTitle: { padding: 12, fontSize: 14, fontWeight: '700', color: c.text, paddingBottom: 4 },
+  articleSource: { paddingHorizontal: 12, paddingBottom: 12, fontSize: 11, color: c.textMuted, fontWeight: '500' },
+  discoverSub: { fontSize: 12, color: c.textFaint, fontWeight: '600', flexShrink: 1, marginLeft: 8, textAlign: 'right' },
+
+  // Feature Discovery Card Styles
+  featureCard: { borderRadius: 24, padding: 20, height: 198, justifyContent: 'space-between', elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  featureTagRow: { marginBottom: 14 },
+  featureTag: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
+  featureTagText: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
+  // Fixed-height media slot keeps the title/action aligned across cards regardless of
+  // whether the media is an emoji or the coin (emoji metrics differ between Expo Go and a release build).
+  featureMedia: { height: 44, justifyContent: 'center', marginBottom: 10 },
+  featureEmoji: { fontSize: 40, lineHeight: 44 },
+  featureTitle: { fontSize: 18, fontWeight: '900', color: 'white', marginBottom: 10, letterSpacing: -0.3, lineHeight: 23 },
+  featureDesc: { fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 20, fontWeight: '500', marginBottom: 18 },
+  featureActionRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 'auto' },
+  featureActionText: { fontSize: 11, fontWeight: '800' },
+  
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: c.overlay, justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: c.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  modalEmoji: { fontSize: 40, marginBottom: 8 },
+  modalTitle: { fontSize: 24, fontWeight: '900', color: c.text, letterSpacing: -0.5 },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  modalDesc: { fontSize: 15, color: c.textMuted, lineHeight: 24, marginBottom: 24 },
+  modalStepsContainer: { gap: 16, marginBottom: 32 },
+  modalStepRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepCircle: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  modalStepText: { fontSize: 15, fontWeight: '600', color: c.text, flex: 1 },
+  modalBenefit: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 16, borderWidth: 1 },
+  modalBenefitText: { fontSize: 15, fontWeight: '800' },
+  modalCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, paddingVertical: 14, borderRadius: 100 },
+  modalCtaText: { color: 'white', fontWeight: '900', fontSize: 15 },
+
+  // Welcome bonus banner
+  welcomeBonusBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 14 },
+  welcomeBonusText: { flex: 1, color: 'white', fontSize: 12, fontWeight: '700', lineHeight: 17 },
+
+  // Featured rewards
+  rewardCard: { width: 130, borderRadius: 16, overflow: 'hidden', elevation: 2 },
+  rewardCardInner: { padding: 14, minHeight: 110, justifyContent: 'center' },
+  rewardCardEmoji: { fontSize: 26, marginBottom: 8 },
+  rewardCardBrand: { color: 'white', fontSize: 12, fontWeight: '900', marginBottom: 2 },
+  rewardCardLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '600', lineHeight: 13 },
+}));
