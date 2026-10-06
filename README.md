@@ -7,6 +7,7 @@
 - 0feb832 Carbon footprint: add assessment flow and journey, gate unbuilt API
 - 117696a Carbon footprint: review changes — chat assessment, discoverability
 - 0d5c0fe Merge main; adopt dark mode and shared push router
+- 8a37799 Carbon footprint: add insights dashboard with charts
 
 Apply from a Karmaverse checkout:
 
