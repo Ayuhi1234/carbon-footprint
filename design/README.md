@@ -9,14 +9,37 @@ Every screenshot below is taken from the real KarmaCredits app build (React Nati
 
 | Path | What it is |
 |---|---|
-| `screens/round-2/` | Latest screens, after review feedback (chat assessment, discoverability, mailer) |
+| `screens/insights/` | Carbon insights dashboard (charts & visualization), light and dark |
+| `screens/round-2/` | Screens after review feedback (chat assessment, discoverability, mailer) |
 | `screens/v1/` | First built version (free-text questions), kept for comparison |
 | `canvas/` | Source of the design canvas: one `.dc.html` per artboard plus `canvas.json` (layout, pages, notes). Images are referenced as canvas assets (`/_blob/…`), so these files render inside the canvas, not on GitHub. |
 | `../docs/carbon-footprint-ux-spec.md` | Original UX specification |
 
 ---
 
-## Round 2 — after review feedback (latest)
+## Charts & visualization — Carbon insights dashboard (latest)
+
+Opened from the **Insights** button on My carbon footprint, or "See all insights" on My carbon journey. Development plan and status: [`../docs/development-plan.md`](../docs/development-plan.md).
+
+| Insights button | Dashboard — light | Dashboard — dark |
+|---|---|---|
+| ![Hub](screens/insights/light-hub.png) | ![Insights light](screens/insights/light-full.png) | ![Insights dark](screens/insights/dark-full.png) |
+
+| Tap a point for its value | View as table | Range filter: 3 months | Empty state |
+|---|---|---|---|
+| ![Tap](screens/insights/light-tap.png) | ![Table](screens/insights/light-table.png) | ![3 months](screens/insights/light-3m.png) | ![Empty](screens/insights/empty.png) |
+
+- **Hero:** current footprint vs last time.
+- **One range filter** (3 months / 6 months / 1 year / All) above everything; tiles and charts update together.
+- **Tiles:** average per month, lowest month, CO₂ saved.
+- **Footprint over time:** line chart with the goal line; tap or tab to a point for its exact value; "View as table" shows the same numbers.
+- **Where it comes from:** latest result, biggest source highlighted.
+- **How each area is changing:** a small trend per category with ↓ / ↑ vs last time.
+- One green hue (no colour legend to learn); light and dark mode.
+
+---
+
+## Round 2 — after review feedback
 
 ### 1 · Discoverability
 

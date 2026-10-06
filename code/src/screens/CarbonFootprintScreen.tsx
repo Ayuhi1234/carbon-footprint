@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Leaf, Info, History, ChevronLeft, ChevronRight, Clock, X, Target, Plus, Lightbulb, Recycle, Calculator, LineChart } from 'lucide-react-native';
+import { Leaf, Info, History, ChevronLeft, ChevronRight, Clock, X, Target, Plus, Lightbulb, Recycle, Calculator, LineChart, BarChart3 } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
 import {
@@ -200,9 +200,9 @@ export function CarbonFootprintScreen({ navigation }: any) {
             <Target size={18} color="#d97706" />
             <Text style={[styles.actionLabel, { color: '#d97706' }]} numberOfLines={1}>Set goal</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSky]} onPress={openJourney} activeOpacity={0.8} accessibilityRole="button">
-            <History size={18} color="#0ea5e9" />
-            <Text style={[styles.actionLabel, { color: '#0ea5e9' }]} numberOfLines={1}>Journey</Text>
+          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSky]} onPress={() => navigation.navigate('CarbonInsights')} activeOpacity={0.8} accessibilityRole="button">
+            <BarChart3 size={18} color="#0ea5e9" />
+            <Text style={[styles.actionLabel, { color: '#0ea5e9' }]} numberOfLines={1}>Insights</Text>
           </TouchableOpacity>
         </View>
 

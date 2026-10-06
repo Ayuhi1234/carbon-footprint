@@ -135,7 +135,12 @@ export function CarbonJourneyScreen({ navigation }: any) {
           <>
             {/* Trend — simple bars, oldest to newest */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Monthly trend</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Monthly trend</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('CarbonInsights')} activeOpacity={0.8} accessibilityRole="button" style={{ paddingVertical: 6 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>See all insights →</Text>
+                </TouchableOpacity>
+              </View>
               {trend.length < 2 ? (
                 <View style={[styles.rowCard, { justifyContent: 'center' }]}>
                   <Text style={styles.rowMeta}>Calculate again later to see how your footprint changes.</Text>

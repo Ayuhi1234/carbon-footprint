@@ -27,6 +27,7 @@ const PROTECTED = [
   '/carbonfootprint',
   '/carbonassessment',
   '/carbonjourney',
+  '/carboninsights',
 ];
 
 // Capture as early as possible (before the router rewrites the URL). No-op unless

@@ -15,7 +15,7 @@ export const DEFAULT_ACTION = 'expo.modules.notifications.actions.DEFAULT';
 // Screens a marketing / engagement notification may open. Anything off this list is
 // ignored, so a bad or spoofed `screen` can never push the user somewhere unexpected.
 const TAB_SCREENS = ['Dashboard', 'Orders', 'Wallet', 'Store'];
-const STACK_SCREENS = ['Quiz', 'Redeem', 'RedeemHistory', 'Referral', 'SchedulePickup', 'KnowledgeHub', 'Donation', 'Transfer', 'AboutUs', 'Profile', 'CarbonFootprint', 'CarbonJourney'];
+const STACK_SCREENS = ['Quiz', 'Redeem', 'RedeemHistory', 'Referral', 'SchedulePickup', 'KnowledgeHub', 'Donation', 'Transfer', 'AboutUs', 'Profile', 'CarbonFootprint', 'CarbonJourney', 'CarbonInsights'];
 
 // ── Non-transactional (engagement / marketing) types → their home screen ──
 // So these deep-link by type alone, even when the backend doesn't set `screen`.

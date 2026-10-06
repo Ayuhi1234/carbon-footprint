@@ -27,6 +27,7 @@ import { NotFoundScreen } from '../screens/NotFoundScreen';
 import { CarbonFootprintScreen } from '../screens/CarbonFootprintScreen';
 import { CarbonAssessmentScreen } from '../screens/CarbonAssessmentScreen';
 import { CarbonJourneyScreen } from '../screens/CarbonJourneyScreen';
+import { CarbonInsightsScreen } from '../screens/CarbonInsightsScreen';
 import { TabNavigator } from './TabNavigator';
 import { navigationRef } from './navRef';
 import { capturePendingDeepLink, clearPendingDeepLink, hasPendingDeepLink, hasPendingReferral } from '../utils/deepLink';
@@ -145,6 +146,7 @@ export function RootNavigator() {
             CarbonFootprint: 'CarbonFootprint',
             CarbonAssessment: 'CarbonAssessment',
             CarbonJourney: 'CarbonJourney',
+            CarbonInsights: 'CarbonInsights',
             NotFound: '*',
           }
         : {
@@ -213,6 +215,7 @@ export function RootNavigator() {
         <Stack.Screen name="CarbonFootprint" component={CarbonFootprintScreen} />
         <Stack.Screen name="CarbonAssessment" component={CarbonAssessmentScreen} />
         <Stack.Screen name="CarbonJourney" component={CarbonJourneyScreen} />
+        <Stack.Screen name="CarbonInsights" component={CarbonInsightsScreen} />
         <Stack.Screen name="NotFound" component={NotFoundScreen} />
       </Stack.Navigator>
     </NavigationContainer>

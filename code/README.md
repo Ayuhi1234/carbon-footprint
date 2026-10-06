@@ -24,10 +24,11 @@ git push -u origin carbon-footprint
 | `src/screens/CarbonFootprintScreen.tsx` | **My carbon footprint**: CO₂ saved, latest footprint, tip, Log activity / Set goal / Journey, "Where it comes from", recent activity, level / log / goal sheets |
 | `src/screens/CarbonAssessmentScreen.tsx` | **Chat assessment**: tap an option, or type / speak; Q1 worded from the profile; calculating and result |
 | `src/screens/CarbonJourneyScreen.tsx` | **My carbon journey**: current vs previous, trend bars, read-only history |
+| `src/screens/CarbonInsightsScreen.tsx` | **Carbon insights** dashboard: range filter, KPI tiles, footprint-over-time line chart with goal line + table view, category bars, per-category small multiples |
 | `src/utils/carbonQuestions.ts` | Question bank: 25 questions, 7 topics, follow-up rules, `QUESTION_SET_VERSION` |
 | `src/utils/carbon.ts` | Category icons, colours and tips; log options; formatting; "Coming soon!" helper |
 | `src/services/carbon.ts` | API service (proposed endpoints, switched off by default — see below) |
-| `src/navigation/RootNavigator.tsx` | Registers `CarbonFootprint`, `CarbonAssessment`, `CarbonJourney` (+ web URLs) |
+| `src/navigation/RootNavigator.tsx` | Registers `CarbonFootprint`, `CarbonAssessment`, `CarbonJourney`, `CarbonInsights` (+ web URLs) |
 | `src/utils/notificationRoute.ts` | Push taps open the carbon screens; also honours `data.route` |
 | `src/utils/deepLink.ts` | Carbon routes return logged-out users there after login |
 | `src/screens/DashboardScreen.tsx`, `DashboardScreen.web.tsx` | "Your impact" card + Discover features card; web: Alerts bell on Home |
