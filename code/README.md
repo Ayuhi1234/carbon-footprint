@@ -21,7 +21,7 @@ git push -u origin carbon-footprint
 
 | File | Purpose |
 |---|---|
-| `src/screens/CarbonFootprintScreen.tsx` | **My carbon footprint**: CO₂ saved, latest footprint, tip, Log activity / Set goal / Journey, "Where it comes from", recent activity, level / log / goal sheets |
+| `src/screens/CarbonFootprintScreen.tsx` | **My carbon footprint**: CO₂ saved, latest footprint, tip, Log activity / Set goal / Insights, "Where it comes from", recent activity, level / log / goal sheets |
 | `src/screens/CarbonAssessmentScreen.tsx` | **Chat assessment**: tap an option, or type / speak; Q1 worded from the profile; calculating and result |
 | `src/screens/CarbonJourneyScreen.tsx` | **My carbon journey**: current vs previous, trend bars, read-only history |
 | `src/screens/CarbonInsightsScreen.tsx` | **Carbon insights** dashboard: range filter, KPI tiles, footprint-over-time line chart with goal line + table view, category bars, per-category small multiples |
