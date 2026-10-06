@@ -296,6 +296,14 @@
       "x": 2350,
       "y": 1300
     },
+    "Plan.dc.html": {
+      "h": 1040,
+      "page": "insights",
+      "title": "Development plan — 10 working days",
+      "w": 1440,
+      "x": 0,
+      "y": 2600
+    },
     "Question.dc.html": {
       "h": 844,
       "is_interactive": true,
@@ -480,74 +488,113 @@
       "x": 1260,
       "y": 2600
     },
-    "Plan.dc.html": {
+    "W01-Home.dc.html": {
       "x": 0,
       "y": 0,
-      "w": 1440,
-      "h": 1040,
-      "title": "Development plan — 10 working days",
-      "page": "insights"
-    },
-    "I01-HubInsights.dc.html": {
-      "x": 0,
-      "y": 1500,
       "w": 390,
       "h": 844,
-      "title": "01 Hub — new Insights button",
+      "title": "01 Home — tap 'Your impact'",
       "page": "insights",
       "is_interactive": true
     },
-    "I02-InsightsLight.dc.html": {
+    "W02-Hub.dc.html": {
       "x": 470,
-      "y": 1500,
-      "w": 390,
-      "h": 1900,
-      "title": "02 Carbon insights — light",
-      "page": "insights",
-      "is_interactive": true
-    },
-    "I03-InsightsDark.dc.html": {
-      "x": 940,
-      "y": 1500,
-      "w": 390,
-      "h": 1900,
-      "title": "03 Carbon insights — dark",
-      "page": "insights"
-    },
-    "I04-Tap.dc.html": {
-      "x": 1410,
-      "y": 1500,
-      "w": 390,
-      "h": 420,
-      "title": "04 Tap a point → exact value",
-      "page": "insights",
-      "is_interactive": true
-    },
-    "I05-Table.dc.html": {
-      "x": 1880,
-      "y": 1500,
-      "w": 390,
-      "h": 420,
-      "title": "05 View as table",
-      "page": "insights",
-      "is_interactive": true
-    },
-    "I06-Range.dc.html": {
-      "x": 2350,
-      "y": 1500,
-      "w": 390,
-      "h": 600,
-      "title": "06 Range filter: 3 months",
-      "page": "insights",
-      "is_interactive": true
-    },
-    "I07-Empty.dc.html": {
-      "x": 2820,
-      "y": 1500,
+      "y": 0,
       "w": 390,
       "h": 844,
-      "title": "07 Empty state",
-      "page": "insights"
+      "title": "02 My carbon footprint — tap Insights",
+      "page": "insights",
+      "is_interactive": true
+    },
+    "W03-Journey.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "03 Or: Journey → See all insights",
+      "page": "insights",
+      "is_interactive": true
+    },
+    "W04-InsightsTop.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "04 Carbon insights — top",
+      "page": "insights",
+      "is_interactive": true
+    },
+    "W05-Chart.dc.html": {
+      "x": 0,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "05 Footprint over time",
+      "page": "insights",
+      "is_interactive": true
+    },
+    "W06-Tap.dc.html": {
+      "x": 470,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "06 Tap a point → exact value",
+      "page": "insights",
+      "is_interactive": true
+    },
+    "W07-Table.dc.html": {
+      "x": 940,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "07 View as table",
+      "page": "insights",
+      "is_interactive": true
+    },
+    "W08-Sources.dc.html": {
+      "x": 1410,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "08 Where it comes from",
+      "page": "insights",
+      "is_interactive": true
+    },
+    "W09-Areas.dc.html": {
+      "x": 1880,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "09 How each area is changing",
+      "page": "insights",
+      "is_interactive": true
+    },
+    "W10-DarkTop.dc.html": {
+      "x": 2350,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "10 Dark mode — top",
+      "page": "insights",
+      "is_interactive": true
+    },
+    "W11-DarkChart.dc.html": {
+      "x": 2820,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "11 Dark mode — charts",
+      "page": "insights",
+      "is_interactive": true
+    },
+    "W12-Empty.dc.html": {
+      "x": 3290,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "12 Empty state",
+      "page": "insights",
+      "is_interactive": true
     }
   },
   "createdOnFiles": {
@@ -556,8 +603,8 @@
   },
   "designSystems": [],
   "launch": {
-    "view": "canvas",
-    "page": "insights"
+    "page": "insights",
+    "view": "canvas"
   },
   "notes": {
     "appAbout": {
@@ -623,6 +670,42 @@
       "x": 0,
       "y": -300
     },
+    "insDashNote": {
+      "fill": "green",
+      "maxH": 700,
+      "page": "insights",
+      "text": "How the dashboard works\n\n• Hero: current footprint vs last time.\n• One range filter (3 months / 6 months / 1 year / All) above everything — tiles and charts update together.\n• Tiles: average per month, lowest month, CO₂ saved.\n• Footprint over time: line chart with your goal line; tap or tab to a point for its exact value; 'View as table' shows the same numbers.\n• Where it comes from: latest result, biggest source highlighted.\n• How each area is changing: a small trend per category with ↓ / ↑ vs last time.\n• One green hue, so no colours to learn; works in light and dark mode.",
+      "w": 440,
+      "x": 1880,
+      "y": 0
+    },
+    "insPlanNote": {
+      "fill": "orange",
+      "maxH": 700,
+      "page": "insights",
+      "text": "Plan status (6 Oct)\n\n• Frontend Days 1–7 are built (UI flow, chat assessment, results, history, charts).\n• Day 8 API integration is waiting on the backend — the service is ready and switched on with one setting.\n• Backend not started yet; it's blocked first by the emission factors (dependency).\n\nFull plan + status table: docs/development-plan.md in the carbon-footprint repo.",
+      "w": 420,
+      "x": 1520,
+      "y": 2600
+    },
+    "insRow1": {
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "insights",
+      "text": "Where the charts screen lives in the app: Home → Carbon footprint → Insights",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "insRow2": {
+      "kind": "title1",
+      "maxW": 3680,
+      "page": "insights",
+      "text": "Carbon insights — screen by screen (all 390 × 844)",
+      "w": 240,
+      "x": 0,
+      "y": 1000
+    },
     "r2B2B": {
       "fill": "blue",
       "maxH": 900,
@@ -686,50 +769,30 @@
       "x": 0,
       "y": 2400
     },
-    "insRow1": {
+    "insRow3": {
       "x": 0,
-      "y": -300,
+      "y": 2300,
+      "w": 240,
       "text": "Development plan — Ayushi (frontend) · Akash (backend)",
       "kind": "title1",
       "maxW": 1440,
       "page": "insights"
-    },
-    "insRow2": {
-      "x": 0,
-      "y": 1200,
-      "text": "Charts & visualization — Carbon insights dashboard",
-      "kind": "title1",
-      "maxW": 3210,
-      "page": "insights"
-    },
-    "insPlanNote": {
-      "x": 1520,
-      "y": 0,
-      "w": 420,
-      "maxH": 700,
-      "fill": "orange",
-      "page": "insights",
-      "text": "Plan status (6 Oct)\n\n• Frontend Days 1–7 are built (UI flow, chat assessment, results, history, charts).\n• Day 8 API integration is waiting on the backend — the service is ready and switched on with one setting.\n• Backend not started yet; it's blocked first by the emission factors (dependency).\n\nFull plan + status table: docs/development-plan.md in the carbon-footprint repo."
-    },
-    "insDashNote": {
-      "x": 1410,
-      "y": 2240,
-      "w": 440,
-      "maxH": 700,
-      "fill": "green",
-      "page": "insights",
-      "text": "How the dashboard works\n\n• Hero: current footprint vs last time.\n• One range filter (3 months / 6 months / 1 year / All) above everything — tiles and charts update together.\n• Tiles: average per month, lowest month, CO₂ saved.\n• Footprint over time: line chart with your goal line; tap or tab to a point for its exact value; 'View as table' shows the same numbers.\n• Where it comes from: latest result, biggest source highlighted.\n• How each area is changing: a small trend per category with ↓ / ↑ vs last time.\n• One green hue, so no colours to learn; works in light and dark mode."
     }
   },
   "order": [
+    "W01-Home.dc.html",
+    "W02-Hub.dc.html",
+    "W03-Journey.dc.html",
+    "W04-InsightsTop.dc.html",
+    "W05-Chart.dc.html",
+    "W06-Tap.dc.html",
+    "W07-Table.dc.html",
+    "W08-Sources.dc.html",
+    "W09-Areas.dc.html",
+    "W10-DarkTop.dc.html",
+    "W11-DarkChart.dc.html",
+    "W12-Empty.dc.html",
     "Plan.dc.html",
-    "I01-HubInsights.dc.html",
-    "I02-InsightsLight.dc.html",
-    "I03-InsightsDark.dc.html",
-    "I04-Tap.dc.html",
-    "I05-Table.dc.html",
-    "I06-Range.dc.html",
-    "I07-Empty.dc.html",
     "V01-Dashboard.dc.html",
     "V02-Discover.dc.html",
     "V11-LandingMobile.dc.html",

@@ -19,15 +19,30 @@ Every screenshot below is taken from the real KarmaCredits app build (React Nati
 
 ## Charts & visualization — Carbon insights dashboard (latest)
 
-Opened from the **Insights** button on My carbon footprint, or "See all insights" on My carbon journey. Development plan and status: [`../docs/development-plan.md`](../docs/development-plan.md).
+Every screen below is the same phone size: **390 × 844** (exported at 2×, 780 × 1688). Development plan and status: [`../docs/development-plan.md`](../docs/development-plan.md).
 
-| Insights button | Dashboard — light | Dashboard — dark |
+### Where it lives in the app
+
+**Home → "Your impact" card → My carbon footprint → Insights button → Carbon insights.**
+It can also be opened from My carbon journey ("See all insights →"). It is a stack screen (`CarbonInsights` in `RootNavigator`), not a new bottom tab, so the tab bar stays at 5.
+
+| 1 · Home — tap "Your impact" | 2 · My carbon footprint — tap Insights | Or: My carbon journey — "See all insights" |
 |---|---|---|
-| ![Hub](screens/insights/light-hub.png) | ![Insights light](screens/insights/light-full.png) | ![Insights dark](screens/insights/dark-full.png) |
+| ![Home](screens/insights/01-home.png) | ![Hub](screens/insights/02-hub.png) | ![Journey](screens/insights/03-journey.png) |
 
-| Tap a point for its value | View as table | Range filter: 3 months | Empty state |
+### Carbon insights — screen by screen
+
+| Top: hero, range filter, tiles | Footprint over time | Tap a point for its value | View as table |
 |---|---|---|---|
-| ![Tap](screens/insights/light-tap.png) | ![Table](screens/insights/light-table.png) | ![3 months](screens/insights/light-3m.png) | ![Empty](screens/insights/empty.png) |
+| ![Top](screens/insights/04-top.png) | ![Chart](screens/insights/05-chart.png) | ![Tap](screens/insights/06-tap.png) | ![Table](screens/insights/07-table.png) |
+
+| Where it comes from | How each area is changing | Dark mode — top | Dark mode — charts |
+|---|---|---|---|
+| ![Sources](screens/insights/08-sources.png) | ![Areas](screens/insights/09-areas.png) | ![Dark top](screens/insights/10-dark-top.png) | ![Dark charts](screens/insights/11-dark-chart.png) |
+
+| Empty state (no results yet) |
+|---|
+| ![Empty](screens/insights/12-empty.png) |
 
 - **Hero:** current footprint vs last time.
 - **One range filter** (3 months / 6 months / 1 year / All) above everything; tiles and charts update together.
