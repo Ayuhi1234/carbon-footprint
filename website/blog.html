@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3R ZeroWaste — Insights &amp; Blog</title>
+<meta name="description" content="Perspectives on ESG, circular economy, EPR, carbon and the behaviour change behind real impact — from the 3R and KarmaVerse team.">
+<link rel="icon" href="assets/img/logo-mark.png">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/blog.css">
+</head>
+<body>
+<div class="bl">
+
+<header style="background: #05100C; border-bottom: 1px solid rgba(255,255,255,.07); position: sticky; top: 0; z-index: 20">
+<nav class="wrap" aria-label="Primary" style="height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 24px">
+<a href="index.html" aria-label="3R ZeroWaste home" style="display: flex; align-items: center; gap: 12px; color: #F2F6F3">
+<span style="width: 44px; height: 44px; border-radius: 50%; background: #fff; overflow: hidden; display: grid; place-items: center"><img src="assets/img/logo-mark.png" alt="" width="44" height="44" style="display: block; width: 44px; height: 44px"></span>
+<span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 17px">3R ZeroWaste</span>
+</a>
+<div class="navlinks" style="align-items: center; gap: 4px">
+<a class="nl" href="index.html">Home</a>
+<a class="nl" href="index.html">Solutions</a>
+<a class="nl" href="index.html">KarmaVerse</a>
+<a class="nl on" href="blog.html" aria-current="page">Blog</a>
+<a class="nl" href="index.html">Events</a>
+</div>
+<a class="btn btn-p" href="mailto:contact@karmaverse.earth" style="min-height: 44px; padding: 0 20px; font-size: 14px">Talk to Us →</a>
+</nav>
+</header>
+
+<section style="background: #05100C; color: #F2F6F3; position: relative; overflow: hidden; isolation: isolate; padding: clamp(72px, 9vw, 120px) 0 56px" aria-labelledby="bh">
+<span class="orb" aria-hidden="true" style="right: 6%; top: 10%; width: 380px; height: 380px; background: #2BD08B; z-index: -1"></span>
+<span class="orb" aria-hidden="true" style="right: 26%; top: 40%; width: 220px; height: 220px; background: #C8F26A; z-index: -1; animation-delay: -6s; opacity: .35"></span>
+<div class="wrap" style="display: flex; flex-direction: column; gap: 28px">
+<p class="mono" style="font-size: 12px; color: #C8F26A">Insights &amp; Blog</p>
+<h1 id="bh" style="font-size: clamp(42px, 6vw, 92px); line-height: 0.98; font-weight: 600; letter-spacing: -0.04em; max-width: 980px">Ideas for a circular, <span style="background: linear-gradient(90deg, #2BD08B, #C8F26A); -webkit-background-clip: text; background-clip: text; color: transparent">measurable</span> future.</h1>
+<p style="font-size: clamp(17px, 1.4vw, 20px); line-height: 1.6; color: #C3D1CA; max-width: 620px">Perspectives on ESG, circular economy, EPR, carbon and the behaviour change behind real impact — from the 3R and KarmaVerse team.</p>
+<div role="group" aria-label="Filter articles by topic" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px">
+<span id="cats" style="display: contents"></span>
+</div>
+</div>
+</section>
+
+<section style="padding: 56px 0 24px" aria-label="Featured article">
+<div class="wrap">
+<a class="post" href="blog.html" style="flex-direction: row; flex-wrap: wrap; align-items: center; gap: 40px">
+<div class="cover cv1" style="flex: 1.4 1 420px; min-width: 0; aspect-ratio: 16/9"><span class="ctag">Featured · ESG</span><span class="cimg">[Cover image]</span></div>
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<span class="mono" style="font-size: 11px; color: #5E6B65">[Date] · [X] min read · [Author]</span>
+<h2 style="font-size: clamp(28px, 3vw, 44px); font-weight: 500; line-height: 1.08">[Featured article title]</h2>
+<p class="ph" style="font-size: 17px; line-height: 1.6">[Two-line summary of the featured article]</p>
+<span class="read">Read article <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+</div>
+</a>
+</div>
+</section>
+
+<section style="padding: 48px 0 112px" aria-labelledby="latest-h">
+<div class="wrap" style="display: flex; flex-direction: column; gap: 36px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; border-top: 1px solid rgba(11,23,18,.12); padding-top: 28px">
+<h2 id="latest-h" style="font-size: 28px; font-weight: 500">Latest articles</h2>
+<span class="mono" style="font-size: 11px; color: #5E6B65"><span data-bind="countLabel"></span></span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 40px 28px">
+<div id="posts" style="display: contents"></div>
+<template id="tpl-post"><a class="post" href="blog.html" style="animation-delay: {{p.delay}}">
+<div class="{{p.cover}}"><span class="ctag">{{p.cat}}</span><span class="cimg">[Cover image]</span></div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono" style="font-size: 11px; color: #5E6B65">[Date] · [X] min read</span>
+<h3 style="font-size: 22px; font-weight: 500; line-height: 1.2">[Article title]</h3>
+<p class="ph" style="font-size: 15px; line-height: 1.6">[One-line summary]</p>
+<span class="read">Read article <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+</div>
+</a></template>
+</div>
+<div style="display: flex; justify-content: center"><button type="button" class="btn btn-d">Load more articles</button></div>
+</div>
+</section>
+
+<section style="padding: 0 0 112px" aria-labelledby="nl-h">
+<div class="wrap">
+<div style="position: relative; overflow: hidden; border-radius: 32px; background: #E8F1CF; padding: clamp(32px, 5vw, 64px); display: flex; flex-wrap: wrap; align-items: center; gap: 40px">
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+<p class="mono" style="font-size: 11px; color: #1E7F57">Newsletter</p>
+<h2 id="nl-h" style="font-size: clamp(30px, 3.4vw, 48px); font-weight: 600; line-height: 1.04; letter-spacing: -0.03em">Get 3R insights in your inbox.</h2>
+<p style="font-size: 16px; line-height: 1.6; color: #33413B; max-width: 460px">New articles, event invites and KarmaVerse updates. No spam — unsubscribe anytime.</p>
+<form style="display: flex; flex-wrap: wrap; gap: 10px; max-width: 520px" id="newsletter">
+<label for="nl-email" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Email address</label>
+<input id="nl-email" type="email" placeholder="you@company.com" autocomplete="email" style="flex: 1 1 240px; min-height: 52px; padding: 0 20px; border-radius: 999px; border: 1px solid rgba(11,23,18,.18); background: #fff; font-family: inherit; font-size: 15px; color: #0B1712">
+<button type="submit" class="btn btn-d">Subscribe →</button>
+</form>
+</div>
+<div style="flex: 0 0 auto; display: flex; justify-content: center; margin-inline: auto">
+<div class="masc" role="img" aria-label="KarmaVerse mascot giving a thumbs up">
+<img src="assets/img/mascot-body.webp" alt="">
+<img class="m-blink" src="assets/img/mascot-blink.png" alt="">
+<img class="m-a" src="assets/img/mascot-arm-a.png" alt="">
+<img class="m-b" src="assets/img/mascot-arm-b.png" alt="">
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<footer style="background: #030A07; color: #B9C8C0; padding: 40px 0">
+<div class="wrap" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<a href="index.html" style="color: #F2F6F3; font-family: 'Space Grotesk', sans-serif; font-weight: 600; min-height: 44px; display: inline-flex; align-items: center">← Back to 3R ZeroWaste</a>
+<a href="mailto:contact@karmaverse.earth" style="color: #C8F26A; min-height: 44px; display: inline-flex; align-items: center">contact@karmaverse.earth</a>
+<span style="font-size: 13px; color: #7E9188">© 2026 3R ZeroWaste Pvt. Ltd.</span>
+</div>
+</footer>
+
+</div>
+<script src="assets/js/blog.js" defer></script>
+</body>
+</html>
