@@ -30,7 +30,7 @@ Any static host works (Netlify, Vercel, GitHub Pages, S3, cPanel): upload the `w
 ## Still to fill in (placeholders from the design)
 
 - Case studies, 3R/KarmaVerse events, blog articles: `[ ... ]` fields await approved content.
-- Partner logos: 12 "Client logo" slots.
+- Partner logos: the 7 partners are listed; add their logo files to `assets/img/partners/` (see the README there).
 - Hero video `hero-earth-loop.mp4` (the "Video slot" tag marks where it goes).
 - Newsletter form and "Load more articles" are not wired to a backend yet.
 - The second row of impact metrics shows `[ — ]` until the numbers are verified.

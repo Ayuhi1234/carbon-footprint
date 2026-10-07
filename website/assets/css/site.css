@@ -383,3 +383,8 @@ html{scroll-behavior:auto}
 .nav.menu-open{background:rgba(5,16,12,.97);-webkit-backdrop-filter:none;backdrop-filter:none}
 /* .btn (declared later) was overriding the hide rule for the header CTA */
 @media (max-width:1240px){.btn.navcta{display:none}}
+/* Partner logos: the name shows until assets/img/partners/<slug>.png exists, then the logo replaces it */
+.logo-slot.partner{border-style:solid;border-color:rgba(11,23,18,.1);background:#fff;padding:14px 18px;text-align:center;font-family:'Space Grotesk','Helvetica Neue',Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:-0.01em;text-transform:none;color:#0B1712;line-height:1.25}
+.logo-slot.partner img{max-width:100%;max-height:64px;object-fit:contain}
+.partners-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.partners-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.logo-slot.partner{font-size:13.5px;padding:12px}}
