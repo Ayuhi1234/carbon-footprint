@@ -17,6 +17,64 @@ Every screenshot below is taken from the real KarmaCredits app build (React Nati
 
 ---
 
+## All screens — Manoj's review + charts, connected (latest)
+
+29 screens, all the same phone size (**390 × 844**, exported at 2×). On the design canvas they're on the first page, **"All screens — Manoj's review + charts (connected)"**. Press Play and tap any screen to go to the next one.
+
+| Manoj's point | Where it's answered |
+|---|---|
+| Q1 asked from user details | 06 — "How do you usually get to work in Gurugram?" (profile work/college + city) |
+| Show it to logged-out users? | Yes — teaser on the landing page (01) |
+| Use it logged out? | No — tapping asks them to log in first (02); after login they land back on Carbon footprint |
+| Back button on Q1? | Removed — ✕ closes, "Change" undoes the last answer |
+| Options instead of text | Every question has tap options (07, 09); type or speak is optional (08) |
+| Make it discoverable | Home bell + 5 tabs (03), Discover features card (04), Home "Your impact" card (13), push + email (26–29) |
+| Questions not sufficient | 25 questions in 7 topics: Transport 5, Home energy 5, Diet 4, Waste 3, Water 3, Flights 2, Shopping 3 |
+| Mailer + notification | Invite and monthly check-in, push + email (26–29) |
+| B2B | Not in the app today; proposed design is in the B2B note on the canvas |
+
+### 1 · Discoverable — logged out → log in → Home → Discover
+
+| 01 Logged-out teaser | 02 Log in first | 03 Home — bell, 5 tabs | 04 Discover features |
+|---|---|---|---|
+| ![01 Logged-out teaser](screens/all-connected/01-landing-logged-out.png) | ![02 Log in first](screens/all-connected/02-login.png) | ![03 Home — bell, 5 tabs](screens/all-connected/03-home.png) | ![04 Discover features](screens/all-connected/04-discover.png) |
+
+### 2 · Chat assessment — tap, type or speak
+
+| 05 Greeting | 06 Q1 from profile | 07 Tap options | 08 Type or speak |
+|---|---|---|---|
+| ![05 Greeting](screens/all-connected/05-chat-start.png) | ![06 Q1 from profile](screens/all-connected/06-q1-from-profile.png) | ![07 Tap options](screens/all-connected/07-tap-options.png) | ![08 Type or speak](screens/all-connected/08-type-or-speak.png) |
+
+| 09 Pick all that apply | 10 All answered | 11 Calculating | 12 Result |
+|---|---|---|---|
+| ![09 Pick all that apply](screens/all-connected/09-multi-select.png) | ![10 All answered](screens/all-connected/10-all-done.png) | ![11 Calculating](screens/all-connected/11-calculating.png) | ![12 Result](screens/all-connected/12-result.png) |
+
+### 3 · My carbon footprint → Charts & visualization
+
+| 13 Home — Your impact | 14 Hub — tap Insights | 15 Journey — See all insights | 16 Carbon insights |
+|---|---|---|---|
+| ![13 Home — Your impact](screens/all-connected/13-home-your-impact.png) | ![14 Hub — tap Insights](screens/all-connected/14-hub-insights.png) | ![15 Journey — See all insights](screens/all-connected/15-journey.png) | ![16 Carbon insights](screens/all-connected/16-insights-top.png) |
+
+| 17 Range: 3 months | 18 Footprint over time | 19 Tap a point | 20 View as table |
+|---|---|---|---|
+| ![17 Range: 3 months](screens/all-connected/17-range-3-months.png) | ![18 Footprint over time](screens/all-connected/18-chart.png) | ![19 Tap a point](screens/all-connected/19-tap-point.png) | ![20 View as table](screens/all-connected/20-table.png) |
+
+| 21 Where it comes from | 22 Each area | 23 Dark — top | 24 Dark — charts |
+|---|---|---|---|
+| ![21 Where it comes from](screens/all-connected/21-sources.png) | ![22 Each area](screens/all-connected/22-areas.png) | ![23 Dark — top](screens/all-connected/23-dark-top.png) | ![24 Dark — charts](screens/all-connected/24-dark-chart.png) |
+
+| 25 Empty state |
+|---|
+| ![25 Empty state](screens/all-connected/25-empty.png) |
+
+### 4 · Mailer & push notifications
+
+| 26 Push — invite | 27 Email — invite | 28 Push — check-in | 29 Email — check-in |
+|---|---|---|---|
+| ![26 Push — invite](screens/all-connected/26-push-invite.png) | ![27 Email — invite](screens/all-connected/27-email-invite.png) | ![28 Push — check-in](screens/all-connected/28-push-checkin.png) | ![29 Email — check-in](screens/all-connected/29-email-checkin.png) |
+
+---
+
 ## Charts & visualization — Carbon insights dashboard (latest)
 
 Every screen below is the same phone size: **390 × 844** (exported at 2×, 780 × 1688). Development plan and status: [`../docs/development-plan.md`](../docs/development-plan.md).

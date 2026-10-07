@@ -595,6 +595,267 @@
       "title": "12 Empty state",
       "page": "insights",
       "is_interactive": true
+    },
+    "M01-Landing.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "01 Logged out — landing teaser",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M02-Login.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "02 Tap → log in first",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M03-Home.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "03 Home — bell in header, 5 tabs",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M04-Discover.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "04 Discover features — Carbon footprint card",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M05-ChatStart.dc.html": {
+      "x": 0,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "05 Chat — personal greeting",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M06-Q1.dc.html": {
+      "x": 470,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "06 Q1 from profile (work · Gurugram)",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M07-Options.dc.html": {
+      "x": 940,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "07 Tap options + follow-ups",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M08-TypeSpeak.dc.html": {
+      "x": 1410,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "08 Or type / speak (optional)",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M09-Multi.dc.html": {
+      "x": 1880,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "09 Pick all that apply",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M10-AllDone.dc.html": {
+      "x": 2350,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "10 All 7 topics answered",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M11-Calculating.dc.html": {
+      "x": 2820,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "11 Calculating",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M12-Result.dc.html": {
+      "x": 3290,
+      "y": 1300,
+      "w": 390,
+      "h": 844,
+      "title": "12 Result",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M13-HomeImpact.dc.html": {
+      "x": 0,
+      "y": 2600,
+      "w": 390,
+      "h": 844,
+      "title": "13 Home — tap 'Your impact'",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M14-Hub.dc.html": {
+      "x": 470,
+      "y": 2600,
+      "w": 390,
+      "h": 844,
+      "title": "14 My carbon footprint — tap Insights",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M15-Journey.dc.html": {
+      "x": 940,
+      "y": 2600,
+      "w": 390,
+      "h": 844,
+      "title": "15 Or: Journey → See all insights",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M16-InsightsTop.dc.html": {
+      "x": 1410,
+      "y": 2600,
+      "w": 390,
+      "h": 844,
+      "title": "16 Carbon insights — top",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M17-Range3m.dc.html": {
+      "x": 1880,
+      "y": 2600,
+      "w": 390,
+      "h": 844,
+      "title": "17 Range filter: 3 months",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M18-Chart.dc.html": {
+      "x": 2350,
+      "y": 2600,
+      "w": 390,
+      "h": 844,
+      "title": "18 Footprint over time",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M19-Tap.dc.html": {
+      "x": 2820,
+      "y": 2600,
+      "w": 390,
+      "h": 844,
+      "title": "19 Tap a point → exact value",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M20-Table.dc.html": {
+      "x": 3290,
+      "y": 2600,
+      "w": 390,
+      "h": 844,
+      "title": "20 View as table",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M21-Sources.dc.html": {
+      "x": 0,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "21 Where it comes from",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M22-Areas.dc.html": {
+      "x": 470,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "22 How each area is changing",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M23-DarkTop.dc.html": {
+      "x": 940,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "23 Dark mode — top",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M24-DarkChart.dc.html": {
+      "x": 1410,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "24 Dark mode — charts",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M25-Empty.dc.html": {
+      "x": 1880,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "25 Empty state",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M26-PushInvite.dc.html": {
+      "x": 0,
+      "y": 5200,
+      "w": 390,
+      "h": 844,
+      "title": "26 Push — invite",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M27-MailInvite.dc.html": {
+      "x": 470,
+      "y": 5200,
+      "w": 390,
+      "h": 844,
+      "title": "27 Email — invite",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M28-PushCheckin.dc.html": {
+      "x": 940,
+      "y": 5200,
+      "w": 390,
+      "h": 844,
+      "title": "28 Push — monthly check-in",
+      "page": "manoj",
+      "is_interactive": true
+    },
+    "M29-MailCheckin.dc.html": {
+      "x": 1410,
+      "y": 5200,
+      "w": 390,
+      "h": 844,
+      "title": "29 Email — monthly check-in",
+      "page": "manoj",
+      "is_interactive": true
     }
   },
   "createdOnFiles": {
@@ -603,8 +864,8 @@
   },
   "designSystems": [],
   "launch": {
-    "page": "insights",
-    "view": "canvas"
+    "view": "canvas",
+    "page": "manoj"
   },
   "notes": {
     "appAbout": {
@@ -777,9 +1038,119 @@
       "kind": "title1",
       "maxW": 1440,
       "page": "insights"
+    },
+    "mRow1": {
+      "x": 0,
+      "y": -300,
+      "w": 240,
+      "text": "1 · Discoverable — logged out → log in → Home → Discover features",
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "manoj"
+    },
+    "mRow2": {
+      "x": 0,
+      "y": 1000,
+      "w": 240,
+      "text": "2 · Chat assessment — Q1 from your profile, tap options, type or speak",
+      "kind": "title1",
+      "maxW": 3680,
+      "page": "manoj"
+    },
+    "mRow3": {
+      "x": 0,
+      "y": 2300,
+      "w": 240,
+      "text": "3 · My carbon footprint → Charts & visualization (Carbon insights)",
+      "kind": "title1",
+      "maxW": 3680,
+      "page": "manoj"
+    },
+    "mRow4": {
+      "x": 0,
+      "y": 3600,
+      "w": 240,
+      "text": "4 · Charts & visualization — sources, areas, dark mode, empty",
+      "kind": "title1",
+      "maxW": 2220,
+      "page": "manoj"
+    },
+    "mRow5": {
+      "x": 0,
+      "y": 4900,
+      "w": 240,
+      "text": "5 · Mailer & push notifications",
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "manoj"
+    },
+    "mAnswers": {
+      "x": 1880,
+      "y": 0,
+      "w": 520,
+      "maxH": 1100,
+      "fill": "green",
+      "page": "manoj",
+      "text": "Manoj's review → where each point is answered\n\n• Q1 asked from user details → screen 06: \"How do you usually get to work in Gurugram?\" (uses profile work/college + city).\n• Show it to logged-out users? → Yes, a teaser on the landing page (01).\n• Can they use it logged out? → No. Tapping asks them to log in first (02), because results are personal and saved. After login they land back on Carbon footprint.\n• Back button on Q1? → Removed. ✕ closes; 'Change' undoes your last answer (05–10).\n• Options instead of text → every question has tap options (07, 09). Typing and voice are optional (08).\n• Discoverable → Home bell + 5 tabs (03), Discover features card (04), Home 'Your impact' card (13), push + email (row 5).\n• Questions not sufficient → 25 questions in 7 topics: Transport, Home energy, Diet, Waste, Water, Flights, Shopping. Follow-ups only when relevant.\n• Mailer + notification → row 5: invite and monthly check-in. Tapping a push opens the right screen.\n• B2B → see the blue note in row 5.\n\nPress Play and tap any screen to go to the next one — all 29 screens are connected and the same size (390 × 844)."
+    },
+    "mCharts": {
+      "x": 2350,
+      "y": 3900,
+      "w": 460,
+      "maxH": 1100,
+      "fill": "green",
+      "page": "manoj",
+      "text": "How the dashboard works\n\n• Hero: current footprint vs last time.\n• One range filter (3 months / 6 months / 1 year / All) above everything — tiles and charts update together.\n• Tiles: average per month, lowest month, CO₂ saved.\n• Footprint over time: line chart with your goal line; tap or tab to a point for its exact value; 'View as table' shows the same numbers.\n• Where it comes from: latest result, biggest source highlighted.\n• How each area is changing: a small trend per category with ↓ / ↑ vs last time.\n• One green hue, so no colours to learn; works in light and dark mode."
+    },
+    "mQuestions": {
+      "x": 1880,
+      "y": 5200,
+      "w": 460,
+      "maxH": 1100,
+      "fill": "orange",
+      "page": "manoj",
+      "text": "Questions — 25 across 7 topics (all tap options)\n\n• Transport (5) — how you get to work/college in your city (from profile), distance, days a week, fuel, cabs/autos for other trips.\n• Home energy (5) — people at home, electricity bill, AC use, cooking fuel, rooftop solar.\n• Diet (4) — what you eat, dairy, ordering in / eating out, food thrown away.\n• Waste (3) — how much rubbish, habits (segregate, compost, kabadiwala, KarmaVerse pickups), single-use plastic.\n• Water (3) — bathing, heating bath water, washing-machine loads.\n• Flights (2) — domestic and international flights in 12 months.\n• Shopping (3) — clothes and shoes, online / quick-commerce orders, new gadgets.\n\nFollow-ups appear only when relevant (e.g. fuel only if you drive). Type or speak is optional."
+    },
+    "mB2B": {
+      "x": 2420,
+      "y": 5200,
+      "w": 460,
+      "maxH": 1100,
+      "fill": "blue",
+      "page": "manoj",
+      "text": "B2B (housing societies, corporates, schools)\n\nNot in the app today — there are no business accounts, only a mention on the landing page. If we add it, design changes:\n\n• Organisation account + roles (admin, member).\n• Org assessment: offices/sites, headcount, electricity & DG diesel, fleet, business travel, waste by stream — mapped to Scope 1/2/3.\n• Org dashboard: total + per-employee footprint, site breakdown, trend, member participation.\n• Members' personal results roll up anonymously (opt-in).\n• Team challenges + leaderboard, bulk KarmaVerse pickups.\n• Downloadable ESG / BRSR-ready report.\n• Desktop-first admin web; members keep the same mobile flow."
     }
   },
   "order": [
+    "M01-Landing.dc.html",
+    "M02-Login.dc.html",
+    "M03-Home.dc.html",
+    "M04-Discover.dc.html",
+    "M05-ChatStart.dc.html",
+    "M06-Q1.dc.html",
+    "M07-Options.dc.html",
+    "M08-TypeSpeak.dc.html",
+    "M09-Multi.dc.html",
+    "M10-AllDone.dc.html",
+    "M11-Calculating.dc.html",
+    "M12-Result.dc.html",
+    "M13-HomeImpact.dc.html",
+    "M14-Hub.dc.html",
+    "M15-Journey.dc.html",
+    "M16-InsightsTop.dc.html",
+    "M17-Range3m.dc.html",
+    "M18-Chart.dc.html",
+    "M19-Tap.dc.html",
+    "M20-Table.dc.html",
+    "M21-Sources.dc.html",
+    "M22-Areas.dc.html",
+    "M23-DarkTop.dc.html",
+    "M24-DarkChart.dc.html",
+    "M25-Empty.dc.html",
+    "M26-PushInvite.dc.html",
+    "M27-MailInvite.dc.html",
+    "M28-PushCheckin.dc.html",
+    "M29-MailCheckin.dc.html",
     "W01-Home.dc.html",
     "W02-Hub.dc.html",
     "W03-Journey.dc.html",
@@ -849,6 +1220,10 @@
     "DesignSystem.dc.html"
   ],
   "pages": [
+    {
+      "id": "manoj",
+      "name": "All screens — Manoj's review + charts (connected)"
+    },
     {
       "id": "insights",
       "name": "Insights dashboard + plan"
