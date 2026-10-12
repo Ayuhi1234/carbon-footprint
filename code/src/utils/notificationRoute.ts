@@ -64,9 +64,7 @@ export function routeNotification(data: any, actionIdentifier?: string): void {
       case 'open_pickup': nav.navigate('SchedulePickup'); return;
       case 'open_referral': nav.navigate('Referral'); return;
       case 'open':
-        if (goToScreen(nav, data?.screen)) return;
-  // backend-email-service/templates/pushTemplates.js sends the target as `route`.
-  if (goToScreen(nav, data?.route)) return;
+        if (goToScreen(nav, data?.screen) || goToScreen(nav, data?.route)) return;
         break;
     }
   }
@@ -89,9 +87,10 @@ export function routeNotification(data: any, actionIdentifier?: string): void {
   }
 
   // ── NON-TRANSACTIONAL — engagement / marketing. Route by a known type first,
-  //    then by an explicit `screen` target the backend set. ──
+  //    then by an explicit target the backend set. The push templates in
+  //    backend-email-service/templates/pushTemplates.js send it as `route`. ──
   if (data?.type && goToScreen(nav, TYPE_SCREEN[data.type])) return;
-  if (goToScreen(nav, data?.screen)) return;
+  if (goToScreen(nav, data?.screen) || goToScreen(nav, data?.route)) return;
 
   // Fallback: any booking-linked notification with no/unknown type → booking details.
   if (booking) nav.navigate('BookingDetails', { booking });

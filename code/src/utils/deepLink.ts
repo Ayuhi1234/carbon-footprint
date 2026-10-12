@@ -11,24 +11,27 @@ let pendingUrl: string | null = null;
 // matching route and would otherwise resolve to NotFound.
 let pendingReferral = false;
 
-// Authenticated routes worth returning to after login. Path is matched
-// case-insensitively against window.location.pathname.
-const PROTECTED = [
-  '/ordertracking',
-  '/bookingdetails',
-  '/wallet',
-  '/orders',
-  '/profile',
-  '/redeem',
-  '/redeemhistory',
-  '/quiz',
-  '/referral',
-  '/schedulepickup',
-  '/carbonfootprint',
-  '/carbonassessment',
-  '/carbonjourney',
-  '/carboninsights',
-];
+// Authenticated routes worth returning to after login, keyed by lower-case path.
+// The path is matched case-insensitively against window.location.pathname; the
+// value is the exact route name to open (route names are case-sensitive, so
+// /carbonfootprint must still open CarbonFootprint).
+const PROTECTED_ROUTES: Record<string, string> = {
+  '/ordertracking': 'OrderTracking',
+  '/bookingdetails': 'BookingDetails',
+  '/wallet': 'Wallet',
+  '/orders': 'Orders',
+  '/profile': 'Profile',
+  '/redeem': 'Redeem',
+  '/redeemhistory': 'RedeemHistory',
+  '/quiz': 'Quiz',
+  '/referral': 'Referral',
+  '/schedulepickup': 'SchedulePickup',
+  '/carbonfootprint': 'CarbonFootprint',
+  '/carbonassessment': 'CarbonAssessment',
+  '/carbonjourney': 'CarbonJourney',
+  '/carboninsights': 'CarbonInsights',
+};
+const PROTECTED = Object.keys(PROTECTED_ROUTES);
 
 // Capture as early as possible (before the router rewrites the URL). No-op unless
 // the current URL is a protected route on web.
@@ -81,8 +84,9 @@ export function consumePendingDeepLink(navigation: any): boolean {
   pendingUrl = null;
   try {
     const qIdx = url.indexOf('?');
-    const routeName = (qIdx >= 0 ? url.slice(0, qIdx) : url).replace(/^\/+|\/+$/g, '');
-    if (!routeName) return false;
+    const path = (qIdx >= 0 ? url.slice(0, qIdx) : url).replace(/^\/+|\/+$/g, '');
+    if (!path) return false;
+    const routeName = PROTECTED_ROUTES['/' + path.toLowerCase()] ?? path;
     const params: Record<string, string> = {};
     const query = qIdx >= 0 ? url.slice(qIdx + 1) : '';
     if (query) {

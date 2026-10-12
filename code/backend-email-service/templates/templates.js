@@ -647,7 +647,7 @@ const templates = {
       subject: `What's your carbon footprint? — ${BRAND.namePlain}`,
       html: wrapEmail({
         unsubscribeUrl: unsub(unsubscribeUrl),
-        preheader: 'Find out in about 4 minutes — just tap your answers.',
+        preheader: 'Find out in about 2 minutes — just tap your answers.',
         heading: 'Know your carbon footprint',
         greetingName: name,
         bodyHtml: `<p style="margin:0 0 12px;">Tap through a quick chat about how you travel, eat and live${where}, and see your footprint in kg CO₂e — plus simple ways to cut it.</p>

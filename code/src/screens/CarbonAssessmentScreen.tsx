@@ -1,22 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, StatusBar, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StatusBar, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Leaf, Mic, Send, CheckCircle2, Check } from 'lucide-react-native';
-import { carbonService, CarbonAssessment, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER } from '../services/carbon';
+import { X, Leaf, Mic, Send, CheckCircle2 } from 'lucide-react-native';
+import {
+  carbonService, CarbonResult, CarbonSession, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER,
+} from '../services/carbon';
 import { profileService } from '../services/profile';
-import { CARBON_CATEGORIES, formatKg, formatDate, showCarbonError } from '../utils/carbon';
-import { QUESTION_SET_VERSION, Question, AnswerMap, UserContext, visibleQuestions, answerLabel } from '../utils/carbonQuestions';
+import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatDate, showCarbonError } from '../utils/carbon';
+import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber } from '../utils/carbonQuestions';
 import { showAlert } from '../utils/alert';
 import { useTheme, makeStyles } from '../theme';
 
-type Phase = 'chat' | 'calculating' | 'result';
+type Phase = 'loading' | 'intro' | 'starting' | 'chat' | 'sending' | 'result';
+type LoggedAnswer = { field: Field; label: string };
 
-// Web Speech API (Chrome, Edge, Safari). On native the keyboard's own mic is used.
+const TOTAL = CARBON_CATEGORY_ORDER.length;
+
+// Web Speech API (Chrome, Edge, Safari). Native gets a number pad and no in-app mic.
 // TODO(native): add in-app voice with expo-speech-recognition (needs a dev build).
 const SpeechRecognition: any = Platform.OS === 'web' && typeof window !== 'undefined'
   ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
   : null;
+
+const listLabels = (keys: CarbonCategoryKey[]) => {
+  const labels = keys.map((k) => CARBON_CATEGORIES[k].label.toLowerCase());
+  return labels.length > 1 ? `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}` : labels[0] ?? '';
+};
 
 function BotBubble({ children, live }: { children: React.ReactNode; live?: boolean }) {
   const styles = useStyles();
@@ -41,29 +51,32 @@ function SectionLabel({ category }: { category: CarbonCategoryKey }) {
   );
 }
 
-// Conversational assessment: the app asks, the user taps an option — or types or
-// speaks in their own words. Header follows the quiz; bubbles and chips use the
-// same greens, radii and card shadow as Wallet.
+// Conversational assessment backed by the server-side interview session: six
+// categories in the backend's fixed order. Each category is sent as soon as its
+// fields are answered, so leaving part-way keeps progress and the user can carry
+// on later. The sixth answer returns the calculated result.
 export function CarbonAssessmentScreen({ navigation }: any) {
   const styles = useStyles();
-  const { colors, isDark } = useTheme();
-  // Pastel category tiles read as glare on dark surfaces; use the raised surface there.
-  const tint = (bg: string) => (isDark ? colors.surfaceAlt : bg);
+  const { colors } = useTheme();
   const [ctx, setCtx] = useState<UserContext>({});
-  const [started, setStarted] = useState(false);
-  const [answers, setAnswers] = useState<AnswerMap>({});
-  const [multi, setMulti] = useState<string[]>([]);
+  const [phase, setPhase] = useState<Phase>('loading');
+  const [resumable, setResumable] = useState<CarbonSession | null>(null);
+  const [category, setCategory] = useState<CarbonCategoryKey | null>(null); // the one the backend expects
+  const [answered, setAnswered] = useState<CarbonCategoryKey[]>([]);
+  const [resumedFrom, setResumedFrom] = useState<CarbonCategoryKey[]>([]); // answered on an earlier visit
+  const [log, setLog] = useState<LoggedAnswer[]>([]); // sent this visit; read-only
+  const [draft, setDraft] = useState<Draft>({}); // the current category, not sent yet
   const [input, setInput] = useState('');
+  const [inputError, setInputError] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
-  const [voiceHint, setVoiceHint] = useState(false);
-  const [phase, setPhase] = useState<Phase>('chat');
-  const [result, setResult] = useState<CarbonAssessment | null>(null);
+  const [result, setResult] = useState<CarbonResult | null>(null);
   const scrollRef = useRef<ScrollView>(null);
-  const inputRef = useRef<TextInput>(null);
   const recRef = useRef<any>(null);
-  const allowLeave = useRef(false);
+  // Set while a start or answer request is in flight, so a fast double tap
+  // can't send the same topic twice (the backend would reject the second).
+  const busyRef = useRef(false);
 
-  // Personalise the conversation from the profile the user already filled in.
+  // Personalise the conversation from the profile, and look for an interview to resume.
   useEffect(() => {
     profileService.getProfile()
       .then((p: any) => setCtx({
@@ -72,63 +85,141 @@ export function CarbonAssessmentScreen({ navigation }: any) {
         employment: p?.demographics?.employment || p?.employment || undefined,
       }))
       .catch(() => {});
+    carbonService.getSession()
+      .then((s) => setResumable(s?.nextQuestion ? s : null))
+      .finally(() => setPhase('intro'));
     return () => recRef.current?.stop?.();
   }, []);
 
-  const vis = visibleQuestions(answers);
-  const answered = vis.filter((q) => answers[q.id]);
-  const current: Question | undefined = started ? vis.find((q) => !answers[q.id]) : undefined;
-  const allDone = started && !current;
-  const hasAnswers = answered.length > 0;
-
-  // Confirm before leaving (close, Android back, browser back) mid-way.
-  // TODO(backend): answers aren't saved as you go yet, so leaving loses them.
-  useEffect(() => {
-    return navigation.addListener('beforeRemove', (e: any) => {
-      if (allowLeave.current || !hasAnswers || phase === 'result') return;
-      e.preventDefault();
-      showAlert('Leave assessment?', 'Your answers so far will be lost.', [
-        { text: 'Keep going', style: 'cancel' },
-        { text: 'Leave', style: 'destructive', onPress: () => { allowLeave.current = true; navigation.dispatch(e.data.action); } },
-      ]);
-    });
-  }, [navigation, hasAnswers, phase]);
+  const toAsk = category ? fieldsToAsk(category, draft) : [];
+  const drafted = toAsk.filter((f) => draft[f.key]);
+  const current: Field | undefined = phase === 'chat' ? toAsk.find((f) => !draft[f.key]) : undefined;
+  const lastIsFinal = category === CARBON_CATEGORY_ORDER[TOTAL - 1];
 
   const close = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('CarbonFootprint'));
 
-  const answer = (q: Question, a: { optionIds?: string[]; text?: string }) => {
-    setAnswers((prev) => ({ ...prev, [q.id]: a }));
-    setMulti([]);
-    setInput('');
-    setVoiceHint(false);
+  const clearComposer = () => { setInput(''); setInputError(null); };
+
+  // Back to the start screen with an empty transcript.
+  const resetToIntro = () => {
+    setCategory(null);
+    setResumable(null);
+    setLog([]);
+    setResumedFrom([]);
+    setDraft({});
+    setPhase('intro');
+  };
+
+  // Starts a new interview, or resumes the one in progress. "Start over" abandons it first.
+  const begin = async (fresh: boolean) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setPhase('starting');
+    try {
+      if (fresh) await carbonService.abandonSession();
+      const s = await carbonService.startSession();
+      if (!s.nextQuestion) throw new Error('No question to ask');
+      setCategory(s.nextQuestion.category);
+      setAnswered(s.answeredCategories);
+      setResumedFrom(s.answeredCategories);
+      setLog([]);
+      setDraft({});
+      setResumable(null);
+      setPhase('chat');
+    } catch (error) {
+      showCarbonError("Couldn't start the assessment", error);
+      setPhase('intro');
+    } finally {
+      busyRef.current = false;
+    }
+  };
+
+  // After a rejected answer, line up with the step the backend is actually on.
+  const resync = async () => {
+    const s = await carbonService.getSession();
+    if (!s?.nextQuestion) {
+      resetToIntro();
+      return;
+    }
+    setCategory(s.nextQuestion.category);
+    setAnswered(s.answeredCategories);
+    setDraft({});
+    setPhase('chat');
+  };
+
+  const send = async (cat: CarbonCategoryKey, next: Draft, lastField: Field) => {
+    const answer = buildAnswer(cat, next);
+    if (!answer || busyRef.current) return;
+    busyRef.current = true;
+    setPhase('sending');
+    try {
+      const res = await carbonService.submitAnswer(cat, answer);
+      setLog((l) => [...l, ...fieldsToAsk(cat, next).map((field) => ({ field, label: next[field.key].label }))]);
+      setAnswered((a) => [...a, cat]);
+      setDraft({});
+      if (res.completed) {
+        setResult(res.result);
+        setCategory(null);
+        setPhase('result');
+      } else {
+        setCategory(res.nextQuestion.category);
+        setPhase('chat');
+      }
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const retry = () => { const d = { ...next }; delete d[lastField.key]; setDraft(d); setPhase('chat'); };
+      if (error instanceof CarbonApiNotReadyError) {
+        showCarbonError("Couldn't save your answer", error);
+        retry();
+      } else if (status === 404) {
+        showAlert('Assessment ended', 'That assessment is no longer open. Please start again.');
+        resetToIntro();
+      } else if (status === 429) {
+        showAlert('One moment', "You're going a bit fast — wait a few seconds and answer again.");
+        retry();
+      } else {
+        showCarbonError("Couldn't save your answer", error);
+        if (status === 400) await resync().catch(retry);
+        else retry();
+      }
+    } finally {
+      busyRef.current = false;
+    }
+  };
+
+  const answerField = (f: Field, value: FieldValue, label: string) => {
+    if (!category || busyRef.current) return;
+    clearComposer();
+    const next = { ...draft, [f.key]: { value, label } };
+    setDraft(next);
+    if (buildAnswer(category, next)) send(category, next, f);
   };
 
   const sendText = () => {
-    const text = input.trim();
-    if (!current || text.length < 2) return;
-    answer(current, { text });
+    if (!current?.number) return;
+    const n = parseNumber(current, input);
+    if (n === null) {
+      setInputError(`Enter a number from ${current.number.min.toLocaleString()} to ${current.number.max.toLocaleString()}.`);
+      return;
+    }
+    answerField(current, n, `${n.toLocaleString()} ${current.number.unit}`);
   };
 
-  // Undo the most recent answer so it can be picked again.
+  // Undo the latest answer in this category (sent categories can't be changed).
   const changeLast = () => {
-    const last = answered[answered.length - 1];
+    const last = drafted[drafted.length - 1];
     if (!last) return;
-    setAnswers((prev) => { const next = { ...prev }; delete next[last.id]; return next; });
-    setMulti([]);
+    setDraft((d) => { const next = { ...d }; delete next[last.key]; return next; });
+    clearComposer();
   };
 
   const toggleVoice = () => {
-    if (!SpeechRecognition) {
-      setVoiceHint(true);
-      inputRef.current?.focus();
-      return;
-    }
     if (listening) { recRef.current?.stop(); return; }
     try {
       const rec = new SpeechRecognition();
       rec.lang = 'en-IN';
       rec.interimResults = true;
-      rec.onresult = (e: any) => setInput(Array.from(e.results).map((r: any) => r[0].transcript).join(''));
+      rec.onresult = (e: any) => { setInputError(null); setInput(Array.from(e.results).map((r: any) => r[0].transcript).join('')); };
       rec.onerror = () => showAlert("Couldn't hear you", 'Check that the microphone is allowed for this site, then try again.');
       rec.onend = () => setListening(false);
       recRef.current = rec;
@@ -140,37 +231,24 @@ export function CarbonAssessmentScreen({ navigation }: any) {
     }
   };
 
-  const calculate = async () => {
-    setPhase('calculating');
-    const payload: AnswerMap = {};
-    vis.forEach((q) => { if (answers[q.id]) payload[q.id] = answers[q.id]; }); // only questions that applied
-    try {
-      const saved = await carbonService.submitAssessment(payload, QUESTION_SET_VERSION);
-      setResult(saved);
-      setPhase('result');
-    } catch (error) {
-      showCarbonError("Couldn't calculate your footprint", error);
-      if (!(error instanceof CarbonApiNotReadyError)) console.error('Carbon assessment error:', error);
-      setPhase('chat');
-    }
-  };
-
-  const total = vis.length;
-  const progressPct = started ? (answered.length / total) * 100 : 0;
-  // Header counts topics, not questions: follow-ups (e.g. fuel type) appear only
-  // after some answers, so a question count would jump around.
-  const topics = CARBON_CATEGORY_ORDER.filter((k) => vis.some((q) => q.category === k));
-  const topicNo = current ? topics.indexOf(current.category) + 1 : topics.length;
-  const top = result?.categories.reduce<{ key: CarbonCategoryKey; kgCo2e: number } | null>(
-    (best, c) => (c.kgCo2e > (best?.kgCo2e ?? 0) ? c : best), null,
-  );
+  const inProgress = phase === 'chat' || phase === 'sending';
+  const fieldShare = toAsk.length ? drafted.length / toAsk.length : 0;
+  const progressPct = phase === 'result' ? 100 : inProgress ? ((answered.length + fieldShare) / TOTAL) * 100 : 0;
+  const stepNo = Math.min(answered.length + 1, TOTAL);
+  const top = result?.breakdown
+    ? CARBON_CATEGORY_ORDER.reduce<{ key: CarbonCategoryKey; kg: number } | null>((best, key) => {
+        const kg = result.breakdown?.[key];
+        return typeof kg === 'number' && kg > (best?.kg ?? 0) ? { key, kg } : best;
+      }, null)
+    : null;
+  const band = result?.category ? BAND_LABELS[result.category] : undefined;
 
   // Transcript: one section label whenever the category changes.
   let lastCategory: CarbonCategoryKey | null = null;
-  const sectionFor = (q: Question) => {
-    const show = q.category !== lastCategory;
-    lastCategory = q.category;
-    return show ? <SectionLabel category={q.category} /> : null;
+  const sectionFor = (cat: CarbonCategoryKey) => {
+    const show = cat !== lastCategory;
+    lastCategory = cat;
+    return show ? <SectionLabel category={cat} /> : null;
   };
 
   return (
@@ -182,9 +260,9 @@ export function CarbonAssessmentScreen({ navigation }: any) {
             <X size={22} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Carbon footprint</Text>
-          <Text style={styles.headerCount}>{started ? `${topicNo} of ${topics.length}` : ''}</Text>
+          <Text style={styles.headerCount}>{inProgress ? `${stepNo} of ${TOTAL}` : ''}</Text>
         </View>
-        <View style={styles.progressTrack} accessible accessibilityLabel={started ? `Topic ${topicNo} of ${topics.length}${current ? `, ${CARBON_CATEGORIES[current.category].label}` : ''}` : 'Not started'}>
+        <View style={styles.progressTrack} accessible accessibilityLabel={inProgress && category ? `Topic ${stepNo} of ${TOTAL}, ${CARBON_CATEGORIES[category].label}` : phase === 'result' ? 'Complete' : 'Not started'}>
           <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
         </View>
       </LinearGradient>
@@ -204,26 +282,60 @@ export function CarbonAssessmentScreen({ navigation }: any) {
           </BotBubble>
           <BotBubble>
             <Text style={styles.botText}>
-              I'll ask about travel, home energy, food, waste, water, flights and shopping — about 4 minutes. Just tap an answer, or type or speak if that's easier.
+              I'll ask about travel, home energy, food, waste, water and flights — about 2 minutes. Tap an answer, or type a number if you know it. Your answers save as you go.
             </Text>
-            <Text style={styles.botFine}>AI only reads what you type or say. Your footprint is worked out with fixed formulas and standard conversion factors.</Text>
+            <Text style={styles.botFine}>Your footprint is worked out with fixed formulas and standard emission factors.</Text>
           </BotBubble>
 
-          {!started && (
-            <View style={styles.chips}>
-              <TouchableOpacity style={[styles.chip, styles.chipPrimary]} onPress={() => setStarted(true)} activeOpacity={0.8} accessibilityRole="button">
-                <Text style={[styles.chipText, styles.chipTextPrimary]}>Let's start</Text>
-              </TouchableOpacity>
-            </View>
+          {phase === 'loading' && <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Loading" />}
+
+          {(phase === 'intro' || phase === 'starting') && (
+            <>
+              {resumable && (
+                <BotBubble live>
+                  <Text style={styles.botText}>
+                    Welcome back! You've already answered {listLabels(resumable.answeredCategories)}. Carry on where you left off?
+                  </Text>
+                </BotBubble>
+              )}
+              {phase === 'starting' ? (
+                <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Starting" />
+              ) : (
+                <View style={styles.chips}>
+                  <TouchableOpacity style={[styles.chip, styles.chipPrimary]} onPress={() => begin(false)} activeOpacity={0.8} accessibilityRole="button">
+                    <Text style={[styles.chipText, styles.chipTextPrimary]}>{resumable ? 'Carry on' : "Let's start"}</Text>
+                  </TouchableOpacity>
+                  {resumable && (
+                    <TouchableOpacity style={styles.chip} onPress={() => begin(true)} activeOpacity={0.8} accessibilityRole="button">
+                      <Text style={styles.chipText}>Start over</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </>
           )}
 
-          {answered.map((q, i) => (
-            <React.Fragment key={q.id}>
-              {sectionFor(q)}
-              <BotBubble><Text style={styles.botText}>{q.ask(ctx, answers)}</Text></BotBubble>
+          {resumedFrom.length > 0 && phase !== 'intro' && phase !== 'starting' && (
+            <BotBubble><Text style={styles.botText}>Picking up where you left off — {listLabels(resumedFrom)} done.</Text></BotBubble>
+          )}
+
+          {log.map(({ field, label }, i) => (
+            <React.Fragment key={`${field.category}.${field.key}.${i}`}>
+              {sectionFor(field.category)}
+              <BotBubble><Text style={styles.botText}>{field.ask(ctx, {})}</Text></BotBubble>
               <View style={styles.userRow}>
-                <View style={styles.userBubble}><Text style={styles.userText}>{answerLabel(q, answers[q.id])}</Text></View>
-                {i === answered.length - 1 && phase === 'chat' && (
+                <View style={styles.userBubble}><Text style={styles.userText}>{label}</Text></View>
+              </View>
+            </React.Fragment>
+          ))}
+
+          {inProgress && drafted.map((f, i) => (
+            <React.Fragment key={`${f.category}.${f.key}`}>
+              {sectionFor(f.category)}
+              <BotBubble><Text style={styles.botText}>{f.ask(ctx, draft)}</Text></BotBubble>
+              <View style={styles.userRow}>
+                <View style={styles.userBubble}><Text style={styles.userText}>{draft[f.key].label}</Text></View>
+                {i === drafted.length - 1 && phase === 'chat' && (
                   <TouchableOpacity onPress={changeLast} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Change this answer" style={styles.changeBtn}>
                     <Text style={styles.changeText}>Change</Text>
                   </TouchableOpacity>
@@ -232,85 +344,59 @@ export function CarbonAssessmentScreen({ navigation }: any) {
             </React.Fragment>
           ))}
 
-          {current && phase === 'chat' && (
+          {current && (
             <>
-              {sectionFor(current)}
-              <BotBubble live><Text style={styles.botText}>{current.ask(ctx, answers)}</Text></BotBubble>
+              {sectionFor(current.category)}
+              <BotBubble live>
+                <Text style={styles.botText}>{current.ask(ctx, draft)}</Text>
+                {current.hint && <Text style={styles.botFine}>{current.hint}</Text>}
+              </BotBubble>
               <View style={styles.chips}>
-                {current.options.map((o) => {
-                  const on = multi.includes(o.id);
-                  return (
-                    <TouchableOpacity
-                      key={o.id}
-                      style={[styles.chip, on && styles.chipOn]}
-                      onPress={() => {
-                        if (!current.multi) return answer(current, { optionIds: [o.id] });
-                        setMulti((m) => (o.id === 'none' ? ['none'] : on ? m.filter((x) => x !== o.id) : [...m.filter((x) => x !== 'none'), o.id]));
-                      }}
-                      activeOpacity={0.8}
-                      accessibilityRole="button"
-                      accessibilityState={current.multi ? { selected: on } : undefined}
-                    >
-                      <View style={styles.chipInner}>
-                        {on && <Check size={14} color={colors.primary} strokeWidth={3} />}
-                        <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.label}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-                {current.multi && (
+                {current.options.map((o) => (
                   <TouchableOpacity
-                    style={[styles.chip, styles.chipPrimary, multi.length === 0 && styles.chipDisabled]}
-                    onPress={() => answer(current, { optionIds: multi })}
-                    disabled={multi.length === 0}
+                    key={String(o.value)}
+                    style={styles.chip}
+                    onPress={() => answerField(current, o.value, o.label)}
                     activeOpacity={0.8}
                     accessibilityRole="button"
-                    accessibilityState={{ disabled: multi.length === 0 }}
                   >
-                    <Text style={[styles.chipText, styles.chipTextPrimary]}>Done</Text>
+                    <Text style={styles.chipText}>{o.label}</Text>
                   </TouchableOpacity>
-                )}
+                ))}
               </View>
             </>
           )}
 
-          {allDone && phase === 'chat' && (
-            <>
-              <BotBubble live><Text style={styles.botText}>That's everything! Ready to see your footprint?</Text></BotBubble>
-              <TouchableOpacity style={styles.primaryBtn} onPress={calculate} activeOpacity={0.8} accessibilityRole="button">
-                <Text style={styles.primaryBtnText}>Calculate my footprint</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {phase === 'calculating' && (
+          {phase === 'sending' && (
             <BotBubble live>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Calculating" />
-                <Text style={styles.botText}>Calculating your footprint…</Text>
+                <ActivityIndicator size="small" color={colors.primary} accessibilityLabel={lastIsFinal ? 'Calculating' : 'Saving'} />
+                <Text style={styles.botText}>{lastIsFinal ? 'Calculating your footprint…' : 'Saving…'}</Text>
               </View>
             </BotBubble>
           )}
 
           {phase === 'result' && result && (
             <>
-              <BotBubble live><Text style={styles.botText}>Here's your carbon footprint.</Text></BotBubble>
+              <BotBubble live><Text style={styles.botText}>That's everything! Here's your carbon footprint.</Text></BotBubble>
               <View style={styles.resultCard}>
                 <View style={styles.tick}><CheckCircle2 size={28} color="#16a34a" /></View>
-                <Text style={styles.resultValue}>{formatKg(result.totalKgPerMonth)}</Text>
+                <Text style={styles.resultValue}>{formatKg(result.totalKgCO2ePerMonth)}</Text>
                 <Text style={styles.resultUnit}>kg CO₂e / month</Text>
+                {band && <Text style={[styles.band, { color: band.color }]}>{band.label}</Text>}
                 {top && (
                   <Text style={styles.resultBody}>
-                    Your biggest source is <Text style={{ fontWeight: '800', color: colors.text }}>{CARBON_CATEGORIES[top.key].label.toLowerCase()}</Text> — {formatKg(top.kgCo2e)} kg.
+                    Your biggest source is <Text style={{ fontWeight: '800', color: colors.text }}>{CARBON_CATEGORIES[top.key].label.toLowerCase()}</Text> — {formatKg(top.kg)} kg.
                   </Text>
                 )}
+                {!!result.tips?.[0] && <Text style={styles.resultTip}>{result.tips[0]}</Text>}
                 <Text style={styles.fine}>
-                  Calculated {formatDate(result.createdAt)}{result.factorVersion ? ` · conversion factors v${result.factorVersion}` : ''}
+                  Calculated {formatDate(result.createdAt)}{result.emissionFactorVersion ? ` · emission factors ${result.emissionFactorVersion}` : ''}
                 </Text>
-                <TouchableOpacity style={[styles.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => { allowLeave.current = true; navigation.replace('CarbonJourney'); }} activeOpacity={0.8} accessibilityRole="button">
+                <TouchableOpacity style={[styles.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => navigation.replace('CarbonJourney')} activeOpacity={0.8} accessibilityRole="button">
                   <Text style={styles.primaryBtnText}>View my journey</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.ghostBtn, { alignSelf: 'stretch' }]} onPress={() => { allowLeave.current = true; close(); }} activeOpacity={0.8} accessibilityRole="button">
+                <TouchableOpacity style={[styles.ghostBtn, { alignSelf: 'stretch' }]} onPress={close} activeOpacity={0.8} accessibilityRole="button">
                   <Text style={styles.ghostBtnText}>Done</Text>
                 </TouchableOpacity>
               </View>
@@ -318,40 +404,42 @@ export function CarbonAssessmentScreen({ navigation }: any) {
           )}
         </ScrollView>
 
-        {/* Composer — answer in your own words, typed or spoken */}
-        {current && phase === 'chat' && (
+        {/* Composer — for number questions, type or speak the exact figure */}
+        {current?.number && (
           <View style={styles.composer}>
-            {(voiceHint || listening) && (
-              <Text style={styles.voiceHint}>
-                {listening ? 'Listening… tap the mic again to stop.' : 'Tap the mic on your keyboard to speak your answer.'}
+            {(inputError || listening) && (
+              <Text style={[styles.voiceHint, inputError ? { color: colors.danger } : null]}>
+                {inputError ?? 'Listening… tap the mic again to stop.'}
               </Text>
             )}
             <View style={styles.composerRow}>
               <TextInput
-                ref={inputRef}
                 style={styles.input}
-                placeholder="Or type your own answer…"
+                placeholder={`Or type a number (${current.number.unit})…`}
                 placeholderTextColor={colors.textFaint}
                 value={input}
-                onChangeText={setInput}
+                onChangeText={(t) => { setInput(t); setInputError(null); }}
                 onSubmitEditing={sendText}
                 returnKeyType="send"
-                maxLength={300}
-                accessibilityLabel={`Your answer to: ${current.ask(ctx, answers)}`}
+                keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'}
+                maxLength={60}
+                accessibilityLabel={`Your answer in ${current.number.unit} to: ${current.ask(ctx, draft)}`}
               />
+              {SpeechRecognition && (
+                <TouchableOpacity
+                  style={[styles.roundBtn, listening && styles.roundBtnLive]}
+                  onPress={toggleVoice}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={listening ? 'Stop listening' : 'Speak your answer'}
+                >
+                  <Mic size={18} color={listening ? 'white' : colors.primary} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
-                style={[styles.roundBtn, listening && styles.roundBtnLive]}
-                onPress={toggleVoice}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel={listening ? 'Stop listening' : 'Speak your answer'}
-              >
-                <Mic size={18} color={listening ? 'white' : colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.roundBtn, styles.sendBtn, input.trim().length < 2 && styles.sendBtnOff]}
+                style={[styles.roundBtn, styles.sendBtn, !input.trim() && styles.sendBtnOff]}
                 onPress={sendText}
-                disabled={input.trim().length < 2}
+                disabled={!input.trim()}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel="Send answer"
@@ -395,12 +483,8 @@ const useStyles = makeStyles((c) => ({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingLeft: 36 },
   chip: { borderWidth: 1.5, borderColor: '#86efac', backgroundColor: c.surface, borderRadius: 100, paddingVertical: 10, paddingHorizontal: 14, minHeight: 44, justifyContent: 'center' },
   chipText: { fontSize: 13, fontWeight: '800', color: c.primary },
-  chipInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  chipOn: { backgroundColor: c.primarySoft, borderColor: '#16a34a', borderWidth: 2 },
-  chipTextOn: { color: c.primary },
   chipPrimary: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
   chipTextPrimary: { color: 'white' },
-  chipDisabled: { backgroundColor: '#9cccb0', borderColor: '#9cccb0' },
 
   primaryBtn: { marginTop: 8, backgroundColor: '#16a34a', borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
   primaryBtnText: { color: 'white', fontSize: 15, fontWeight: '800' },
@@ -411,7 +495,9 @@ const useStyles = makeStyles((c) => ({
   tick: { width: 56, height: 56, borderRadius: 28, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   resultValue: { fontSize: 44, fontWeight: '900', color: c.text, letterSpacing: -1 },
   resultUnit: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+  band: { fontSize: 13, fontWeight: '900', marginTop: 8, letterSpacing: 0.3 },
   resultBody: { fontSize: 14, color: c.textMuted, lineHeight: 21, textAlign: 'center', marginTop: 10 },
+  resultTip: { fontSize: 13, color: c.text, lineHeight: 19, textAlign: 'center', marginTop: 10, fontWeight: '600' },
   fine: { fontSize: 12, color: c.textFaint, marginTop: 10, textAlign: 'center' },
 
   composer: { backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 28 : 12 },

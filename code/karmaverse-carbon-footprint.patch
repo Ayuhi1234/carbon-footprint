@@ -21,7 +21,7 @@ index 0882b59..58f3b70 100644
    // deep-links to /ArticleDetail?id=<id>. The `image` field carries the article's
    // real hosted photo URL in production (commented per row); for THIS browser preview
 diff --git a/backend-email-service/templates/pushTemplates.js b/backend-email-service/templates/pushTemplates.js
-index b0d2387..af41d69 100644
+index b0d2387..80eb0be 100644
 --- a/backend-email-service/templates/pushTemplates.js
 +++ b/backend-email-service/templates/pushTemplates.js
 @@ -9,7 +9,7 @@
@@ -40,7 +40,7 @@ index b0d2387..af41d69 100644
 +  // Carbon footprint discovery — to users who have never calculated it.
 +  CARBON_FOOTPRINT_INVITE: () => ({
 +    title: "What's your carbon footprint?",
-+    body: 'Find out in about 4 minutes — just tap your answers.',
++    body: 'Find out in about 2 minutes — just tap your answers.',
 +    data: { route: 'CarbonFootprint', type: 'CARBON_FOOTPRINT_INVITE' },
 +  }),
 +
@@ -58,7 +58,7 @@ index b0d2387..af41d69 100644
    IMPACT_MILESTONE: ({ kg }) => {
      const k = fmt(kg);
 diff --git a/backend-email-service/templates/templates.js b/backend-email-service/templates/templates.js
-index 3261fb6..7a3a0b4 100644
+index 3261fb6..1c8f34e 100644
 --- a/backend-email-service/templates/templates.js
 +++ b/backend-email-service/templates/templates.js
 @@ -638,6 +638,47 @@ const templates = {
@@ -74,7 +74,7 @@ index 3261fb6..7a3a0b4 100644
 +      subject: `What's your carbon footprint? — ${BRAND.namePlain}`,
 +      html: wrapEmail({
 +        unsubscribeUrl: unsub(unsubscribeUrl),
-+        preheader: 'Find out in about 4 minutes — just tap your answers.',
++        preheader: 'Find out in about 2 minutes — just tap your answers.',
 +        heading: 'Know your carbon footprint',
 +        greetingName: name,
 +        bodyHtml: `<p style="margin:0 0 12px;">Tap through a quick chat about how you travel, eat and live${where}, and see your footprint in kg CO₂e — plus simple ways to cut it.</p>
@@ -110,21 +110,21 @@ index 3261fb6..7a3a0b4 100644
    FEEDBACK_SURVEY: ({ name, surveyUrl, unsubscribeUrl }) => ({
      subject: `We'd love your feedback on ${BRAND.namePlain}`,
 diff --git a/src/navigation/RootNavigator.tsx b/src/navigation/RootNavigator.tsx
-index f7aaf5f..6c57046 100644
+index b9c5728..2bc6434 100644
 --- a/src/navigation/RootNavigator.tsx
 +++ b/src/navigation/RootNavigator.tsx
-@@ -24,6 +24,10 @@ import { FeedbackScreen } from '../screens/FeedbackScreen';
- import { UnsubscribeScreen } from '../screens/UnsubscribeScreen';
- import { EmailPreferencesScreen } from '../screens/EmailPreferencesScreen';
- import { NotFoundScreen } from '../screens/NotFoundScreen';
-+import { CarbonFootprintScreen } from '../screens/CarbonFootprintScreen';
-+import { CarbonAssessmentScreen } from '../screens/CarbonAssessmentScreen';
-+import { CarbonJourneyScreen } from '../screens/CarbonJourneyScreen';
-+import { CarbonInsightsScreen } from '../screens/CarbonInsightsScreen';
- import { TabNavigator } from './TabNavigator';
- import { navigationRef } from './navRef';
- import { capturePendingDeepLink, clearPendingDeepLink, hasPendingDeepLink, hasPendingReferral } from '../utils/deepLink';
-@@ -139,6 +143,10 @@ export function RootNavigator() {
+@@ -79,6 +79,10 @@ const RedeemScreen = lazyScreen(() => import('../screens/RedeemScreen'), (m) =>
+ const RedeemHistoryScreen = lazyScreen(() => import('../screens/RedeemHistoryScreen'), (m) => m.RedeemHistoryScreen);
+ const DonationScreen = lazyScreen(() => import('../screens/DonationScreen'), (m) => m.DonationScreen);
+ const TransferScreen = lazyScreen(() => import('../screens/TransferScreen'), (m) => m.TransferScreen);
++const CarbonFootprintScreen = lazyScreen(() => import('../screens/CarbonFootprintScreen'), (m) => m.CarbonFootprintScreen);
++const CarbonAssessmentScreen = lazyScreen(() => import('../screens/CarbonAssessmentScreen'), (m) => m.CarbonAssessmentScreen);
++const CarbonJourneyScreen = lazyScreen(() => import('../screens/CarbonJourneyScreen'), (m) => m.CarbonJourneyScreen);
++const CarbonInsightsScreen = lazyScreen(() => import('../screens/CarbonInsightsScreen'), (m) => m.CarbonInsightsScreen);
+ 
+ export function RootNavigator() {
+   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+@@ -161,6 +165,10 @@ export function RootNavigator() {
              Feedback: 'feedback',
              Unsubscribe: 'unsubscribe',
              EmailPreferences: 'preferences',
@@ -135,7 +135,7 @@ index f7aaf5f..6c57046 100644
              NotFound: '*',
            }
          : {
-@@ -204,6 +212,10 @@ export function RootNavigator() {
+@@ -226,6 +234,10 @@ export function RootNavigator() {
          <Stack.Screen name="Feedback" component={FeedbackScreen} />
          <Stack.Screen name="Unsubscribe" component={UnsubscribeScreen} />
          <Stack.Screen name="EmailPreferences" component={EmailPreferencesScreen} />
@@ -147,7 +147,7 @@ index f7aaf5f..6c57046 100644
        </Stack.Navigator>
      </NavigationContainer>
 diff --git a/src/navigation/TabNavigator.web.tsx b/src/navigation/TabNavigator.web.tsx
-index c2e1b4b..6666fca 100644
+index c2e1b4b..07e3784 100644
 --- a/src/navigation/TabNavigator.web.tsx
 +++ b/src/navigation/TabNavigator.web.tsx
 @@ -78,17 +78,7 @@ function TopNavbar({ state, navigation }: any) {
@@ -169,31 +169,49 @@ index c2e1b4b..6666fca 100644
            <TouchableOpacity style={s.bottomTab} onPress={() => navigationRef.current?.navigate('Profile')} activeOpacity={0.7}>
              {avatarId ? <Avatar avatarId={avatarId} size={24} /> : <User size={22} color="rgba(255,255,255,0.4)" />}
              <Text style={s.bottomTabText}>Profile</Text>
+@@ -221,7 +211,6 @@ const s = StyleSheet.create({
+   bottomTab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
+   bottomTabText: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '600' },
+   bottomTabTextActive: { color: '#4ade80' },
+-  bellBadgeMobile: { position: 'absolute', top: -4, right: -6, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+ 
+   // Desktop top navbar
+   // Pinned to the very top (Flipkart-style). The tab bar is rendered after the
 diff --git a/src/screens/CarbonAssessmentScreen.tsx b/src/screens/CarbonAssessmentScreen.tsx
 new file mode 100644
-index 0000000..a278542
+index 0000000..11090b6
 --- /dev/null
 +++ b/src/screens/CarbonAssessmentScreen.tsx
-@@ -0,0 +1,425 @@
+@@ -0,0 +1,511 @@
 +import React, { useEffect, useRef, useState } from 'react';
-+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, StatusBar, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
++import { View, Text, ScrollView, TouchableOpacity, TextInput, StatusBar, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 +import { SafeAreaView } from 'react-native-safe-area-context';
 +import { LinearGradient } from 'expo-linear-gradient';
-+import { X, Leaf, Mic, Send, CheckCircle2, Check } from 'lucide-react-native';
-+import { carbonService, CarbonAssessment, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER } from '../services/carbon';
++import { X, Leaf, Mic, Send, CheckCircle2 } from 'lucide-react-native';
++import {
++  carbonService, CarbonResult, CarbonSession, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER,
++} from '../services/carbon';
 +import { profileService } from '../services/profile';
-+import { CARBON_CATEGORIES, formatKg, formatDate, showCarbonError } from '../utils/carbon';
-+import { QUESTION_SET_VERSION, Question, AnswerMap, UserContext, visibleQuestions, answerLabel } from '../utils/carbonQuestions';
++import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatDate, showCarbonError } from '../utils/carbon';
++import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber } from '../utils/carbonQuestions';
 +import { showAlert } from '../utils/alert';
 +import { useTheme, makeStyles } from '../theme';
 +
-+type Phase = 'chat' | 'calculating' | 'result';
++type Phase = 'loading' | 'intro' | 'starting' | 'chat' | 'sending' | 'result';
++type LoggedAnswer = { field: Field; label: string };
 +
-+// Web Speech API (Chrome, Edge, Safari). On native the keyboard's own mic is used.
++const TOTAL = CARBON_CATEGORY_ORDER.length;
++
++// Web Speech API (Chrome, Edge, Safari). Native gets a number pad and no in-app mic.
 +// TODO(native): add in-app voice with expo-speech-recognition (needs a dev build).
 +const SpeechRecognition: any = Platform.OS === 'web' && typeof window !== 'undefined'
 +  ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 +  : null;
++
++const listLabels = (keys: CarbonCategoryKey[]) => {
++  const labels = keys.map((k) => CARBON_CATEGORIES[k].label.toLowerCase());
++  return labels.length > 1 ? `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}` : labels[0] ?? '';
++};
 +
 +function BotBubble({ children, live }: { children: React.ReactNode; live?: boolean }) {
 +  const styles = useStyles();
@@ -218,29 +236,32 @@ index 0000000..a278542
 +  );
 +}
 +
-+// Conversational assessment: the app asks, the user taps an option — or types or
-+// speaks in their own words. Header follows the quiz; bubbles and chips use the
-+// same greens, radii and card shadow as Wallet.
++// Conversational assessment backed by the server-side interview session: six
++// categories in the backend's fixed order. Each category is sent as soon as its
++// fields are answered, so leaving part-way keeps progress and the user can carry
++// on later. The sixth answer returns the calculated result.
 +export function CarbonAssessmentScreen({ navigation }: any) {
 +  const styles = useStyles();
-+  const { colors, isDark } = useTheme();
-+  // Pastel category tiles read as glare on dark surfaces; use the raised surface there.
-+  const tint = (bg: string) => (isDark ? colors.surfaceAlt : bg);
++  const { colors } = useTheme();
 +  const [ctx, setCtx] = useState<UserContext>({});
-+  const [started, setStarted] = useState(false);
-+  const [answers, setAnswers] = useState<AnswerMap>({});
-+  const [multi, setMulti] = useState<string[]>([]);
++  const [phase, setPhase] = useState<Phase>('loading');
++  const [resumable, setResumable] = useState<CarbonSession | null>(null);
++  const [category, setCategory] = useState<CarbonCategoryKey | null>(null); // the one the backend expects
++  const [answered, setAnswered] = useState<CarbonCategoryKey[]>([]);
++  const [resumedFrom, setResumedFrom] = useState<CarbonCategoryKey[]>([]); // answered on an earlier visit
++  const [log, setLog] = useState<LoggedAnswer[]>([]); // sent this visit; read-only
++  const [draft, setDraft] = useState<Draft>({}); // the current category, not sent yet
 +  const [input, setInput] = useState('');
++  const [inputError, setInputError] = useState<string | null>(null);
 +  const [listening, setListening] = useState(false);
-+  const [voiceHint, setVoiceHint] = useState(false);
-+  const [phase, setPhase] = useState<Phase>('chat');
-+  const [result, setResult] = useState<CarbonAssessment | null>(null);
++  const [result, setResult] = useState<CarbonResult | null>(null);
 +  const scrollRef = useRef<ScrollView>(null);
-+  const inputRef = useRef<TextInput>(null);
 +  const recRef = useRef<any>(null);
-+  const allowLeave = useRef(false);
++  // Set while a start or answer request is in flight, so a fast double tap
++  // can't send the same topic twice (the backend would reject the second).
++  const busyRef = useRef(false);
 +
-+  // Personalise the conversation from the profile the user already filled in.
++  // Personalise the conversation from the profile, and look for an interview to resume.
 +  useEffect(() => {
 +    profileService.getProfile()
 +      .then((p: any) => setCtx({
@@ -249,63 +270,141 @@ index 0000000..a278542
 +        employment: p?.demographics?.employment || p?.employment || undefined,
 +      }))
 +      .catch(() => {});
++    carbonService.getSession()
++      .then((s) => setResumable(s?.nextQuestion ? s : null))
++      .finally(() => setPhase('intro'));
 +    return () => recRef.current?.stop?.();
 +  }, []);
 +
-+  const vis = visibleQuestions(answers);
-+  const answered = vis.filter((q) => answers[q.id]);
-+  const current: Question | undefined = started ? vis.find((q) => !answers[q.id]) : undefined;
-+  const allDone = started && !current;
-+  const hasAnswers = answered.length > 0;
-+
-+  // Confirm before leaving (close, Android back, browser back) mid-way.
-+  // TODO(backend): answers aren't saved as you go yet, so leaving loses them.
-+  useEffect(() => {
-+    return navigation.addListener('beforeRemove', (e: any) => {
-+      if (allowLeave.current || !hasAnswers || phase === 'result') return;
-+      e.preventDefault();
-+      showAlert('Leave assessment?', 'Your answers so far will be lost.', [
-+        { text: 'Keep going', style: 'cancel' },
-+        { text: 'Leave', style: 'destructive', onPress: () => { allowLeave.current = true; navigation.dispatch(e.data.action); } },
-+      ]);
-+    });
-+  }, [navigation, hasAnswers, phase]);
++  const toAsk = category ? fieldsToAsk(category, draft) : [];
++  const drafted = toAsk.filter((f) => draft[f.key]);
++  const current: Field | undefined = phase === 'chat' ? toAsk.find((f) => !draft[f.key]) : undefined;
++  const lastIsFinal = category === CARBON_CATEGORY_ORDER[TOTAL - 1];
 +
 +  const close = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('CarbonFootprint'));
 +
-+  const answer = (q: Question, a: { optionIds?: string[]; text?: string }) => {
-+    setAnswers((prev) => ({ ...prev, [q.id]: a }));
-+    setMulti([]);
-+    setInput('');
-+    setVoiceHint(false);
++  const clearComposer = () => { setInput(''); setInputError(null); };
++
++  // Back to the start screen with an empty transcript.
++  const resetToIntro = () => {
++    setCategory(null);
++    setResumable(null);
++    setLog([]);
++    setResumedFrom([]);
++    setDraft({});
++    setPhase('intro');
++  };
++
++  // Starts a new interview, or resumes the one in progress. "Start over" abandons it first.
++  const begin = async (fresh: boolean) => {
++    if (busyRef.current) return;
++    busyRef.current = true;
++    setPhase('starting');
++    try {
++      if (fresh) await carbonService.abandonSession();
++      const s = await carbonService.startSession();
++      if (!s.nextQuestion) throw new Error('No question to ask');
++      setCategory(s.nextQuestion.category);
++      setAnswered(s.answeredCategories);
++      setResumedFrom(s.answeredCategories);
++      setLog([]);
++      setDraft({});
++      setResumable(null);
++      setPhase('chat');
++    } catch (error) {
++      showCarbonError("Couldn't start the assessment", error);
++      setPhase('intro');
++    } finally {
++      busyRef.current = false;
++    }
++  };
++
++  // After a rejected answer, line up with the step the backend is actually on.
++  const resync = async () => {
++    const s = await carbonService.getSession();
++    if (!s?.nextQuestion) {
++      resetToIntro();
++      return;
++    }
++    setCategory(s.nextQuestion.category);
++    setAnswered(s.answeredCategories);
++    setDraft({});
++    setPhase('chat');
++  };
++
++  const send = async (cat: CarbonCategoryKey, next: Draft, lastField: Field) => {
++    const answer = buildAnswer(cat, next);
++    if (!answer || busyRef.current) return;
++    busyRef.current = true;
++    setPhase('sending');
++    try {
++      const res = await carbonService.submitAnswer(cat, answer);
++      setLog((l) => [...l, ...fieldsToAsk(cat, next).map((field) => ({ field, label: next[field.key].label }))]);
++      setAnswered((a) => [...a, cat]);
++      setDraft({});
++      if (res.completed) {
++        setResult(res.result);
++        setCategory(null);
++        setPhase('result');
++      } else {
++        setCategory(res.nextQuestion.category);
++        setPhase('chat');
++      }
++    } catch (error: any) {
++      const status = error?.response?.status;
++      const retry = () => { const d = { ...next }; delete d[lastField.key]; setDraft(d); setPhase('chat'); };
++      if (error instanceof CarbonApiNotReadyError) {
++        showCarbonError("Couldn't save your answer", error);
++        retry();
++      } else if (status === 404) {
++        showAlert('Assessment ended', 'That assessment is no longer open. Please start again.');
++        resetToIntro();
++      } else if (status === 429) {
++        showAlert('One moment', "You're going a bit fast — wait a few seconds and answer again.");
++        retry();
++      } else {
++        showCarbonError("Couldn't save your answer", error);
++        if (status === 400) await resync().catch(retry);
++        else retry();
++      }
++    } finally {
++      busyRef.current = false;
++    }
++  };
++
++  const answerField = (f: Field, value: FieldValue, label: string) => {
++    if (!category || busyRef.current) return;
++    clearComposer();
++    const next = { ...draft, [f.key]: { value, label } };
++    setDraft(next);
++    if (buildAnswer(category, next)) send(category, next, f);
 +  };
 +
 +  const sendText = () => {
-+    const text = input.trim();
-+    if (!current || text.length < 2) return;
-+    answer(current, { text });
++    if (!current?.number) return;
++    const n = parseNumber(current, input);
++    if (n === null) {
++      setInputError(`Enter a number from ${current.number.min.toLocaleString()} to ${current.number.max.toLocaleString()}.`);
++      return;
++    }
++    answerField(current, n, `${n.toLocaleString()} ${current.number.unit}`);
 +  };
 +
-+  // Undo the most recent answer so it can be picked again.
++  // Undo the latest answer in this category (sent categories can't be changed).
 +  const changeLast = () => {
-+    const last = answered[answered.length - 1];
++    const last = drafted[drafted.length - 1];
 +    if (!last) return;
-+    setAnswers((prev) => { const next = { ...prev }; delete next[last.id]; return next; });
-+    setMulti([]);
++    setDraft((d) => { const next = { ...d }; delete next[last.key]; return next; });
++    clearComposer();
 +  };
 +
 +  const toggleVoice = () => {
-+    if (!SpeechRecognition) {
-+      setVoiceHint(true);
-+      inputRef.current?.focus();
-+      return;
-+    }
 +    if (listening) { recRef.current?.stop(); return; }
 +    try {
 +      const rec = new SpeechRecognition();
 +      rec.lang = 'en-IN';
 +      rec.interimResults = true;
-+      rec.onresult = (e: any) => setInput(Array.from(e.results).map((r: any) => r[0].transcript).join(''));
++      rec.onresult = (e: any) => { setInputError(null); setInput(Array.from(e.results).map((r: any) => r[0].transcript).join('')); };
 +      rec.onerror = () => showAlert("Couldn't hear you", 'Check that the microphone is allowed for this site, then try again.');
 +      rec.onend = () => setListening(false);
 +      recRef.current = rec;
@@ -317,37 +416,24 @@ index 0000000..a278542
 +    }
 +  };
 +
-+  const calculate = async () => {
-+    setPhase('calculating');
-+    const payload: AnswerMap = {};
-+    vis.forEach((q) => { if (answers[q.id]) payload[q.id] = answers[q.id]; }); // only questions that applied
-+    try {
-+      const saved = await carbonService.submitAssessment(payload, QUESTION_SET_VERSION);
-+      setResult(saved);
-+      setPhase('result');
-+    } catch (error) {
-+      showCarbonError("Couldn't calculate your footprint", error);
-+      if (!(error instanceof CarbonApiNotReadyError)) console.error('Carbon assessment error:', error);
-+      setPhase('chat');
-+    }
-+  };
-+
-+  const total = vis.length;
-+  const progressPct = started ? (answered.length / total) * 100 : 0;
-+  // Header counts topics, not questions: follow-ups (e.g. fuel type) appear only
-+  // after some answers, so a question count would jump around.
-+  const topics = CARBON_CATEGORY_ORDER.filter((k) => vis.some((q) => q.category === k));
-+  const topicNo = current ? topics.indexOf(current.category) + 1 : topics.length;
-+  const top = result?.categories.reduce<{ key: CarbonCategoryKey; kgCo2e: number } | null>(
-+    (best, c) => (c.kgCo2e > (best?.kgCo2e ?? 0) ? c : best), null,
-+  );
++  const inProgress = phase === 'chat' || phase === 'sending';
++  const fieldShare = toAsk.length ? drafted.length / toAsk.length : 0;
++  const progressPct = phase === 'result' ? 100 : inProgress ? ((answered.length + fieldShare) / TOTAL) * 100 : 0;
++  const stepNo = Math.min(answered.length + 1, TOTAL);
++  const top = result?.breakdown
++    ? CARBON_CATEGORY_ORDER.reduce<{ key: CarbonCategoryKey; kg: number } | null>((best, key) => {
++        const kg = result.breakdown?.[key];
++        return typeof kg === 'number' && kg > (best?.kg ?? 0) ? { key, kg } : best;
++      }, null)
++    : null;
++  const band = result?.category ? BAND_LABELS[result.category] : undefined;
 +
 +  // Transcript: one section label whenever the category changes.
 +  let lastCategory: CarbonCategoryKey | null = null;
-+  const sectionFor = (q: Question) => {
-+    const show = q.category !== lastCategory;
-+    lastCategory = q.category;
-+    return show ? <SectionLabel category={q.category} /> : null;
++  const sectionFor = (cat: CarbonCategoryKey) => {
++    const show = cat !== lastCategory;
++    lastCategory = cat;
++    return show ? <SectionLabel category={cat} /> : null;
 +  };
 +
 +  return (
@@ -359,9 +445,9 @@ index 0000000..a278542
 +            <X size={22} color="white" />
 +          </TouchableOpacity>
 +          <Text style={styles.headerTitle}>Carbon footprint</Text>
-+          <Text style={styles.headerCount}>{started ? `${topicNo} of ${topics.length}` : ''}</Text>
++          <Text style={styles.headerCount}>{inProgress ? `${stepNo} of ${TOTAL}` : ''}</Text>
 +        </View>
-+        <View style={styles.progressTrack} accessible accessibilityLabel={started ? `Topic ${topicNo} of ${topics.length}${current ? `, ${CARBON_CATEGORIES[current.category].label}` : ''}` : 'Not started'}>
++        <View style={styles.progressTrack} accessible accessibilityLabel={inProgress && category ? `Topic ${stepNo} of ${TOTAL}, ${CARBON_CATEGORIES[category].label}` : phase === 'result' ? 'Complete' : 'Not started'}>
 +          <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
 +        </View>
 +      </LinearGradient>
@@ -381,26 +467,60 @@ index 0000000..a278542
 +          </BotBubble>
 +          <BotBubble>
 +            <Text style={styles.botText}>
-+              I'll ask about travel, home energy, food, waste, water, flights and shopping — about 4 minutes. Just tap an answer, or type or speak if that's easier.
++              I'll ask about travel, home energy, food, waste, water and flights — about 2 minutes. Tap an answer, or type a number if you know it. Your answers save as you go.
 +            </Text>
-+            <Text style={styles.botFine}>AI only reads what you type or say. Your footprint is worked out with fixed formulas and standard conversion factors.</Text>
++            <Text style={styles.botFine}>Your footprint is worked out with fixed formulas and standard emission factors.</Text>
 +          </BotBubble>
 +
-+          {!started && (
-+            <View style={styles.chips}>
-+              <TouchableOpacity style={[styles.chip, styles.chipPrimary]} onPress={() => setStarted(true)} activeOpacity={0.8} accessibilityRole="button">
-+                <Text style={[styles.chipText, styles.chipTextPrimary]}>Let's start</Text>
-+              </TouchableOpacity>
-+            </View>
++          {phase === 'loading' && <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Loading" />}
++
++          {(phase === 'intro' || phase === 'starting') && (
++            <>
++              {resumable && (
++                <BotBubble live>
++                  <Text style={styles.botText}>
++                    Welcome back! You've already answered {listLabels(resumable.answeredCategories)}. Carry on where you left off?
++                  </Text>
++                </BotBubble>
++              )}
++              {phase === 'starting' ? (
++                <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Starting" />
++              ) : (
++                <View style={styles.chips}>
++                  <TouchableOpacity style={[styles.chip, styles.chipPrimary]} onPress={() => begin(false)} activeOpacity={0.8} accessibilityRole="button">
++                    <Text style={[styles.chipText, styles.chipTextPrimary]}>{resumable ? 'Carry on' : "Let's start"}</Text>
++                  </TouchableOpacity>
++                  {resumable && (
++                    <TouchableOpacity style={styles.chip} onPress={() => begin(true)} activeOpacity={0.8} accessibilityRole="button">
++                      <Text style={styles.chipText}>Start over</Text>
++                    </TouchableOpacity>
++                  )}
++                </View>
++              )}
++            </>
 +          )}
 +
-+          {answered.map((q, i) => (
-+            <React.Fragment key={q.id}>
-+              {sectionFor(q)}
-+              <BotBubble><Text style={styles.botText}>{q.ask(ctx, answers)}</Text></BotBubble>
++          {resumedFrom.length > 0 && phase !== 'intro' && phase !== 'starting' && (
++            <BotBubble><Text style={styles.botText}>Picking up where you left off — {listLabels(resumedFrom)} done.</Text></BotBubble>
++          )}
++
++          {log.map(({ field, label }, i) => (
++            <React.Fragment key={`${field.category}.${field.key}.${i}`}>
++              {sectionFor(field.category)}
++              <BotBubble><Text style={styles.botText}>{field.ask(ctx, {})}</Text></BotBubble>
 +              <View style={styles.userRow}>
-+                <View style={styles.userBubble}><Text style={styles.userText}>{answerLabel(q, answers[q.id])}</Text></View>
-+                {i === answered.length - 1 && phase === 'chat' && (
++                <View style={styles.userBubble}><Text style={styles.userText}>{label}</Text></View>
++              </View>
++            </React.Fragment>
++          ))}
++
++          {inProgress && drafted.map((f, i) => (
++            <React.Fragment key={`${f.category}.${f.key}`}>
++              {sectionFor(f.category)}
++              <BotBubble><Text style={styles.botText}>{f.ask(ctx, draft)}</Text></BotBubble>
++              <View style={styles.userRow}>
++                <View style={styles.userBubble}><Text style={styles.userText}>{draft[f.key].label}</Text></View>
++                {i === drafted.length - 1 && phase === 'chat' && (
 +                  <TouchableOpacity onPress={changeLast} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Change this answer" style={styles.changeBtn}>
 +                    <Text style={styles.changeText}>Change</Text>
 +                  </TouchableOpacity>
@@ -409,85 +529,59 @@ index 0000000..a278542
 +            </React.Fragment>
 +          ))}
 +
-+          {current && phase === 'chat' && (
++          {current && (
 +            <>
-+              {sectionFor(current)}
-+              <BotBubble live><Text style={styles.botText}>{current.ask(ctx, answers)}</Text></BotBubble>
++              {sectionFor(current.category)}
++              <BotBubble live>
++                <Text style={styles.botText}>{current.ask(ctx, draft)}</Text>
++                {current.hint && <Text style={styles.botFine}>{current.hint}</Text>}
++              </BotBubble>
 +              <View style={styles.chips}>
-+                {current.options.map((o) => {
-+                  const on = multi.includes(o.id);
-+                  return (
-+                    <TouchableOpacity
-+                      key={o.id}
-+                      style={[styles.chip, on && styles.chipOn]}
-+                      onPress={() => {
-+                        if (!current.multi) return answer(current, { optionIds: [o.id] });
-+                        setMulti((m) => (o.id === 'none' ? ['none'] : on ? m.filter((x) => x !== o.id) : [...m.filter((x) => x !== 'none'), o.id]));
-+                      }}
-+                      activeOpacity={0.8}
-+                      accessibilityRole="button"
-+                      accessibilityState={current.multi ? { selected: on } : undefined}
-+                    >
-+                      <View style={styles.chipInner}>
-+                        {on && <Check size={14} color={colors.primary} strokeWidth={3} />}
-+                        <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.label}</Text>
-+                      </View>
-+                    </TouchableOpacity>
-+                  );
-+                })}
-+                {current.multi && (
++                {current.options.map((o) => (
 +                  <TouchableOpacity
-+                    style={[styles.chip, styles.chipPrimary, multi.length === 0 && styles.chipDisabled]}
-+                    onPress={() => answer(current, { optionIds: multi })}
-+                    disabled={multi.length === 0}
++                    key={String(o.value)}
++                    style={styles.chip}
++                    onPress={() => answerField(current, o.value, o.label)}
 +                    activeOpacity={0.8}
 +                    accessibilityRole="button"
-+                    accessibilityState={{ disabled: multi.length === 0 }}
 +                  >
-+                    <Text style={[styles.chipText, styles.chipTextPrimary]}>Done</Text>
++                    <Text style={styles.chipText}>{o.label}</Text>
 +                  </TouchableOpacity>
-+                )}
++                ))}
 +              </View>
 +            </>
 +          )}
 +
-+          {allDone && phase === 'chat' && (
-+            <>
-+              <BotBubble live><Text style={styles.botText}>That's everything! Ready to see your footprint?</Text></BotBubble>
-+              <TouchableOpacity style={styles.primaryBtn} onPress={calculate} activeOpacity={0.8} accessibilityRole="button">
-+                <Text style={styles.primaryBtnText}>Calculate my footprint</Text>
-+              </TouchableOpacity>
-+            </>
-+          )}
-+
-+          {phase === 'calculating' && (
++          {phase === 'sending' && (
 +            <BotBubble live>
 +              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-+                <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Calculating" />
-+                <Text style={styles.botText}>Calculating your footprint…</Text>
++                <ActivityIndicator size="small" color={colors.primary} accessibilityLabel={lastIsFinal ? 'Calculating' : 'Saving'} />
++                <Text style={styles.botText}>{lastIsFinal ? 'Calculating your footprint…' : 'Saving…'}</Text>
 +              </View>
 +            </BotBubble>
 +          )}
 +
 +          {phase === 'result' && result && (
 +            <>
-+              <BotBubble live><Text style={styles.botText}>Here's your carbon footprint.</Text></BotBubble>
++              <BotBubble live><Text style={styles.botText}>That's everything! Here's your carbon footprint.</Text></BotBubble>
 +              <View style={styles.resultCard}>
 +                <View style={styles.tick}><CheckCircle2 size={28} color="#16a34a" /></View>
-+                <Text style={styles.resultValue}>{formatKg(result.totalKgPerMonth)}</Text>
++                <Text style={styles.resultValue}>{formatKg(result.totalKgCO2ePerMonth)}</Text>
 +                <Text style={styles.resultUnit}>kg CO₂e / month</Text>
++                {band && <Text style={[styles.band, { color: band.color }]}>{band.label}</Text>}
 +                {top && (
 +                  <Text style={styles.resultBody}>
-+                    Your biggest source is <Text style={{ fontWeight: '800', color: colors.text }}>{CARBON_CATEGORIES[top.key].label.toLowerCase()}</Text> — {formatKg(top.kgCo2e)} kg.
++                    Your biggest source is <Text style={{ fontWeight: '800', color: colors.text }}>{CARBON_CATEGORIES[top.key].label.toLowerCase()}</Text> — {formatKg(top.kg)} kg.
 +                  </Text>
 +                )}
++                {!!result.tips?.[0] && <Text style={styles.resultTip}>{result.tips[0]}</Text>}
 +                <Text style={styles.fine}>
-+                  Calculated {formatDate(result.createdAt)}{result.factorVersion ? ` · conversion factors v${result.factorVersion}` : ''}
++                  Calculated {formatDate(result.createdAt)}{result.emissionFactorVersion ? ` · emission factors ${result.emissionFactorVersion}` : ''}
 +                </Text>
-+                <TouchableOpacity style={[styles.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => { allowLeave.current = true; navigation.replace('CarbonJourney'); }} activeOpacity={0.8} accessibilityRole="button">
++                <TouchableOpacity style={[styles.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => navigation.replace('CarbonJourney')} activeOpacity={0.8} accessibilityRole="button">
 +                  <Text style={styles.primaryBtnText}>View my journey</Text>
 +                </TouchableOpacity>
-+                <TouchableOpacity style={[styles.ghostBtn, { alignSelf: 'stretch' }]} onPress={() => { allowLeave.current = true; close(); }} activeOpacity={0.8} accessibilityRole="button">
++                <TouchableOpacity style={[styles.ghostBtn, { alignSelf: 'stretch' }]} onPress={close} activeOpacity={0.8} accessibilityRole="button">
 +                  <Text style={styles.ghostBtnText}>Done</Text>
 +                </TouchableOpacity>
 +              </View>
@@ -495,40 +589,42 @@ index 0000000..a278542
 +          )}
 +        </ScrollView>
 +
-+        {/* Composer — answer in your own words, typed or spoken */}
-+        {current && phase === 'chat' && (
++        {/* Composer — for number questions, type or speak the exact figure */}
++        {current?.number && (
 +          <View style={styles.composer}>
-+            {(voiceHint || listening) && (
-+              <Text style={styles.voiceHint}>
-+                {listening ? 'Listening… tap the mic again to stop.' : 'Tap the mic on your keyboard to speak your answer.'}
++            {(inputError || listening) && (
++              <Text style={[styles.voiceHint, inputError ? { color: colors.danger } : null]}>
++                {inputError ?? 'Listening… tap the mic again to stop.'}
 +              </Text>
 +            )}
 +            <View style={styles.composerRow}>
 +              <TextInput
-+                ref={inputRef}
 +                style={styles.input}
-+                placeholder="Or type your own answer…"
++                placeholder={`Or type a number (${current.number.unit})…`}
 +                placeholderTextColor={colors.textFaint}
 +                value={input}
-+                onChangeText={setInput}
++                onChangeText={(t) => { setInput(t); setInputError(null); }}
 +                onSubmitEditing={sendText}
 +                returnKeyType="send"
-+                maxLength={300}
-+                accessibilityLabel={`Your answer to: ${current.ask(ctx, answers)}`}
++                keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'}
++                maxLength={60}
++                accessibilityLabel={`Your answer in ${current.number.unit} to: ${current.ask(ctx, draft)}`}
 +              />
++              {SpeechRecognition && (
++                <TouchableOpacity
++                  style={[styles.roundBtn, listening && styles.roundBtnLive]}
++                  onPress={toggleVoice}
++                  activeOpacity={0.8}
++                  accessibilityRole="button"
++                  accessibilityLabel={listening ? 'Stop listening' : 'Speak your answer'}
++                >
++                  <Mic size={18} color={listening ? 'white' : colors.primary} />
++                </TouchableOpacity>
++              )}
 +              <TouchableOpacity
-+                style={[styles.roundBtn, listening && styles.roundBtnLive]}
-+                onPress={toggleVoice}
-+                activeOpacity={0.8}
-+                accessibilityRole="button"
-+                accessibilityLabel={listening ? 'Stop listening' : 'Speak your answer'}
-+              >
-+                <Mic size={18} color={listening ? 'white' : colors.primary} />
-+              </TouchableOpacity>
-+              <TouchableOpacity
-+                style={[styles.roundBtn, styles.sendBtn, input.trim().length < 2 && styles.sendBtnOff]}
++                style={[styles.roundBtn, styles.sendBtn, !input.trim() && styles.sendBtnOff]}
 +                onPress={sendText}
-+                disabled={input.trim().length < 2}
++                disabled={!input.trim()}
 +                activeOpacity={0.8}
 +                accessibilityRole="button"
 +                accessibilityLabel="Send answer"
@@ -572,12 +668,8 @@ index 0000000..a278542
 +  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingLeft: 36 },
 +  chip: { borderWidth: 1.5, borderColor: '#86efac', backgroundColor: c.surface, borderRadius: 100, paddingVertical: 10, paddingHorizontal: 14, minHeight: 44, justifyContent: 'center' },
 +  chipText: { fontSize: 13, fontWeight: '800', color: c.primary },
-+  chipInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-+  chipOn: { backgroundColor: c.primarySoft, borderColor: '#16a34a', borderWidth: 2 },
-+  chipTextOn: { color: c.primary },
 +  chipPrimary: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
 +  chipTextPrimary: { color: 'white' },
-+  chipDisabled: { backgroundColor: '#9cccb0', borderColor: '#9cccb0' },
 +
 +  primaryBtn: { marginTop: 8, backgroundColor: '#16a34a', borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
 +  primaryBtnText: { color: 'white', fontSize: 15, fontWeight: '800' },
@@ -588,7 +680,9 @@ index 0000000..a278542
 +  tick: { width: 56, height: 56, borderRadius: 28, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
 +  resultValue: { fontSize: 44, fontWeight: '900', color: c.text, letterSpacing: -1 },
 +  resultUnit: { fontSize: 13, fontWeight: '600', color: c.textMuted },
++  band: { fontSize: 13, fontWeight: '900', marginTop: 8, letterSpacing: 0.3 },
 +  resultBody: { fontSize: 14, color: c.textMuted, lineHeight: 21, textAlign: 'center', marginTop: 10 },
++  resultTip: { fontSize: 13, color: c.text, lineHeight: 19, textAlign: 'center', marginTop: 10, fontWeight: '600' },
 +  fine: { fontSize: 12, color: c.textFaint, marginTop: 10, textAlign: 'center' },
 +
 +  composer: { backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 28 : 12 },
@@ -602,50 +696,47 @@ index 0000000..a278542
 +}));
 diff --git a/src/screens/CarbonFootprintScreen.tsx b/src/screens/CarbonFootprintScreen.tsx
 new file mode 100644
-index 0000000..829d52e
+index 0000000..4473028
 --- /dev/null
 +++ b/src/screens/CarbonFootprintScreen.tsx
-@@ -0,0 +1,501 @@
+@@ -0,0 +1,332 @@
 +import React, { useEffect, useState } from 'react';
-+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
++import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform } from 'react-native';
 +import { LinearGradient } from 'expo-linear-gradient';
-+import { Leaf, Info, History, ChevronLeft, ChevronRight, Clock, X, Target, Plus, Lightbulb, Recycle, Calculator, LineChart, BarChart3 } from 'lucide-react-native';
++import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3 } from 'lucide-react-native';
 +import { WebFooter } from '../components/shared/WebFooter';
 +import { useTheme, makeStyles } from '../theme';
 +import {
-+  carbonService, CarbonSummary, CarbonActivity, CarbonAssessment, LoggableActivity, CARBON_CATEGORY_ORDER,
++  carbonService, CarbonResult, CarbonComparison, CarbonSummary, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER, CarbonCategoryKey,
 +} from '../services/carbon';
-+import { CARBON_CATEGORIES, LOG_OPTIONS, activityIcon, formatKg, formatDate, showCarbonError } from '../utils/carbon';
-+import { showAlert } from '../utils/alert';
++import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatDate, formatPeriod, showCarbonError } from '../utils/carbon';
 +
-+const GOAL_OPTIONS = [5, 10, 20];
++// Logging green actions and monthly goals have no backend yet.
++const comingSoon = () => showCarbonError('', new CarbonApiNotReadyError());
 +
-+// Layout, cards, banner, action row and sheets deliberately mirror WalletScreen.
++// Layout, cards, banner and action row deliberately mirror WalletScreen.
 +export function CarbonFootprintScreen({ navigation }: any) {
 +  const styles = useStyles();
 +  const { colors, isDark } = useTheme();
 +  // Pastel category tiles read as glare on dark surfaces; use the raised surface there.
 +  const tint = (bg: string) => (isDark ? colors.surfaceAlt : bg);
++  const [latest, setLatest] = useState<CarbonResult | null>(null);
++  const [comparison, setComparison] = useState<CarbonComparison | null>(null);
 +  const [summary, setSummary] = useState<CarbonSummary | null>(null);
-+  const [latest, setLatest] = useState<CarbonAssessment | null>(null);
-+  const [activities, setActivities] = useState<CarbonActivity[]>([]);
++  const [inProgress, setInProgress] = useState(false);
 +  const [isLoading, setIsLoading] = useState(true);
-+  const [levelModalVisible, setLevelModalVisible] = useState(false);
-+  const [logModalVisible, setLogModalVisible] = useState(false);
-+  const [goalModalVisible, setGoalModalVisible] = useState(false);
-+  const [logging, setLogging] = useState<LoggableActivity | null>(null);
-+  const [savingGoal, setSavingGoal] = useState<number | null>(null);
 +
 +  const fetchData = async () => {
 +    try {
-+      const [summaryData, assessments, activityData] = await Promise.all([
-+        carbonService.getSummary().catch(() => null),
-+        carbonService.getAssessments().catch(() => [] as CarbonAssessment[]),
-+        carbonService.getActivities().catch(() => [] as CarbonActivity[]),
++      const [latestData, summaryData, session] = await Promise.all([
++        carbonService.getLatestResult(),
++        carbonService.getSummary(),
++        carbonService.getSession(),
 +      ]);
++      setLatest(latestData?.result ?? null);
++      setComparison(latestData?.comparison ?? null);
 +      setSummary(summaryData);
-+      setLatest(assessments[0] ?? null);
-+      setActivities(activityData);
++      setInProgress(!!session?.nextQuestion);
 +    } catch (error) {
 +      console.error('Carbon fetch error:', error);
 +    } finally {
@@ -663,52 +754,23 @@ index 0000000..829d52e
 +  const startAssessment = () => navigation.navigate('CarbonAssessment');
 +  const openJourney = () => navigation.navigate('CarbonJourney');
 +
-+  // Breakdown: only the categories the backend returned, in the fixed spec order.
-+  const rows = latest
++  // Breakdown: only the categories the backend returned, in its fixed order.
++  const rows = latest?.breakdown
 +    ? CARBON_CATEGORY_ORDER
-+        .map((key) => ({ key, kg: latest.categories.find((c) => c.key === key)?.kgCo2e }))
-+        .filter((r): r is { key: typeof r.key; kg: number } => typeof r.kg === 'number')
++        .map((key) => ({ key, kg: latest.breakdown?.[key] }))
++        .filter((r): r is { key: CarbonCategoryKey; kg: number } => typeof r.kg === 'number')
 +    : [];
 +  const maxKg = Math.max(0, ...rows.map((r) => r.kg));
-+  const total = latest?.totalKgPerMonth ?? 0;
++  const total = latest?.totalKgCO2ePerMonth ?? 0;
 +  const top = rows.reduce<(typeof rows)[number] | null>((best, r) => (r.kg > (best?.kg ?? 0) ? r : best), null);
-+  const tip = top ? CARBON_CATEGORIES[top.key].tip : null;
-+  const level = summary?.level ?? null;
-+
-+  const handleLog = async (type: LoggableActivity) => {
-+    if (logging) return;
-+    setLogging(type);
-+    try {
-+      await carbonService.logActivity(type);
-+      setLogModalVisible(false);
-+      showAlert('Activity logged', 'Nice one! Your CO₂ saved is updated.');
-+      await fetchData();
-+    } catch (error) {
-+      showCarbonError("Couldn't log activity", error);
-+    } finally {
-+      setLogging(null);
-+    }
-+  };
-+
-+  const handleGoal = async (percent: number) => {
-+    if (savingGoal !== null) return;
-+    setSavingGoal(percent);
-+    try {
-+      await carbonService.setGoal(percent);
-+      setGoalModalVisible(false);
-+      showAlert('Goal set', `Aim to cut your footprint by ${percent}% this month.`);
-+      await fetchData();
-+    } catch (error) {
-+      showCarbonError("Couldn't set goal", error);
-+    } finally {
-+      setSavingGoal(null);
-+    }
-+  };
-+
-+  const goSchedulePickup = () => {
-+    setLogModalVisible(false);
-+    navigation.navigate('SchedulePickup');
-+  };
++  // The backend's tips aren't tied to a category, so one never goes under a
++  // "<category> is your biggest source" title; without one, use the app's tip
++  // for the biggest category.
++  const tip = latest?.tips?.[0]
++    ? { title: 'Tip for you', body: latest.tips[0] }
++    : top ? CARBON_CATEGORIES[top.key].tip : null;
++  const band = latest?.category ? BAND_LABELS[latest.category] : undefined;
++  const delta = comparison?.deltaKgCO2ePerMonth;
 +
 +  return (
 +    <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -724,87 +786,93 @@ index 0000000..829d52e
 +              </TouchableOpacity>
 +              <Text style={styles.headerTitle} numberOfLines={2} accessibilityRole="header">My carbon footprint</Text>
 +            </View>
-+            <View style={{ flexDirection: 'row', gap: 10 }}>
-+              {level && (
-+                <TouchableOpacity style={styles.iconBtn} onPress={() => setLevelModalVisible(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Your level">
-+                  <Info size={18} color="white" />
-+                </TouchableOpacity>
-+              )}
-+              <TouchableOpacity style={styles.iconBtn} onPress={openJourney} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="My carbon journey">
-+                <History size={18} color="white" />
-+              </TouchableOpacity>
-+            </View>
++            <TouchableOpacity style={styles.iconBtn} onPress={openJourney} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="My carbon journey">
++              <History size={18} color="white" />
++            </TouchableOpacity>
 +          </View>
 +
 +          {/* Glass card */}
 +          <View style={styles.heroCard}>
 +            <View style={styles.cardTopRow}>
-+              <Text style={styles.cardLabel}>CO₂ saved</Text>
-+              {level && (
-+                <TouchableOpacity style={styles.pill} onPress={() => setLevelModalVisible(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`${level.name}, level ${level.level}`}>
-+                  <View style={styles.pillDot} />
-+                  <Text style={styles.pillText}>{level.name} · Level {level.level}</Text>
-+                </TouchableOpacity>
++              <Text style={styles.cardLabel}>{latest?.periodLabel ? `My footprint · ${formatPeriod(latest.periodLabel)}` : 'My footprint'}</Text>
++              {typeof delta === 'number' && (
++                <View style={styles.pill} accessible accessibilityLabel={`${formatKg(Math.abs(delta))} kilograms ${delta <= 0 ? 'lower' : 'higher'} than ${formatPeriod(comparison?.previousPeriodLabel) || 'last time'}`}>
++                  {delta <= 0 ? <TrendingDown size={13} color="#86efac" /> : <TrendingUp size={13} color="#fca5a5" />}
++                  <Text style={styles.pillText}>
++                    {delta === 0 ? 'No change' : `${formatKg(Math.abs(delta))} kg ${delta < 0 ? 'lower' : 'higher'}`}
++                  </Text>
++                </View>
 +              )}
 +            </View>
-+            <View style={styles.bigRow}>
++            <TouchableOpacity style={styles.bigRow} onPress={latest ? openJourney : startAssessment} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={latest ? `${formatKg(total)} kilograms CO2e per month. Open my carbon journey` : 'Calculate my footprint'}>
 +              <Leaf size={40} color="#86efac" />
 +              <View>
-+                <Text style={styles.bigValue}>{formatKg(summary?.savedKgLifetime ?? 0)}</Text>
-+                <Text style={styles.unitTag} numberOfLines={1}>kg CO₂e</Text>
++                <Text style={styles.bigValue}>{latest ? formatKg(total) : '—'}</Text>
++                <Text style={styles.unitTag} numberOfLines={1}>{latest ? `kg CO₂e / month${band ? ` · ${band.label}` : ''}` : 'Not calculated yet'}</Text>
 +              </View>
-+            </View>
++            </TouchableOpacity>
 +
 +            <View style={styles.cardDivider} />
 +
 +            <View style={styles.colsRow}>
 +              <View style={styles.col}>
 +                <View style={styles.colLabelRow}>
-+                  <Leaf size={13} color="#86efac" />
-+                  <Text style={styles.colLabel}>This month</Text>
++                  <LineChart size={13} color="#fcd34d" />
++                  <Text style={styles.colLabel}>Average</Text>
 +                </View>
-+                <Text style={styles.colValue}>{formatKg(summary?.savedKgThisMonth ?? 0)} kg</Text>
-+                <Text style={styles.colSub}>CO₂ saved</Text>
++                <Text style={styles.colValue}>{summary ? `${formatKg(summary.averageKgCO2ePerMonth)} kg` : '—'}</Text>
++                <Text style={styles.colSub}>
++                  {summary ? `per month · ${summary.totalAssessments.toLocaleString()} ${summary.totalAssessments === 1 ? 'assessment' : 'assessments'}` : 'No assessments yet'}
++                </Text>
 +              </View>
 +              <View style={styles.colDivider} />
-+              <TouchableOpacity style={styles.col} onPress={latest ? openJourney : startAssessment} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={latest ? 'My footprint. Open my carbon journey' : 'Calculate my footprint'}>
++              <View style={styles.col}>
 +                <View style={styles.colLabelRow}>
-+                  <LineChart size={13} color="#fcd34d" />
-+                  <Text style={styles.colLabel}>My footprint</Text>
++                  <Award size={13} color="#86efac" />
++                  <Text style={styles.colLabel}>Best</Text>
 +                </View>
-+                <Text style={styles.colValue}>{latest ? `${formatKg(total)} kg` : '—'}</Text>
-+                <Text style={styles.colSub}>{latest ? `per month · ${formatDate(latest.createdAt)}` : 'Not calculated yet'}</Text>
-+              </TouchableOpacity>
++                <Text style={styles.colValue}>{summary ? `${formatKg(summary.bestKgCO2ePerMonth)} kg` : '—'}</Text>
++                <Text style={styles.colSub}>lowest per month</Text>
++              </View>
 +            </View>
 +          </View>
 +        </LinearGradient>
 +
-+        {/* Tip banner — for the biggest category of the latest assessment */}
-+        {!isLoading && tip && top && (
++        {/* Unfinished interview — the backend keeps it, so offer to carry on */}
++        {!isLoading && inProgress && (
++          <TouchableOpacity style={styles.resumeBanner} onPress={startAssessment} activeOpacity={0.8} accessibilityRole="button">
++            <Calculator size={20} color="#16a34a" />
++            <View style={{ flex: 1 }}>
++              <Text style={styles.resumeTitle}>You have an assessment in progress</Text>
++              <Text style={styles.resumeText}>Pick up where you left off.</Text>
++            </View>
++            <ChevronRight size={20} color="#16a34a" />
++          </TouchableOpacity>
++        )}
++
++        {/* Tip banner — for the biggest category of the latest result */}
++        {!isLoading && tip && (
 +          <View style={styles.tipBanner}>
 +            <Lightbulb size={20} color="#0ea5e9" />
 +            <View style={{ flex: 1 }}>
 +              <Text style={styles.tipTitle}>{tip.title}</Text>
 +              <Text style={styles.tipText}>{tip.body}</Text>
 +            </View>
-+            <TouchableOpacity
-+              style={styles.tipBtn}
-+              onPress={top.key === 'waste' ? () => navigation.navigate('SchedulePickup') : () => setLogModalVisible(true)}
-+              activeOpacity={0.8}
-+              accessibilityRole="button"
-+            >
-+              <Text style={styles.tipBtnText}>{top.key === 'waste' ? 'Schedule' : 'Log it'}</Text>
-+            </TouchableOpacity>
++            {top?.key === 'waste' && (
++              <TouchableOpacity style={styles.tipBtn} onPress={() => navigation.navigate('SchedulePickup')} activeOpacity={0.8} accessibilityRole="button">
++                <Text style={styles.tipBtnText}>Schedule</Text>
++              </TouchableOpacity>
++            )}
 +          </View>
 +        )}
 +
-+        {/* Action buttons — same pills as Wallet. Offset is not shown: no backend supports it yet. */}
++        {/* Action buttons — same pills as Wallet */}
 +        <View style={styles.actionRow}>
-+          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnGreen]} onPress={() => setLogModalVisible(true)} activeOpacity={0.8} accessibilityRole="button">
++          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnGreen]} onPress={comingSoon} activeOpacity={0.8} accessibilityRole="button">
 +            <Plus size={18} color="#16a34a" />
 +            <Text style={[styles.actionLabel, { color: '#16a34a' }]} numberOfLines={1}>Log activity</Text>
 +          </TouchableOpacity>
-+          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnAmber]} onPress={() => setGoalModalVisible(true)} activeOpacity={0.8} accessibilityRole="button">
++          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnAmber]} onPress={comingSoon} activeOpacity={0.8} accessibilityRole="button">
 +            <Target size={18} color="#d97706" />
 +            <Text style={[styles.actionLabel, { color: '#d97706' }]} numberOfLines={1}>Set goal</Text>
 +          </TouchableOpacity>
@@ -814,8 +882,8 @@ index 0000000..829d52e
 +          </TouchableOpacity>
 +        </View>
 +
-+        {/* Breakdown, or the calculate CTA when there is no assessment yet */}
-+        <View style={styles.section}>
++        {/* Breakdown, or the calculate CTA when there is no result yet */}
++        <View style={[styles.section, { marginBottom: 32 }]}>
 +          <View style={styles.sectionHeaderRow}>
 +            <Text style={styles.sectionTitle}>Where it comes from</Text>
 +            {latest && (
@@ -837,11 +905,11 @@ index 0000000..829d52e
 +                <View style={[styles.iconTile, { backgroundColor: tint('#f0fdf4') }]}><Calculator size={20} color="#16a34a" /></View>
 +                <View style={{ flex: 1, marginLeft: 12 }}>
 +                  <Text style={styles.rowTitle}>Find out your footprint</Text>
-+                  <Text style={styles.rowMeta}>Tap through a quick chat about your day · about 4 minutes</Text>
++                  <Text style={styles.rowMeta}>Six quick questions about your day · about 2 minutes</Text>
 +                </View>
 +              </View>
 +              <TouchableOpacity style={styles.primaryPill} onPress={startAssessment} activeOpacity={0.8} accessibilityRole="button">
-+                <Text style={styles.primaryPillText}>Calculate my footprint</Text>
++                <Text style={styles.primaryPillText}>{inProgress ? 'Carry on' : 'Calculate my footprint'}</Text>
 +              </TouchableOpacity>
 +            </View>
 +          ) : rows.length === 0 ? (
@@ -873,143 +941,15 @@ index 0000000..829d52e
 +                  </View>
 +                );
 +              })}
-+            </View>
-+          )}
-+        </View>
-+
-+        {/* Recent activity — same rows as Wallet transactions */}
-+        <View style={[styles.section, { marginBottom: 32 }]}>
-+          <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>Recent activity</Text>
-+          {isLoading ? (
-+            <View style={styles.stateBox}>
-+              <ActivityIndicator size="large" color={colors.primary} accessibilityLabel="Loading" />
-+              <Text style={{ color: colors.textMuted, marginTop: 12 }}>Loading…</Text>
-+            </View>
-+          ) : activities.length === 0 ? (
-+            <View style={styles.stateBox}>
-+              <History size={48} color={colors.textFaint} />
-+              <Text style={styles.emptyTitle}>No activity yet.</Text>
-+              <Text style={styles.emptyHint}>Log a green action or schedule a pickup to see it here.</Text>
-+            </View>
-+          ) : (
-+            <View style={styles.list}>
-+              {activities.map((a) => {
-+                const ic = activityIcon(a.type);
-+                return (
-+                  <View key={a._id} style={styles.rowCard}>
-+                    <View style={[styles.iconTile, { backgroundColor: tint(ic.bg) }]}>
-+                      <ic.Icon size={20} color={ic.color} />
-+                    </View>
-+                    <View style={styles.rowContent}>
-+                      <Text style={styles.rowTitle}>{a.title}</Text>
-+                      <View style={styles.timeRow}>
-+                        <Clock size={12} color={colors.textFaint} />
-+                        <Text style={styles.rowMeta}>{formatDate(a.createdAt)}</Text>
-+                      </View>
-+                    </View>
-+                    <Text style={[styles.rowValue, { color: '#16a34a' }]}>-{formatKg(a.kgCo2e)} kg</Text>
-+                  </View>
-+                );
-+              })}
++              <Text style={styles.footnote}>
++                Calculated {formatDate(latest.createdAt)}{latest.emissionFactorVersion ? ` · emission factors ${latest.emissionFactorVersion}` : ''}
++              </Text>
 +            </View>
 +          )}
 +        </View>
 +
 +        {Platform.OS === 'web' && <WebFooter />}
 +      </ScrollView>
-+
-+      {/* Level — only when the backend provides one */}
-+      <Modal visible={levelModalVisible && !!level} transparent animationType="fade" onRequestClose={() => setLevelModalVisible(false)}>
-+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setLevelModalVisible(false)}>
-+          <TouchableOpacity style={styles.sheet} activeOpacity={1}>
-+            <View style={styles.sheetHandle} />
-+            <View style={styles.sheetTitleRow}>
-+              <Text style={styles.sheetTitle}>{level?.name}</Text>
-+              <TouchableOpacity onPress={() => setLevelModalVisible(false)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Close">
-+                <X size={22} color={colors.textMuted} />
-+              </TouchableOpacity>
-+            </View>
-+            <Text style={styles.levelSub}>Level {level?.level}</Text>
-+            {level?.nextName ? (
-+              <>
-+                <Text style={styles.sheetHint}>Next level: <Text style={{ fontWeight: '800' }}>{level.nextName}</Text></Text>
-+                {typeof level.progress === 'number' && (
-+                  <View style={styles.levelTrack} accessible accessibilityLabel={`Progress ${Math.round(level.progress * 100)} percent`}>
-+                    <View style={[styles.levelFill, { width: `${Math.min(Math.max(level.progress, 0), 1) * 100}%` }]} />
-+                  </View>
-+                )}
-+              </>
-+            ) : (
-+              <Text style={styles.sheetHint}>You've reached the top level.</Text>
-+            )}
-+            <Text style={styles.levelFooter}>You've saved {formatKg(summary?.savedKgLifetime ?? 0)} kg CO₂e so far.</Text>
-+          </TouchableOpacity>
-+        </TouchableOpacity>
-+      </Modal>
-+
-+      {/* Log activity */}
-+      <Modal visible={logModalVisible} transparent animationType="fade" onRequestClose={() => setLogModalVisible(false)}>
-+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setLogModalVisible(false)}>
-+          <TouchableOpacity style={styles.sheet} activeOpacity={1}>
-+            <View style={styles.sheetHandle} />
-+            <Text style={styles.sheetTitle}>Log a green activity</Text>
-+            <Text style={styles.sheetHint}>Pick what you did today. We'll work out the CO₂ you saved.</Text>
-+
-+            {LOG_OPTIONS.map((o) => (
-+              <TouchableOpacity key={o.type} style={styles.option} onPress={() => handleLog(o.type)} activeOpacity={0.8} disabled={logging !== null} accessibilityRole="button">
-+                <View style={[styles.optionIcon, { backgroundColor: tint(o.bg) }]}><o.Icon size={22} color={o.color} /></View>
-+                <View style={{ flex: 1 }}>
-+                  <Text style={styles.optionName}>{o.title}</Text>
-+                  <Text style={styles.optionMeta}>{o.meta}</Text>
-+                </View>
-+                {logging === o.type ? <ActivityIndicator size="small" color={colors.primary} /> : <ChevronRight size={20} color={colors.textFaint} />}
-+              </TouchableOpacity>
-+            ))}
-+
-+            <TouchableOpacity style={styles.option} onPress={goSchedulePickup} activeOpacity={0.8} disabled={logging !== null} accessibilityRole="button">
-+              <View style={[styles.optionIcon, { backgroundColor: tint('#f0fdf4') }]}><Recycle size={22} color="#16a34a" /></View>
-+              <View style={{ flex: 1 }}>
-+                <Text style={styles.optionName}>Recycled waste</Text>
-+                <Text style={styles.optionMeta}>Schedule a KarmaVerse pickup</Text>
-+              </View>
-+              <ChevronRight size={20} color={colors.textFaint} />
-+            </TouchableOpacity>
-+          </TouchableOpacity>
-+        </TouchableOpacity>
-+      </Modal>
-+
-+      {/* Set goal — ladder rows like Wallet's streak tiers; the current goal is highlighted */}
-+      <Modal visible={goalModalVisible} transparent animationType="fade" onRequestClose={() => setGoalModalVisible(false)}>
-+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setGoalModalVisible(false)}>
-+          <TouchableOpacity style={styles.sheet} activeOpacity={1}>
-+            <View style={styles.sheetHandle} />
-+            <Text style={styles.sheetTitle}>Set a monthly goal</Text>
-+            <Text style={styles.sheetHint}>How much would you like to cut your footprint this month?</Text>
-+
-+            {GOAL_OPTIONS.map((p) => {
-+              const active = summary?.goal?.reductionPercent === p;
-+              return (
-+                <TouchableOpacity
-+                  key={p}
-+                  style={[styles.option, active && { backgroundColor: tint('#fffbeb'), borderColor: '#fcd34d' }]}
-+                  onPress={() => handleGoal(p)}
-+                  activeOpacity={0.8}
-+                  disabled={savingGoal !== null}
-+                  accessibilityRole="button"
-+                  accessibilityState={{ selected: active }}
-+                >
-+                  <View style={[styles.optionIcon, { backgroundColor: tint('#fffbeb') }]}><Target size={22} color="#d97706" /></View>
-+                  <View style={{ flex: 1 }}>
-+                    <Text style={styles.optionName}>Cut {p}%</Text>
-+                    <Text style={styles.optionMeta}>{active ? 'Your current goal' : p === 5 ? 'A gentle start' : p === 10 ? 'A steady push' : 'A big stretch'}</Text>
-+                  </View>
-+                  {savingGoal === p ? <ActivityIndicator size="small" color="#d97706" /> : <ChevronRight size={20} color={colors.textFaint} />}
-+                </TouchableOpacity>
-+              );
-+            })}
-+          </TouchableOpacity>
-+        </TouchableOpacity>
-+      </Modal>
 +    </View>
 +  );
 +}
@@ -1028,10 +968,9 @@ index 0000000..829d52e
 +    backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
 +    maxWidth: 800, width: '100%', alignSelf: 'center',
 +  },
-+  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, minHeight: 26 },
-+  cardLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '700', letterSpacing: 0.3 },
++  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, minHeight: 26, gap: 8 },
++  cardLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '700', letterSpacing: 0.3, flexShrink: 1 },
 +  pill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 6 },
-+  pillDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#86efac' },
 +  pillText: { color: 'white', fontSize: 11, fontWeight: '800' },
 +  bigRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
 +  bigValue: { fontSize: 44, fontWeight: '900', color: 'white', letterSpacing: -1 },
@@ -1044,6 +983,13 @@ index 0000000..829d52e
 +  colLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '700' },
 +  colValue: { color: 'white', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
 +  colSub: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '600', marginTop: 4 },
++
++  resumeBanner: {
++    marginTop: 16, marginHorizontal: 16, padding: 14, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
++    backgroundColor: c.primarySoft, borderWidth: 1, borderColor: '#86efac', maxWidth: 800, width: '100%', alignSelf: 'center',
++  },
++  resumeTitle: { color: c.text, fontSize: 13, fontWeight: '900', marginBottom: 2 },
++  resumeText: { color: c.textMuted, fontSize: 12, fontWeight: '600' },
 +
 +  tipBanner: {
 +    marginTop: 16, marginHorizontal: 16, padding: 14, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -1077,54 +1023,33 @@ index 0000000..829d52e
 +  rowTitle: { fontSize: 14, fontWeight: '800', color: c.text, marginBottom: 3 },
 +  rowMeta: { fontSize: 11, color: c.textMuted, fontWeight: '500' },
 +  rowValue: { fontSize: 15, fontWeight: '900' },
-+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 +  barTrack: { height: 6, borderRadius: 3, backgroundColor: c.surfaceAlt, marginTop: 3, marginBottom: 5, overflow: 'hidden' },
 +  barFill: { height: 6, borderRadius: 3 },
++  footnote: { fontSize: 12, color: c.textFaint, marginTop: 6, textAlign: 'center' },
 +
 +  ctaCard: { padding: 14, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border, elevation: 2, shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, gap: 14 },
 +  ctaTop: { flexDirection: 'row', alignItems: 'center' },
 +  primaryPill: { backgroundColor: '#16a34a', borderRadius: 100, paddingVertical: 13, alignItems: 'center' },
 +  primaryPillText: { color: 'white', fontWeight: '800', fontSize: 14 },
-+
-+  // Modals — web: centred dialog; native: bottom sheet (same as Wallet)
-+  modalOverlay: { flex: 1, backgroundColor: c.overlay, justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end', alignItems: 'center', padding: Platform.OS === 'web' ? 20 : 0 },
-+  sheet: {
-+    backgroundColor: c.surface,
-+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-+    borderBottomLeftRadius: Platform.OS === 'web' ? 24 : 0, borderBottomRightRadius: Platform.OS === 'web' ? 24 : 0,
-+    padding: 22, paddingBottom: Platform.OS === 'web' ? 22 : 34, maxWidth: 560, width: '100%', alignSelf: 'center',
-+  },
-+  sheetHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
-+  sheetTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-+  sheetTitle: { fontSize: 18, fontWeight: '900', color: c.text, marginBottom: 4 },
-+  sheetHint: { fontSize: 12.5, color: c.textMuted, fontWeight: '600', lineHeight: 18, marginTop: 6 },
-+  option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceAlt, marginTop: 12 },
-+  optionIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-+  optionName: { fontSize: 15, fontWeight: '800', color: c.text, marginBottom: 2 },
-+  optionMeta: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
-+  levelSub: { fontSize: 13, color: c.primary, fontWeight: '800' },
-+  levelTrack: { height: 8, borderRadius: 4, backgroundColor: c.surfaceAlt, marginTop: 12, overflow: 'hidden' },
-+  levelFill: { height: 8, borderRadius: 4, backgroundColor: '#16a34a' },
-+  levelFooter: { fontSize: 12.5, color: c.primary, fontWeight: '700', marginTop: 14, textAlign: 'center' },
 +}));
 diff --git a/src/screens/CarbonInsightsScreen.tsx b/src/screens/CarbonInsightsScreen.tsx
 new file mode 100644
-index 0000000..b375271
+index 0000000..6707ff0
 --- /dev/null
 +++ b/src/screens/CarbonInsightsScreen.tsx
-@@ -0,0 +1,465 @@
+@@ -0,0 +1,452 @@
 +import React, { useEffect, useMemo, useState } from 'react';
 +import { View, Text, ScrollView, TouchableOpacity, Pressable, StatusBar, ActivityIndicator, Platform, LayoutChangeEvent } from 'react-native';
 +import { LinearGradient } from 'expo-linear-gradient';
 +import Svg, { Path, Line, Circle, Text as SvgText } from 'react-native-svg';
-+import { ChevronLeft, BarChart3, TrendingDown, TrendingUp, Table2, Target, Minus } from 'lucide-react-native';
++import { ChevronLeft, BarChart3, TrendingDown, TrendingUp, Table2, Minus } from 'lucide-react-native';
 +import { WebFooter } from '../components/shared/WebFooter';
 +import { useTheme, makeStyles } from '../theme';
-+import { carbonService, CarbonAssessment, CarbonSummary, CarbonCategoryKey, CARBON_CATEGORY_ORDER } from '../services/carbon';
-+import { CARBON_CATEGORIES, formatKg, formatDate } from '../utils/carbon';
++import { carbonService, CarbonResult, CarbonSummary, CarbonCategoryKey, CARBON_CATEGORY_ORDER } from '../services/carbon';
++import { CARBON_CATEGORIES, formatKg, formatDate, formatPeriod } from '../utils/carbon';
 +
 +// Carbon insights — the visual dashboard. Every number here comes from stored
-+// assessment results and the CO₂-saved summary; the app only formats and compares
++// results (GET /result/history) and the summary; the app only formats and compares
 +// them (no carbon calculation). Charts follow the app's chart rules: one hue,
 +// thin marks, hairline grid, selective labels, tap/focus readouts, and a table view.
 +
@@ -1137,8 +1062,8 @@ index 0000000..b375271
 +];
 +
 +const pctChange = (current: number, previous: number) => (previous > 0 ? Math.round(((current - previous) / previous) * 100) : null);
-+const monthLabel = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short' });
-+const catKg = (a: CarbonAssessment | undefined, key: CarbonCategoryKey) => a?.categories.find((c) => c.key === key)?.kgCo2e;
++const monthLabel = (p: CarbonResult) => formatPeriod(p.periodLabel, true) || new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short' });
++const catKg = (a: CarbonResult | undefined, key: CarbonCategoryKey) => a?.breakdown?.[key];
 +const SVG_FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' : undefined;
 +
 +// Clean axis ticks: 0, step, 2·step… with the top tick just above the max.
@@ -1180,7 +1105,8 @@ index 0000000..b375271
 +}
 +
 +// ── Footprint over time: single-series line + 10% area, dots with a surface ring ──
-+function TrendChart({ points, goal }: { points: CarbonAssessment[]; goal: number | null }) {
++// TODO(backend): draw a goal line here once a monthly-goal endpoint exists.
++function TrendChart({ points }: { points: CarbonResult[] }) {
 +  const styles = useStyles();
 +  const { colors } = useTheme();
 +  const [w, setW] = useState(0);
@@ -1188,12 +1114,12 @@ index 0000000..b375271
 +  useEffect(() => setSel(points.length - 1), [points.length]);
 +
 +  const H = 170, X_BAND = 24, PAD_L = 36, PAD_R = 16, PAD_T = 22;
-+  const max = Math.max(...points.map((p) => p.totalKgPerMonth), goal ?? 0);
++  const max = Math.max(...points.map((p) => p.totalKgCO2ePerMonth));
 +  const { top, ticks } = niceScale(max);
 +  const plotW = Math.max(w - PAD_L - PAD_R, 1);
 +  const x = (i: number) => PAD_L + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
 +  const y = (v: number) => PAD_T + (1 - v / top) * (H - PAD_T);
-+  const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.totalKgPerMonth)}`).join(' ');
++  const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.totalKgCO2ePerMonth)}`).join(' ');
 +  const area = `${line} L${x(points.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
 +  const every = Math.ceil(points.length / 6); // at most ~6 month labels
 +  const s = points[sel];
@@ -1202,7 +1128,7 @@ index 0000000..b375271
 +    <View onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}>
 +      {/* Readout — the selected point (latest by default); tap or focus a point to change it */}
 +      <View style={styles.readout} accessibilityLiveRegion="polite">
-+        <Text style={styles.readoutValue}>{s ? `${formatKg(s.totalKgPerMonth)} kg` : ''}</Text>
++        <Text style={styles.readoutValue}>{s ? `${formatKg(s.totalKgCO2ePerMonth)} kg` : ''}</Text>
 +        <Text style={styles.readoutLabel}>{s ? ` CO₂e / month · ${formatDate(s.createdAt)}` : ''}</Text>
 +      </View>
 +      {w > 0 && (
@@ -1214,20 +1140,14 @@ index 0000000..b375271
 +                <SvgText fontFamily={SVG_FONT} x={PAD_L - 8} y={y(t) + 4} fontSize={11} fill={colors.textFaint} textAnchor="end">{t.toLocaleString()}</SvgText>
 +              </React.Fragment>
 +            ))}
-+            {goal !== null && (
-+              <>
-+                <Line x1={PAD_L} x2={w - PAD_R} y1={y(goal)} y2={y(goal)} stroke={colors.warning} strokeWidth={1.5} strokeDasharray="5 4" />
-+                <SvgText fontFamily={SVG_FONT} x={PAD_L + 6} y={y(goal) + 15} fontSize={11} fontWeight="700" fill={colors.textMuted} textAnchor="start">Goal {Math.round(goal).toLocaleString()} kg</SvgText>
-+              </>
-+            )}
 +            {points.length > 1 && <Path d={area} fill={colors.primary} fillOpacity={0.1} />}
 +            {points.length > 1 && <Path d={line} stroke={colors.primary} strokeWidth={2} fill="none" strokeLinejoin="round" strokeLinecap="round" />}
 +            {s && <Line x1={x(sel)} x2={x(sel)} y1={PAD_T} y2={y(0)} stroke={colors.borderStrong} strokeWidth={1} />}
 +            {points.map((p, i) => (
-+              <Circle key={p._id} cx={x(i)} cy={y(p.totalKgPerMonth)} r={i === sel ? 6 : 4} fill={colors.primary} stroke={colors.surface} strokeWidth={2} />
++              <Circle key={p._id} cx={x(i)} cy={y(p.totalKgCO2ePerMonth)} r={i === sel ? 6 : 4} fill={colors.primary} stroke={colors.surface} strokeWidth={2} />
 +            ))}
 +            {points.map((p, i) => (i % every === 0 || i === points.length - 1) && (
-+              <SvgText fontFamily={SVG_FONT} key={`x${p._id}`} x={x(i)} y={H + 16} fontSize={11} fontWeight={i === sel ? '700' : '400'} fill={i === sel ? colors.text : colors.textFaint} textAnchor="middle">{monthLabel(p.createdAt)}</SvgText>
++              <SvgText fontFamily={SVG_FONT} key={`x${p._id}`} x={x(i)} y={H + 16} fontSize={11} fontWeight={i === sel ? '700' : '400'} fill={i === sel ? colors.text : colors.textFaint} textAnchor="middle">{monthLabel(p)}</SvgText>
 +            ))}
 +          </Svg>
 +          {/* Hit targets: bigger than the dots, focusable on web, announced on native */}
@@ -1237,8 +1157,8 @@ index 0000000..b375271
 +              onPress={() => setSel(i)}
 +              onFocus={() => setSel(i)}
 +              accessibilityRole="button"
-+              accessibilityLabel={`${formatDate(p.createdAt)}: ${formatKg(p.totalKgPerMonth)} kilograms CO2e per month`}
-+              style={{ position: 'absolute', left: x(i) - 18, top: y(p.totalKgPerMonth) - 18, width: 36, height: 36, borderRadius: 18 }}
++              accessibilityLabel={`${formatDate(p.createdAt)}: ${formatKg(p.totalKgCO2ePerMonth)} kilograms CO2e per month`}
++              style={{ position: 'absolute', left: x(i) - 18, top: y(p.totalKgCO2ePerMonth) - 18, width: 36, height: 36, borderRadius: 18 }}
 +            />
 +          ))}
 +        </View>
@@ -1248,7 +1168,7 @@ index 0000000..b375271
 +}
 +
 +// ── Where it comes from: horizontal bars, one hue; the biggest source emphasised ──
-+function CategoryBars({ latest }: { latest: CarbonAssessment }) {
++function CategoryBars({ latest }: { latest: CarbonResult }) {
 +  const styles = useStyles();
 +  const { colors } = useTheme();
 +  const rows = CARBON_CATEGORY_ORDER
@@ -1256,7 +1176,7 @@ index 0000000..b375271
 +    .filter((r): r is { key: CarbonCategoryKey; kg: number } => typeof r.kg === 'number')
 +    .sort((a, b) => b.kg - a.kg);
 +  const max = Math.max(0, ...rows.map((r) => r.kg));
-+  const total = latest.totalKgPerMonth;
++  const total = latest.totalKgCO2ePerMonth;
 +  return (
 +    <View style={{ gap: 12 }}>
 +      {rows.map((r, i) => {
@@ -1293,7 +1213,7 @@ index 0000000..b375271
 +  );
 +}
 +
-+function MultipleCell({ k, points }: { k: CarbonCategoryKey; points: CarbonAssessment[] }) {
++function MultipleCell({ k, points }: { k: CarbonCategoryKey; points: CarbonResult[] }) {
 +  const styles = useStyles();
 +  const [cellW, setCellW] = useState(0);
 +  const latest = points[points.length - 1];
@@ -1317,7 +1237,7 @@ index 0000000..b375271
 +  );
 +}
 +
-+function CategoryMultiples({ points }: { points: CarbonAssessment[] }) {
++function CategoryMultiples({ points }: { points: CarbonResult[] }) {
 +  const styles = useStyles();
 +  const latest = points[points.length - 1];
 +  const keys = CARBON_CATEGORY_ORDER.filter((k) => typeof catKg(latest, k) === 'number');
@@ -1331,7 +1251,7 @@ index 0000000..b375271
 +export function CarbonInsightsScreen({ navigation }: any) {
 +  const styles = useStyles();
 +  const { colors } = useTheme();
-+  const [assessments, setAssessments] = useState<CarbonAssessment[]>([]);
++  const [assessments, setAssessments] = useState<CarbonResult[]>([]);
 +  const [summary, setSummary] = useState<CarbonSummary | null>(null);
 +  const [isLoading, setIsLoading] = useState(true);
 +  const [range, setRange] = useState<Range>('6m');
@@ -1339,11 +1259,12 @@ index 0000000..b375271
 +
 +  const fetchData = async () => {
 +    try {
++      // Newest first; 50 is the backend's page-size limit.
 +      const [history, summaryData] = await Promise.all([
-+        carbonService.getAssessments().catch(() => [] as CarbonAssessment[]),
-+        carbonService.getSummary().catch(() => null),
++        carbonService.getHistory(1, 50),
++        carbonService.getSummary(),
 +      ]);
-+      setAssessments(history);
++      setAssessments(history.results);
 +      setSummary(summaryData);
 +    } catch (error) {
 +      console.error('Carbon insights fetch error:', error);
@@ -1369,10 +1290,8 @@ index 0000000..b375271
 +
 +  const latest = assessments[0];
 +  const previous = assessments[1];
-+  const avg = points.length ? points.reduce((s, p) => s + p.totalKgPerMonth, 0) / points.length : 0;
-+  const lowest = points.reduce<CarbonAssessment | null>((lo, p) => (!lo || p.totalKgPerMonth < lo.totalKgPerMonth ? p : lo), null);
-+  const goalPct = summary?.goal?.reductionPercent;
-+  const goal = goalPct && previous ? previous.totalKgPerMonth * (1 - goalPct / 100) : null;
++  const avg = points.length ? points.reduce((s, p) => s + p.totalKgCO2ePerMonth, 0) / points.length : 0;
++  const lowest = points.reduce<CarbonResult | null>((lo, p) => (!lo || p.totalKgCO2ePerMonth < lo.totalKgCO2ePerMonth ? p : lo), null);
 +
 +  return (
 +    <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -1391,13 +1310,13 @@ index 0000000..b375271
 +            <View style={styles.bigRow}>
 +              <BarChart3 size={40} color="#86efac" />
 +              <View>
-+                <Text style={styles.bigValue}>{latest ? formatKg(latest.totalKgPerMonth) : '—'}</Text>
++                <Text style={styles.bigValue}>{latest ? formatKg(latest.totalKgCO2ePerMonth) : '—'}</Text>
 +                <Text style={styles.unitTag}>kg CO₂e / month</Text>
 +              </View>
 +            </View>
 +            <Text style={styles.heroSub}>
 +              {latest && previous
-+                ? (() => { const p = pctChange(latest.totalKgPerMonth, previous.totalKgPerMonth); return p === null ? '' : p === 0 ? 'Same as last time' : `${Math.abs(p)}% ${p < 0 ? 'lower' : 'higher'} than last time (${formatKg(previous.totalKgPerMonth)} kg)`; })()
++                ? (() => { const p = pctChange(latest.totalKgCO2ePerMonth, previous.totalKgCO2ePerMonth); return p === null ? '' : p === 0 ? 'Same as last time' : `${Math.abs(p)}% ${p < 0 ? 'lower' : 'higher'} than last time (${formatKg(previous.totalKgCO2ePerMonth)} kg)`; })()
 +                : latest ? `Calculated ${formatDate(latest.createdAt)}` : 'No footprint calculated yet'}
 +            </Text>
 +          </View>
@@ -1438,8 +1357,8 @@ index 0000000..b375271
 +            {/* KPI row */}
 +            <View style={styles.tiles}>
 +              <StatTile label="Average" value={`${formatKg(avg)} kg`} sub={`per month · ${points.length.toLocaleString()} ${points.length === 1 ? 'result' : 'results'}`} />
-+              <StatTile label="Lowest" value={lowest ? `${formatKg(lowest.totalKgPerMonth)} kg` : '—'} sub={lowest ? formatDate(lowest.createdAt) : undefined} />
-+              <StatTile label="CO₂ saved" value={`${formatKg(summary?.savedKgLifetime ?? 0)} kg`} sub="from green actions" />
++              <StatTile label="Lowest" value={lowest ? `${formatKg(lowest.totalKgCO2ePerMonth)} kg` : '—'} sub={lowest ? formatDate(lowest.createdAt) : undefined} />
++              <StatTile label="Assessments" value={(summary?.totalAssessments ?? assessments.length).toLocaleString()} sub="in total" />
 +            </View>
 +
 +            {/* Footprint over time */}
@@ -1461,11 +1380,11 @@ index 0000000..b375271
 +                    </View>
 +                    {[...points].reverse().map((p, i, arr) => {
 +                      const older = arr[i + 1];
-+                      const pct = older ? pctChange(p.totalKgPerMonth, older.totalKgPerMonth) : null;
++                      const pct = older ? pctChange(p.totalKgCO2ePerMonth, older.totalKgCO2ePerMonth) : null;
 +                      return (
 +                        <View key={p._id} style={styles.tr}>
 +                          <Text style={[styles.td, { flex: 1.4 }]}>{formatDate(p.createdAt)}</Text>
-+                          <Text style={[styles.td, styles.num]}>{formatKg(p.totalKgPerMonth)}</Text>
++                          <Text style={[styles.td, styles.num]}>{formatKg(p.totalKgCO2ePerMonth)}</Text>
 +                          <Text style={[styles.td, styles.num]}>{pct === null ? '—' : `${pct > 0 ? '+' : ''}${pct}%`}</Text>
 +                        </View>
 +                      );
@@ -1474,13 +1393,7 @@ index 0000000..b375271
 +                ) : points.length < 2 ? (
 +                  <Text style={styles.cardNote}>Calculate again later to see how your footprint changes over time.</Text>
 +                ) : (
-+                  <TrendChart points={points} goal={goal} />
-+                )}
-+                {goal !== null && !showTable && points.length >= 2 && (
-+                  <View style={styles.goalNote}>
-+                    <Target size={13} color={colors.warning} />
-+                    <Text style={styles.cardNote}>Your goal: {goalPct}% below your previous result.</Text>
-+                  </View>
++                  <TrendChart points={points} />
 +                )}
 +              </View>
 +            </View>
@@ -1545,7 +1458,6 @@ index 0000000..b375271
 +  linkText: { fontSize: 12, color: c.primary, fontWeight: '700' },
 +  card: { padding: 16, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border, elevation: 2, shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
 +  cardNote: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
-+  goalNote: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
 +
 +  readout: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 6, minHeight: 24 },
 +  readoutValue: { fontSize: 18, fontWeight: '900', color: c.text },
@@ -1580,18 +1492,18 @@ index 0000000..b375271
 +}));
 diff --git a/src/screens/CarbonJourneyScreen.tsx b/src/screens/CarbonJourneyScreen.tsx
 new file mode 100644
-index 0000000..0d0e93b
+index 0000000..b45d1c9
 --- /dev/null
 +++ b/src/screens/CarbonJourneyScreen.tsx
-@@ -0,0 +1,256 @@
+@@ -0,0 +1,254 @@
 +import React, { useEffect, useState } from 'react';
-+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator, Platform } from 'react-native';
++import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform } from 'react-native';
 +import { LinearGradient } from 'expo-linear-gradient';
 +import { ChevronLeft, LineChart, TrendingDown, TrendingUp, History, Clock } from 'lucide-react-native';
 +import { WebFooter } from '../components/shared/WebFooter';
 +import { useTheme, makeStyles } from '../theme';
-+import { carbonService, CarbonAssessment } from '../services/carbon';
-+import { formatKg, formatDate } from '../utils/carbon';
++import { carbonService, CarbonResult } from '../services/carbon';
++import { formatKg, formatDate, formatPeriod } from '../utils/carbon';
 +
 +// Percentage change between two stored results — display only; the results
 +// themselves are calculated and stored by the backend and never edited here.
@@ -1616,15 +1528,14 @@ index 0000000..0d0e93b
 +  const { colors, isDark } = useTheme();
 +  // Pastel category tiles read as glare on dark surfaces; use the raised surface there.
 +  const tint = (bg: string) => (isDark ? colors.surfaceAlt : bg);
-+  const [assessments, setAssessments] = useState<CarbonAssessment[]>([]);
++  const [assessments, setAssessments] = useState<CarbonResult[]>([]);
 +  const [isLoading, setIsLoading] = useState(true);
 +
 +  const fetchData = async () => {
 +    try {
-+      const [history] = await Promise.all([
-+        carbonService.getAssessments().catch(() => [] as CarbonAssessment[]),
-+      ]);
-+      setAssessments(history);
++      // Newest first; 50 is the backend's page-size limit.
++      const { results } = await carbonService.getHistory(1, 50);
++      setAssessments(results);
 +    } catch (error) {
 +      console.error('Carbon journey fetch error:', error);
 +    } finally {
@@ -1641,15 +1552,14 @@ index 0000000..0d0e93b
 +  const goBack = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('CarbonFootprint'));
 +  const calculate = () => navigation.navigate('CarbonAssessment');
 +
-+  // Newest first from the API.
 +  const current = assessments[0];
 +  const previous = assessments[1];
 +  const first = assessments[assessments.length - 1];
-+  const vsPrevious = current && previous ? pctChange(current.totalKgPerMonth, previous.totalKgPerMonth) : null;
-+  const vsFirst = current && first && first !== current ? pctChange(current.totalKgPerMonth, first.totalKgPerMonth) : null;
++  const vsPrevious = current && previous ? pctChange(current.totalKgCO2ePerMonth, previous.totalKgCO2ePerMonth) : null;
++  const vsFirst = current && first && first !== current ? pctChange(current.totalKgCO2ePerMonth, first.totalKgCO2ePerMonth) : null;
 +
 +  const trend = assessments.slice(0, 6).reverse(); // oldest → newest
-+  const trendMax = Math.max(0, ...trend.map((a) => a.totalKgPerMonth));
++  const trendMax = Math.max(0, ...trend.map((a) => a.totalKgCO2ePerMonth));
 +
 +  return (
 +    <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -1676,7 +1586,7 @@ index 0000000..0d0e93b
 +            <View style={styles.bigRow}>
 +              <LineChart size={40} color="#86efac" />
 +              <View>
-+                <Text style={styles.bigValue}>{current ? formatKg(current.totalKgPerMonth) : '—'}</Text>
++                <Text style={styles.bigValue}>{current ? formatKg(current.totalKgCO2ePerMonth) : '—'}</Text>
 +                <Text style={styles.unitTag}>kg CO₂e / month</Text>
 +              </View>
 +            </View>
@@ -1686,7 +1596,7 @@ index 0000000..0d0e93b
 +            <View style={styles.colsRow}>
 +              <View style={styles.col}>
 +                <Text style={styles.colLabel}>Previous</Text>
-+                <Text style={styles.colValue}>{previous ? `${formatKg(previous.totalKgPerMonth)} kg` : '—'}</Text>
++                <Text style={styles.colValue}>{previous ? `${formatKg(previous.totalKgCO2ePerMonth)} kg` : '—'}</Text>
 +                <Text style={styles.colSub}>{previous ? formatDate(previous.createdAt) : 'No earlier result'}</Text>
 +              </View>
 +              <View style={styles.colDivider} />
@@ -1735,17 +1645,17 @@ index 0000000..0d0e93b
 +                <View
 +                  style={[styles.rowCard, styles.chartCard]}
 +                  accessible
-+                  accessibilityLabel={`Footprint trend: ${trend.map((a) => `${formatDate(a.createdAt)} ${formatKg(a.totalKgPerMonth)} kilograms`).join(', ')}`}
++                  accessibilityLabel={`Footprint trend: ${trend.map((a) => `${formatDate(a.createdAt)} ${formatKg(a.totalKgCO2ePerMonth)} kilograms`).join(', ')}`}
 +                >
 +                  {trend.map((a, i) => {
 +                    const latest = i === trend.length - 1;
-+                    const h = trendMax > 0 ? Math.max((a.totalKgPerMonth / trendMax) * 110, 6) : 6;
++                    const h = trendMax > 0 ? Math.max((a.totalKgCO2ePerMonth / trendMax) * 110, 6) : 6;
 +                    return (
 +                      <View key={a._id} style={styles.barCol}>
-+                        <Text style={[styles.barValue, latest && { color: colors.text }]}>{formatKg(a.totalKgPerMonth)}</Text>
++                        <Text style={[styles.barValue, latest && { color: colors.text }]}>{formatKg(a.totalKgCO2ePerMonth)}</Text>
 +                        <View style={[styles.bar, { height: h, backgroundColor: colors.primary, opacity: latest ? 1 : 0.35 }]} />
 +                        <Text style={styles.barLabel} numberOfLines={1}>
-+                          {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short' })}
++                          {formatPeriod(a.periodLabel, true) || new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short' })}
 +                        </Text>
 +                      </View>
 +                    );
@@ -1760,14 +1670,14 @@ index 0000000..0d0e93b
 +              <View style={styles.list}>
 +                {assessments.map((a, i) => {
 +                  const older = assessments[i + 1];
-+                  const pct = older ? pctChange(a.totalKgPerMonth, older.totalKgPerMonth) : null;
++                  const pct = older ? pctChange(a.totalKgCO2ePerMonth, older.totalKgCO2ePerMonth) : null;
 +                  return (
 +                    <View key={a._id} style={styles.rowCard}>
 +                      <View style={[styles.iconTile, { backgroundColor: tint('#f0fdf4') }]}>
 +                        <LineChart size={20} color="#16a34a" />
 +                      </View>
 +                      <View style={styles.rowContent}>
-+                        <Text style={styles.rowTitle}>{formatKg(a.totalKgPerMonth)} kg CO₂e / month</Text>
++                        <Text style={styles.rowTitle}>{formatKg(a.totalKgCO2ePerMonth)} kg CO₂e / month</Text>
 +                        <View style={styles.timeRow}>
 +                          <Clock size={12} color={colors.textFaint} />
 +                          <Text style={styles.rowMeta}>{formatDate(a.createdAt)}</Text>
@@ -2029,7 +1939,7 @@ index bccb1e0..df43475 100644
    heroName: { color: 'white', fontSize: 22, fontWeight: '900', letterSpacing: -0.3, marginBottom: 16 },
    heroBalance: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
 diff --git a/src/screens/SplashScreen.web.tsx b/src/screens/SplashScreen.web.tsx
-index 3ebd611..ba2de1e 100644
+index b0d67bc..da5e988 100644
 --- a/src/screens/SplashScreen.web.tsx
 +++ b/src/screens/SplashScreen.web.tsx
 @@ -3,6 +3,7 @@ import {
@@ -2040,7 +1950,7 @@ index 3ebd611..ba2de1e 100644
  import {
    Truck, Gift, Shield,
    Recycle, Users, Coins, ArrowRight,
-@@ -463,6 +464,38 @@ export function SplashScreen({ navigation, route }: any) {
+@@ -471,6 +472,38 @@ export function SplashScreen({ navigation, route }: any) {
            </View>
          </View>
  
@@ -2052,7 +1962,7 @@ index 3ebd611..ba2de1e 100644
 +                <Text style={[s.sectionLabel, { color: '#86efac' }]}>NEW · CARBON FOOTPRINT</Text>
 +                <Text style={[s.carbonTitle, isMobile && { fontSize: 26, lineHeight: 32 }]}>What's your carbon footprint?</Text>
 +                <Text style={s.carbonText}>
-+                  Tap through a 4-minute chat about how you travel, eat and live. See your footprint in kg CO₂e,
++                  Tap through a 2-minute chat about how you travel, eat and live. See your footprint in kg CO₂e,
 +                  where it comes from, and simple ways to cut it — then track it month by month.
 +                </Text>
 +                <TouchableOpacity
@@ -2062,7 +1972,7 @@ index 3ebd611..ba2de1e 100644
 +                >
 +                  <Text style={s.ctaPrimaryText}>Calculate my footprint</Text>
 +                </TouchableOpacity>
-+                <Text style={s.carbonFine}>Free. Log in or sign up to save your results and earn KarmaCoins XP for green actions.</Text>
++                <Text style={s.carbonFine}>Free. Log in or sign up to save your results and see how they change each month.</Text>
 +              </View>
 +              {!isMobile && (
 +                <View style={s.carbonStat}>
@@ -2079,7 +1989,7 @@ index 3ebd611..ba2de1e 100644
          {/* ── LEARNING & ENGAGEMENT ── */}
          <View style={[s.section, { backgroundColor: '#f8fafc' }]} onLayout={(e) => { sectionY.current.learning = e.nativeEvent.layout.y; }}>
            <View style={[s.container, isMobile && { paddingHorizontal: 20 }]}>
-@@ -657,6 +690,15 @@ const s = StyleSheet.create({
+@@ -670,6 +703,15 @@ const s = StyleSheet.create({
    container: { maxWidth: MAX, width: '100%', alignSelf: 'center', paddingHorizontal: 32 },
    sectionLabel: { fontSize: 12, fontWeight: '900', color: '#16a34a', letterSpacing: 2, marginBottom: 10 },
    sectionTitle: { fontSize: 36, fontWeight: '900', color: '#0f172a', letterSpacing: -1, marginBottom: 40, lineHeight: 44 },
@@ -2097,28 +2007,28 @@ index 3ebd611..ba2de1e 100644
    // Steps
 diff --git a/src/services/carbon.ts b/src/services/carbon.ts
 new file mode 100644
-index 0000000..6f11d92
+index 0000000..8242664
 --- /dev/null
 +++ b/src/services/carbon.ts
-@@ -0,0 +1,145 @@
+@@ -0,0 +1,170 @@
 +import api from './api';
 +
 +// ─────────────────────────────────────────────────────────────────────────────
-+// Carbon footprint service
++// Carbon footprint service — backend contract: "Carbon Footprint — API
++// Integration Guide (Frontend)", base path /api/v1/carbon-footprint.
 +//
-+// TODO(backend): the carbon endpoints below DO NOT EXIST on the backend yet.
-+// Everything in this file is a PROPOSED contract, taken from the Carbon
-+// Footprint feature spec (fixed categories, option or free-text answers, AI
-+// extraction of free text + deterministic formulas on the server, results stored with the conversion
-+// factor version, past assessments never overwritten). Confirm paths and field
-+// names with the backend team before enabling.
++// The interview is a server-side session: six categories in a fixed order, one
++// structured answer per category. The backend validates every answer strictly
++// (no extra fields), applies the emission factors and stores each completed
++// result as a new record. The app never calculates CO₂ itself.
 +//
-+// Until then the service is switched off: reads return empty results (the
-+// screens show their empty states) and writes throw CarbonApiNotReadyError
-+// (the screens show "Coming soon!"). Nothing is faked or calculated here.
-+// Enable with EXPO_PUBLIC_CARBON_API=true once the endpoints ship.
++// Switched on with EXPO_PUBLIC_CARBON_API=true. While it's off (e.g. before the
++// routes are deployed), reads return empty results — the screens show their
++// empty states — and writes throw CarbonApiNotReadyError ("Coming soon!").
 +// ─────────────────────────────────────────────────────────────────────────────
 +export const CARBON_API_READY = process.env.EXPO_PUBLIC_CARBON_API === 'true';
++
++const BASE = '/api/v1/carbon-footprint';
 +
 +export class CarbonApiNotReadyError extends Error {
 +  constructor() {
@@ -2127,134 +2037,159 @@ index 0000000..6f11d92
 +  }
 +}
 +
-+// Assessment categories in display order. The spec's six, plus `shopping`
-+// (added after review — TODO(product): confirm). The breakdown only shows the
-+// categories the backend actually returns.
-+export type CarbonCategoryKey = 'transport' | 'electricity' | 'diet' | 'waste' | 'water' | 'flights' | 'shopping';
-+export const CARBON_CATEGORY_ORDER: CarbonCategoryKey[] = ['transport', 'electricity', 'diet', 'waste', 'water', 'flights', 'shopping'];
++// The backend asks the categories in exactly this order and rejects anything else.
++export type CarbonCategoryKey = 'transport' | 'electricity' | 'diet' | 'waste' | 'water' | 'flights';
++export const CARBON_CATEGORY_ORDER: CarbonCategoryKey[] = ['transport', 'electricity', 'diet', 'waste', 'water', 'flights'];
 +
-+// One answer: the option ids the user tapped, or their own words (typed or
-+// spoken). Only `text` answers go through AI extraction on the server.
-+export type CarbonAnswer = { optionIds?: string[]; text?: string };
++export type TransportMode = 'car_petrol' | 'car_diesel' | 'car_ev' | 'bike' | 'bus' | 'train' | 'walk_cycle' | 'none';
++export type ElectricitySource = 'grid' | 'solar' | 'mixed';
++export type DietType = 'vegan' | 'vegetarian' | 'eggetarian' | 'non_veg_moderate' | 'non_veg_heavy';
 +
-+// One stored assessment result. All numbers are calculated by the backend.
-+export interface CarbonAssessment {
-+  _id: string;
-+  createdAt: string;
-+  totalKgPerMonth: number;
-+  categories: { key: CarbonCategoryKey; kgCo2e: number }[]; // only categories the backend returns
-+  factorVersion?: string;
++// Answer shape per category. Every field is required and nothing else may be sent.
++export interface CarbonAnswers {
++  transport: { mode: TransportMode; kmPerDay: number };
++  electricity: { unitsKwhPerMonth: number; source: ElectricitySource };
++  diet: { dietType: DietType };
++  waste: { segregatesWaste: boolean; kgPerWeek: number };
++  water: { litersPerDay: number };
++  flights: { shortHaulPerYear: number; longHaulPerYear: number };
 +}
 +
-+// CO₂ saved through logged actions and pickups. `level` is optional and only
-+// shown when the backend sends it — the app has no carbon level names of its own.
++export interface CarbonQuestion {
++  category: CarbonCategoryKey;
++  questionText: string;
++}
++
++export interface CarbonSession {
++  sessionId: string;
++  status: 'in_progress' | string;
++  answeredCategories: CarbonCategoryKey[];
++  nextQuestion: CarbonQuestion | null;
++}
++
++// One stored result. History items may leave out the breakdown and tips.
++export interface CarbonResult {
++  _id: string;
++  totalKgCO2ePerMonth: number;
++  totalKgCO2ePerYear?: number;
++  score?: number;
++  category?: 'low' | 'medium' | 'high' | string; // footprint band, not an assessment category
++  breakdown?: Partial<Record<CarbonCategoryKey, number>>;
++  tips?: string[];
++  periodLabel?: string; // "YYYY-MM"
++  emissionFactorVersion?: string;
++  createdAt: string;
++}
++
++export interface CarbonComparison {
++  deltaKgCO2ePerMonth: number; // negative = footprint went down
++  improved: boolean;
++  previousPeriodLabel?: string;
++}
++
 +export interface CarbonSummary {
-+  savedKgThisMonth: number;
-+  savedKgLifetime: number;
-+  level?: { name: string; level: number; nextName?: string | null; progress?: number | null } | null;
-+  goal?: { reductionPercent: number } | null;
++  totalAssessments: number;
++  averageKgCO2ePerMonth: number;
++  bestKgCO2ePerMonth: number;
 +}
 +
-+export type LoggableActivity = 'public_transport' | 'cycle_walk' | 'plant_based_meal' | 'energy_saving';
-+
-+export interface CarbonActivity {
-+  _id: string;
-+  type: LoggableActivity | 'pickup' | string;
-+  title: string;
-+  kgCo2e: number; // CO₂ saved by this action, from the backend
-+  createdAt: string;
-+}
++export type AnswerResponse =
++  | { completed: false; nextQuestion: CarbonQuestion }
++  | { completed: true; result: CarbonResult };
 +
 +const notReady = () => { throw new CarbonApiNotReadyError(); };
++const unwrap = (response: any) => response.data?.data ?? response.data;
++const is404 = (error: any) => error?.response?.status === 404;
++
++// Categories before the one the backend expects next — the order is fixed, and
++// POST /session/start doesn't list them.
++const answeredBefore = (next?: CarbonCategoryKey | null) =>
++  next ? CARBON_CATEGORY_ORDER.slice(0, Math.max(CARBON_CATEGORY_ORDER.indexOf(next), 0)) : [...CARBON_CATEGORY_ORDER];
 +
 +export const carbonService = {
-+  // Assessment history, newest first. Each call to submitAssessment adds a record.
-+  getAssessments: async (): Promise<CarbonAssessment[]> => {
-+    if (!CARBON_API_READY) return [];
-+    try {
-+      const response = await api.get('/api/v1/carbon/assessments');
-+      const data = response.data.data || response.data;
-+      return Array.isArray(data) ? data : [];
-+    } catch (error: any) {
-+      if (error?.response?.status !== 404) console.error('Get Carbon Assessments Error:', error);
-+      return [];
-+    }
-+  },
-+
-+  // Sends the answers keyed by question id, plus the question-set version so the
-+  // backend maps option ids to the right factors. The backend applies the
-+  // configured conversion factors (AI only reads free-text answers) and stores a
-+  // NEW historical record.
-+  submitAssessment: async (answers: Record<string, CarbonAnswer>, questionSetVersion: string): Promise<CarbonAssessment> => {
++  // Starts a new interview, or resumes the one in progress.
++  startSession: async (): Promise<CarbonSession> => {
 +    if (!CARBON_API_READY) return notReady();
-+    try {
-+      const response = await api.post('/api/v1/carbon/assessments', { questionSetVersion, answers });
-+      return response.data.data || response.data;
-+    } catch (error) {
-+      console.error('Submit Carbon Assessment Error:', error);
-+      throw error;
-+    }
++    const data = unwrap(await api.post(`${BASE}/session/start`));
++    return { ...data, answeredCategories: answeredBefore(data.nextQuestion?.category) };
 +  },
 +
-+  getSummary: async (): Promise<CarbonSummary | null> => {
++  // The interview in progress, or null when there isn't one.
++  getSession: async (): Promise<CarbonSession | null> => {
 +    if (!CARBON_API_READY) return null;
 +    try {
-+      const response = await api.get('/api/v1/carbon/summary');
-+      return response.data.data || response.data;
++      const data = unwrap(await api.get(`${BASE}/session`));
++      return { ...data, answeredCategories: data.answeredCategories ?? answeredBefore(data.nextQuestion?.category) };
 +    } catch (error: any) {
-+      if (error?.response?.status !== 404) console.error('Get Carbon Summary Error:', error);
++      if (!is404(error)) console.error('Get Carbon Session Error:', error);
 +      return null;
 +    }
 +  },
 +
-+  getActivities: async (): Promise<CarbonActivity[]> => {
-+    if (!CARBON_API_READY) return [];
++  // Answers the category the backend is expecting. The sixth answer returns the result.
++  submitAnswer: async <K extends CarbonCategoryKey>(category: K, answer: CarbonAnswers[K]): Promise<AnswerResponse> => {
++    if (!CARBON_API_READY) return notReady();
++    const data = unwrap(await api.post(`${BASE}/session/answer`, { category, answer }));
++    return data.completed ? { completed: true, result: data.result } : { completed: false, nextQuestion: data.nextQuestion };
++  },
++
++  // Throws away the interview in progress (used by "Start over").
++  abandonSession: async (): Promise<void> => {
++    if (!CARBON_API_READY) return;
 +    try {
-+      const response = await api.get('/api/v1/carbon/activities');
-+      const data = response.data.data || response.data;
-+      return Array.isArray(data) ? data : [];
++      await api.delete(`${BASE}/session`);
 +    } catch (error: any) {
-+      if (error?.response?.status !== 404) console.error('Get Carbon Activities Error:', error);
-+      return [];
++      if (!is404(error)) throw error;
 +    }
 +  },
 +
-+  // The app only sends the activity type; the backend owns the CO₂ value.
-+  logActivity: async (type: LoggableActivity) => {
-+    if (!CARBON_API_READY) return notReady();
++  // Latest completed result plus the change since the previous one; null if none yet.
++  getLatestResult: async (): Promise<{ result: CarbonResult; comparison: CarbonComparison | null } | null> => {
++    if (!CARBON_API_READY) return null;
 +    try {
-+      const response = await api.post('/api/v1/carbon/activities', { type });
-+      return response.data.data || response.data;
-+    } catch (error) {
-+      console.error('Log Carbon Activity Error:', error);
-+      throw error;
++      const data = unwrap(await api.get(`${BASE}/result/latest`));
++      return data?.result ? { result: data.result, comparison: data.comparison ?? null } : null;
++    } catch (error: any) {
++      if (!is404(error)) console.error('Get Latest Carbon Result Error:', error);
++      return null;
 +    }
 +  },
 +
-+  // Monthly reduction goal, as a percentage of the latest assessment.
-+  setGoal: async (reductionPercent: number) => {
-+    if (!CARBON_API_READY) return notReady();
++  // Past results, newest first.
++  getHistory: async (page = 1, limit = 12): Promise<{ results: CarbonResult[]; hasMore: boolean }> => {
++    if (!CARBON_API_READY) return { results: [], hasMore: false };
 +    try {
-+      const response = await api.post('/api/v1/carbon/goal', { reductionPercent });
-+      return response.data.data || response.data;
-+    } catch (error) {
-+      console.error('Set Carbon Goal Error:', error);
-+      throw error;
++      const data = unwrap(await api.get(`${BASE}/result/history`, { params: { page, limit } }));
++      return { results: Array.isArray(data?.results) ? data.results : [], hasMore: !!data?.pagination?.hasMore };
++    } catch (error: any) {
++      if (!is404(error)) console.error('Get Carbon History Error:', error);
++      return { results: [], hasMore: false };
 +    }
 +  },
 +
-+  // TODO(backend): Offset has no backend or partner integration yet, so the
-+  // screens do not show an Offset action. Add it here when one exists.
++  // Totals across all completed results; null if none yet.
++  getSummary: async (): Promise<CarbonSummary | null> => {
++    if (!CARBON_API_READY) return null;
++    try {
++      return unwrap(await api.get(`${BASE}/result/summary`));
++    } catch (error: any) {
++      if (!is404(error)) console.error('Get Carbon Summary Error:', error);
++      return null;
++    }
++  },
++
++  // TODO(backend): no endpoints yet for logging green actions or setting a monthly
++  // goal — the hub shows "Coming soon!" for both.
 +};
 diff --git a/src/utils/carbon.ts b/src/utils/carbon.ts
 new file mode 100644
-index 0000000..e3669ee
+index 0000000..89343e3
 --- /dev/null
 +++ b/src/utils/carbon.ts
-@@ -0,0 +1,68 @@
-+import { Bus, Zap, Utensils, Recycle, Droplets, Plane, Bike, Leaf, ShoppingBag } from 'lucide-react-native';
+@@ -0,0 +1,65 @@
++import { Bus, Zap, Utensils, Recycle, Droplets, Plane, Leaf } from 'lucide-react-native';
 +import { showAlert } from './alert';
-+import { CarbonApiNotReadyError, CarbonCategoryKey, LoggableActivity } from '../services/carbon';
++import { CarbonApiNotReadyError, CarbonCategoryKey } from '../services/carbon';
 +
 +type Icon = typeof Leaf;
 +
@@ -2288,29 +2223,26 @@ index 0000000..e3669ee
 +    label: 'Flights', Icon: Plane, color: '#7c3aed', bg: '#f3e8ff',
 +    tip: { title: 'Flights are your biggest source', body: 'Take the train for shorter trips when you can.' },
 +  },
-+  shopping: {
-+    label: 'Shopping', Icon: ShoppingBag, color: '#db2777', bg: '#fdf2f8',
-+    tip: { title: 'Shopping is your biggest source', body: 'Try a no-new-clothes month and batch your online orders.' },
-+  },
 +};
 +
-+export const LOG_OPTIONS: { type: LoggableActivity; title: string; meta: string; Icon: Icon; color: string; bg: string }[] = [
-+  { type: 'public_transport', title: 'Took public transport', meta: 'Metro, bus or shared auto instead of driving', Icon: Bus, color: '#0ea5e9', bg: '#f0f9ff' },
-+  { type: 'cycle_walk', title: 'Walked or cycled', meta: 'A short trip without a vehicle', Icon: Bike, color: '#16a34a', bg: '#f0fdf4' },
-+  { type: 'plant_based_meal', title: 'Had a plant-based meal', meta: 'Dal, sabzi, salad — no meat', Icon: Utensils, color: '#e11d48', bg: '#fff1f2' },
-+  { type: 'energy_saving', title: 'Saved energy at home', meta: 'AC at 24 °C+, lights and plugs off', Icon: Zap, color: '#d97706', bg: '#fffbeb' },
-+];
-+
-+export function activityIcon(type: string): { Icon: Icon; color: string; bg: string } {
-+  if (type === 'pickup') return { Icon: Recycle, color: '#16a34a', bg: '#f0fdf4' };
-+  const o = LOG_OPTIONS.find((l) => l.type === type);
-+  return o ? { Icon: o.Icon, color: o.color, bg: o.bg } : { Icon: Leaf, color: '#16a34a', bg: '#f0fdf4' };
-+}
++// The backend's footprint band for a result ("low" | "medium" | "high").
++export const BAND_LABELS: Record<string, { label: string; color: string }> = {
++  low: { label: 'Low footprint', color: '#16a34a' },
++  medium: { label: 'Medium footprint', color: '#d97706' },
++  high: { label: 'High footprint', color: '#e11d48' },
++};
 +
 +export const formatKg = (kg: number) => kg.toLocaleString(undefined, { maximumFractionDigits: 1 });
 +
 +export const formatDate = (iso?: string) =>
 +  iso ? new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
++
++// "2026-10" → "Oct 2026" (or "Oct" when short).
++export function formatPeriod(period?: string, short = false) {
++  const [y, m] = (period || '').split('-').map(Number);
++  if (!y || !m) return '';
++  return new Date(y, m - 1, 1).toLocaleDateString('en-US', short ? { month: 'short' } : { month: 'short', year: 'numeric' });
++}
 +
 +// Same "Coming soon!" wording Profile uses for features that aren't live yet.
 +export function showCarbonError(title: string, error: any) {
@@ -2322,21 +2254,17 @@ index 0000000..e3669ee
 +}
 diff --git a/src/utils/carbonQuestions.ts b/src/utils/carbonQuestions.ts
 new file mode 100644
-index 0000000..aa1d136
+index 0000000..d3c7335
 --- /dev/null
 +++ b/src/utils/carbonQuestions.ts
-@@ -0,0 +1,168 @@
-+import { CarbonCategoryKey, CarbonAnswer } from '../services/carbon';
+@@ -0,0 +1,144 @@
++import { CarbonCategoryKey, CarbonAnswers } from '../services/carbon';
 +
-+// Option-based question bank for the carbon assessment. Users tap an option
-+// (or type / speak in their own words). Options map to fixed ids that the backend
-+// turns into values with its configured conversion factors — the app never
-+// calculates CO₂. Free-text answers are the only part AI interprets.
-+//
-+// TODO(product/backend): this set replaces the original "6 free-text questions".
-+// Confirm the final list with product and give the backend a factor for every
-+// option id below. Bump QUESTION_SET_VERSION whenever ids or options change.
-+export const QUESTION_SET_VERSION = '2026-10';
++// What the chat asks for each backend category, one field at a time. Each field
++// maps 1:1 to a field of the backend's answer shape (see CarbonAnswers), so the
++// app sends exactly those fields — the backend rejects anything extra. Tap
++// options carry a representative value; number fields can also be typed or spoken.
++// The backend applies the emission factors; the app never calculates CO₂.
 +
 +export interface UserContext {
 +  firstName?: string;
@@ -2344,25 +2272,25 @@ index 0000000..aa1d136
 +  employment?: string; // Student | Employed | Business | Unemployed | Retired | Not Specified
 +}
 +
-+export interface QOption { id: string; label: string }
-+export interface Question {
-+  id: string;
++export type FieldValue = string | number | boolean;
++export interface FieldAnswer { value: FieldValue; label: string }
++export type Draft = Record<string, FieldAnswer>;
++
++export interface QOption { label: string; value: FieldValue }
++export interface Field {
++  key: string; // field name in the backend answer
 +  category: CarbonCategoryKey;
-+  multi?: boolean;
-+  ask: (ctx: UserContext, answers: AnswerMap) => string;
++  ask: (ctx: UserContext, draft: Draft) => string;
++  hint?: string;
 +  options: QOption[];
-+  showIf?: (answers: AnswerMap) => boolean;
++  number?: { min: number; max: number; unit: string }; // allows a typed value
++  // Value to send without asking, when an earlier answer makes the question moot.
++  auto?: (draft: Draft) => FieldValue | undefined;
 +}
 +
-+export type Answer = CarbonAnswer;
-+export type AnswerMap = Record<string, Answer>;
-+
-+const picked = (a: AnswerMap, qid: string) => a[qid]?.optionIds ?? [];
-+const commutes = (a: AnswerMap) => picked(a, 't_mode').some((id) => ['bus_metro', 'auto_cab', 'two_wheeler', 'car'].includes(id));
-+const ownVehicle = (a: AnswerMap) => picked(a, 't_mode').some((id) => ['two_wheeler', 'car'].includes(id));
-+
-+// Q1 is phrased from the user's profile: college for students, work for people
-+// who are employed or run a business, everyday travel for everyone else.
++// The transport question is phrased from the user's profile: college for
++// students, work for people who are employed or run a business, everyday travel
++// for everyone else.
 +function commuteQuestion(ctx: UserContext) {
 +  const where = ctx.city ? ` in ${ctx.city}` : '';
 +  switch ((ctx.employment || '').toLowerCase()) {
@@ -2372,144 +2300,155 @@ index 0000000..aa1d136
 +  }
 +}
 +
-+export const QUESTIONS: Question[] = [
++export const FIELDS: Field[] = [
 +  // ── Transport ──
 +  {
-+    id: 't_mode', category: 'transport', ask: (ctx) => commuteQuestion(ctx),
++    key: 'mode', category: 'transport', ask: (ctx) => commuteQuestion(ctx),
 +    options: [
-+      { id: 'walk_cycle', label: 'Walk or cycle' }, { id: 'bus_metro', label: 'Bus or metro' },
-+      { id: 'auto_cab', label: 'Auto or cab' }, { id: 'two_wheeler', label: 'Two-wheeler' },
-+      { id: 'car', label: 'Car' }, { id: 'from_home', label: 'I work or study from home' },
++      { label: 'Walk or cycle', value: 'walk_cycle' }, { label: 'Bus', value: 'bus' }, { label: 'Metro or train', value: 'train' },
++      { label: 'Two-wheeler', value: 'bike' }, { label: 'Petrol car', value: 'car_petrol' }, { label: 'Diesel car', value: 'car_diesel' },
++      { label: 'Electric car', value: 'car_ev' }, { label: "I don't travel daily", value: 'none' },
 +    ],
 +  },
 +  {
-+    id: 't_distance', category: 'transport', showIf: commutes, ask: () => 'Roughly how far is that, one way?',
-+    options: [{ id: 'lt5', label: 'Under 5 km' }, { id: '5_15', label: '5–15 km' }, { id: '15_30', label: '15–30 km' }, { id: 'gt30', label: 'Over 30 km' }],
++    key: 'kmPerDay', category: 'transport', ask: () => 'Roughly how far do you travel in a day, there and back?',
++    auto: (d) => (d.mode && ['walk_cycle', 'none'].includes(d.mode.value as string) ? 0 : undefined),
++    number: { min: 0, max: 1000, unit: 'km' },
++    options: [
++      { label: 'Under 5 km', value: 3 }, { label: '5–15 km', value: 10 }, { label: '15–30 km', value: 22 },
++      { label: '30–50 km', value: 40 }, { label: 'Over 50 km', value: 60 },
++    ],
++  },
++  // ── Electricity ──
++  {
++    key: 'unitsKwhPerMonth', category: 'electricity', ask: () => 'How many electricity units does your home use in a month?',
++    hint: "It's the “units consumed” figure on your electricity bill.",
++    number: { min: 0, max: 10000, unit: 'units' },
++    options: [
++      { label: 'Under 100', value: 75 }, { label: '100–200', value: 150 }, { label: '200–300', value: 250 },
++      { label: '300–500', value: 400 }, { label: 'Over 500', value: 600 },
++    ],
 +  },
 +  {
-+    id: 't_days', category: 'transport', showIf: commutes, ask: () => 'How many days a week?',
-+    options: [{ id: '1_2', label: '1–2 days' }, { id: '3_4', label: '3–4 days' }, { id: '5', label: '5 days' }, { id: '6_7', label: '6–7 days' }],
-+  },
-+  {
-+    id: 't_fuel', category: 'transport', showIf: ownVehicle,
-+    ask: (_c, a) => `What does your ${picked(a, 't_mode').includes('car') ? 'car' : 'two-wheeler'} run on?`,
-+    options: [{ id: 'petrol', label: 'Petrol' }, { id: 'diesel', label: 'Diesel' }, { id: 'cng', label: 'CNG' }, { id: 'electric', label: 'Electric' }, { id: 'unsure', label: 'Not sure' }],
-+  },
-+  {
-+    id: 't_other', category: 'transport', ask: () => 'How often do you take cabs or autos for other trips?',
-+    options: [{ id: 'rarely', label: 'Rarely' }, { id: 'weekly', label: 'Once or twice a week' }, { id: 'most_days', label: 'Most days' }],
-+  },
-+  // ── Home energy (electricity + cooking) ──
-+  {
-+    id: 'e_people', category: 'electricity', ask: () => 'How many people live in your home?',
-+    options: [{ id: '1', label: 'Just me' }, { id: '2', label: '2' }, { id: '3_4', label: '3–4' }, { id: '5_plus', label: '5 or more' }],
-+  },
-+  {
-+    id: 'e_bill', category: 'electricity', ask: () => "What's your usual monthly electricity bill?",
-+    options: [{ id: 'lt1000', label: 'Under ₹1,000' }, { id: '1000_2500', label: '₹1,000–2,500' }, { id: '2500_5000', label: '₹2,500–5,000' }, { id: 'gt5000', label: 'Over ₹5,000' }, { id: 'unsure', label: 'Not sure' }],
-+  },
-+  {
-+    id: 'e_ac', category: 'electricity', ask: () => 'How much do you use AC in summer?',
-+    options: [{ id: 'none', label: "Don't have one" }, { id: 'few_hours', label: 'A few hours a day' }, { id: 'most_day', label: 'Most of the day' }, { id: 'all_day', label: 'Day and night' }],
-+  },
-+  {
-+    id: 'e_cooking', category: 'electricity', ask: () => 'What do you cook on?',
-+    options: [{ id: 'lpg', label: 'LPG cylinder' }, { id: 'png', label: 'Piped gas (PNG)' }, { id: 'induction', label: 'Induction or electric' }, { id: 'biomass', label: 'Wood or biomass' }],
-+  },
-+  {
-+    id: 'e_solar', category: 'electricity', ask: () => 'Any rooftop solar or green power at home?',
-+    options: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }, { id: 'unsure', label: 'Not sure' }],
++    key: 'source', category: 'electricity', ask: () => 'Where does your electricity come from?',
++    options: [{ label: 'The grid', value: 'grid' }, { label: 'Mostly rooftop solar', value: 'solar' }, { label: 'Grid and solar', value: 'mixed' }],
 +  },
 +  // ── Diet ──
 +  {
-+    id: 'd_type', category: 'diet', ask: () => 'Which best describes what you eat?',
-+    options: [{ id: 'vegan', label: 'Vegan' }, { id: 'veg', label: 'Vegetarian' }, { id: 'egg', label: 'Eggetarian' }, { id: 'nonveg_some', label: 'Non-veg a few times a week' }, { id: 'nonveg_most', label: 'Non-veg most days' }],
-+  },
-+  {
-+    id: 'd_dairy', category: 'diet', ask: () => 'How much milk, curd, paneer or ghee?',
-+    options: [{ id: 'little', label: 'Little or none' }, { id: 'daily', label: 'A glass or bowl a day' }, { id: 'lots', label: 'Several times a day' }],
-+  },
-+  {
-+    id: 'd_out', category: 'diet', ask: () => 'How often do you order in or eat out?',
-+    options: [{ id: 'rarely', label: 'Rarely' }, { id: '1_2', label: '1–2 times a week' }, { id: '3_plus', label: '3+ times a week' }],
-+  },
-+  {
-+    id: 'd_waste', category: 'diet', ask: () => 'How much food gets thrown away at home?',
-+    options: [{ id: 'none', label: 'Almost none' }, { id: 'little', label: 'A little' }, { id: 'lots', label: 'Quite a lot' }],
++    key: 'dietType', category: 'diet', ask: () => 'Which best describes what you eat?',
++    options: [
++      { label: 'Vegan', value: 'vegan' }, { label: 'Vegetarian', value: 'vegetarian' }, { label: 'Eggetarian', value: 'eggetarian' },
++      { label: 'Non-veg a few times a week', value: 'non_veg_moderate' }, { label: 'Non-veg most days', value: 'non_veg_heavy' },
++    ],
 +  },
 +  // ── Waste ──
 +  {
-+    id: 'w_bin', category: 'waste', ask: () => 'How much rubbish does your home throw out?',
-+    options: [{ id: 'lt_weekly', label: 'Less than a bin a week' }, { id: 'every_few_days', label: 'A small bin every 2–3 days' }, { id: 'daily', label: 'A small bin every day' }, { id: 'more', label: 'More than that' }],
++    key: 'segregatesWaste', category: 'waste', ask: () => 'Do you separate wet and dry waste at home?',
++    options: [{ label: 'Yes', value: true }, { label: 'No', value: false }],
 +  },
 +  {
-+    id: 'w_habits', category: 'waste', multi: true, ask: () => 'Which of these do you already do? Pick all that apply.',
-+    options: [{ id: 'segregate', label: 'Separate wet and dry' }, { id: 'compost', label: 'Compost' }, { id: 'kabadiwala', label: 'Sell to kabadiwala' }, { id: 'karmaverse', label: 'KarmaVerse pickups' }, { id: 'none', label: 'None yet' }],
-+  },
-+  {
-+    id: 'w_plastic', category: 'waste', ask: () => 'How often do you use single-use plastic — bags, bottles, packets?',
-+    options: [{ id: 'avoid', label: 'I mostly avoid it' }, { id: 'sometimes', label: 'Sometimes' }, { id: 'daily', label: 'Every day' }],
++    key: 'kgPerWeek', category: 'waste', ask: () => 'About how much rubbish does your home throw out in a week?',
++    number: { min: 0, max: 500, unit: 'kg' },
++    options: [
++      { label: 'A small bag (~2 kg)', value: 2 }, { label: 'A small bin (~5 kg)', value: 5 },
++      { label: 'A large bin (~10 kg)', value: 10 }, { label: 'More than that (~15 kg)', value: 15 },
++    ],
 +  },
 +  // ── Water ──
 +  {
-+    id: 'wa_bath', category: 'water', ask: () => 'How do you usually bathe?',
-+    options: [{ id: 'bucket', label: 'Bucket bath' }, { id: 'short_shower', label: 'Short shower (5 min)' }, { id: 'long_shower', label: 'Long shower' }, { id: 'tub', label: 'Bathtub' }],
-+  },
-+  {
-+    id: 'wa_geyser', category: 'water', ask: () => 'How do you heat bath water?',
-+    options: [{ id: 'none', label: "Don't heat it" }, { id: 'solar', label: 'Solar heater' }, { id: 'geyser_winter', label: 'Electric geyser, winter only' }, { id: 'geyser_all', label: 'Electric geyser, all year' }, { id: 'gas', label: 'Gas geyser' }],
-+  },
-+  {
-+    id: 'wa_laundry', category: 'water', ask: () => 'Washing machine loads in a week?',
-+    options: [{ id: '0', label: 'None' }, { id: '1_3', label: '1–3' }, { id: '4_7', label: '4–7' }, { id: '8_plus', label: '8 or more' }],
++    key: 'litersPerDay', category: 'water', ask: () => 'How much water do you use in a day?',
++    hint: 'A bucket bath is about 20 litres; a 10-minute shower about 90.',
++    number: { min: 0, max: 5000, unit: 'litres' },
++    options: [
++      { label: 'Careful (~80 L)', value: 80 }, { label: 'Average (~135 L)', value: 135 },
++      { label: 'Quite a lot (~200 L)', value: 200 }, { label: 'A lot (~300 L)', value: 300 },
++    ],
 +  },
 +  // ── Flights ──
 +  {
-+    id: 'f_domestic', category: 'flights', ask: () => 'Domestic flights in the last 12 months? Count each one-way flight.',
-+    options: [{ id: '0', label: 'None' }, { id: '1_2', label: '1–2' }, { id: '3_6', label: '3–6' }, { id: '7_plus', label: '7 or more' }],
++    key: 'shortHaulPerYear', category: 'flights', ask: () => 'How many short flights (under 3 hours) in the last 12 months? Count each one-way flight.',
++    number: { min: 0, max: 100, unit: 'flights' },
++    options: [{ label: 'None', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3–5', value: 4 }, { label: '6 or more', value: 8 }],
 +  },
 +  {
-+    id: 'f_intl', category: 'flights', ask: () => 'And international flights?',
-+    options: [{ id: '0', label: 'None' }, { id: '1_2', label: '1–2' }, { id: '3_4', label: '3–4' }, { id: '5_plus', label: '5 or more' }],
-+  },
-+  // ── Shopping ──
-+  {
-+    id: 's_clothes', category: 'shopping', ask: () => 'How many new clothes or shoes in a typical month?',
-+    options: [{ id: 'rarely', label: 'Rarely any' }, { id: '1_2', label: '1–2 items' }, { id: '3_5', label: '3–5 items' }, { id: '6_plus', label: '6 or more' }],
-+  },
-+  {
-+    id: 's_orders', category: 'shopping', ask: () => 'Online shopping or quick-commerce deliveries in a week?',
-+    options: [{ id: '0_1', label: '0–1' }, { id: '2_4', label: '2–4' }, { id: '5_plus', label: '5 or more' }],
-+  },
-+  {
-+    id: 's_gadgets', category: 'shopping', ask: () => 'New phones, laptops or appliances in the last year?',
-+    options: [{ id: '0', label: 'None' }, { id: '1', label: '1' }, { id: '2_3', label: '2–3' }, { id: '4_plus', label: '4 or more' }],
++    key: 'longHaulPerYear', category: 'flights', ask: () => 'And long flights, over 3 hours?',
++    number: { min: 0, max: 100, unit: 'flights' },
++    options: [{ label: 'None', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3–5', value: 4 }, { label: '6 or more', value: 8 }],
 +  },
 +];
 +
-+// The questions that apply given the answers so far, in order.
-+export const visibleQuestions = (answers: AnswerMap) => QUESTIONS.filter((q) => !q.showIf || q.showIf(answers));
++export const fieldsFor = (category: CarbonCategoryKey) => FIELDS.filter((f) => f.category === category);
 +
-+export function answerLabel(q: Question, a: Answer): string {
-+  if (a.text) return a.text;
-+  return (a.optionIds ?? []).map((id) => q.options.find((o) => o.id === id)?.label ?? id).join(', ');
++// The fields still to ask in a category, given the answers so far.
++export const fieldsToAsk = (category: CarbonCategoryKey, draft: Draft) =>
++  fieldsFor(category).filter((f) => !(f.auto && f.auto(draft) !== undefined));
++
++// The backend answer for a category once every field has a value; null until then.
++export function buildAnswer<K extends CarbonCategoryKey>(category: K, draft: Draft): CarbonAnswers[K] | null {
++  const answer: Record<string, FieldValue> = {};
++  for (const f of fieldsFor(category)) {
++    const value = draft[f.key]?.value ?? f.auto?.(draft);
++    if (value === undefined) return null;
++    answer[f.key] = value;
++  }
++  return answer as unknown as CarbonAnswers[K];
++}
++
++// A typed or spoken number ("about 15 km" → 15), or null if none / out of range.
++export function parseNumber(field: Field, text: string): number | null {
++  const match = text.replace(/,/g, '').match(/-?\d+(\.\d+)?/);
++  if (!match || !field.number) return null;
++  // A minus sign must not be dropped: "-5" is out of range, not 5.
++  const n = Number(match[0]);
++  return n >= field.number.min && n <= field.number.max ? n : null;
 +}
 diff --git a/src/utils/deepLink.ts b/src/utils/deepLink.ts
-index 1b56b42..2f05b47 100644
+index 1b56b42..35ad377 100644
 --- a/src/utils/deepLink.ts
 +++ b/src/utils/deepLink.ts
-@@ -24,6 +24,10 @@ const PROTECTED = [
-   '/quiz',
-   '/referral',
-   '/schedulepickup',
-+  '/carbonfootprint',
-+  '/carbonassessment',
-+  '/carbonjourney',
-+  '/carboninsights',
- ];
+@@ -11,20 +11,27 @@ let pendingUrl: string | null = null;
+ // matching route and would otherwise resolve to NotFound.
+ let pendingReferral = false;
+ 
+-// Authenticated routes worth returning to after login. Path is matched
+-// case-insensitively against window.location.pathname.
+-const PROTECTED = [
+-  '/ordertracking',
+-  '/bookingdetails',
+-  '/wallet',
+-  '/orders',
+-  '/profile',
+-  '/redeem',
+-  '/redeemhistory',
+-  '/quiz',
+-  '/referral',
+-  '/schedulepickup',
+-];
++// Authenticated routes worth returning to after login, keyed by lower-case path.
++// The path is matched case-insensitively against window.location.pathname; the
++// value is the exact route name to open (route names are case-sensitive, so
++// /carbonfootprint must still open CarbonFootprint).
++const PROTECTED_ROUTES: Record<string, string> = {
++  '/ordertracking': 'OrderTracking',
++  '/bookingdetails': 'BookingDetails',
++  '/wallet': 'Wallet',
++  '/orders': 'Orders',
++  '/profile': 'Profile',
++  '/redeem': 'Redeem',
++  '/redeemhistory': 'RedeemHistory',
++  '/quiz': 'Quiz',
++  '/referral': 'Referral',
++  '/schedulepickup': 'SchedulePickup',
++  '/carbonfootprint': 'CarbonFootprint',
++  '/carbonassessment': 'CarbonAssessment',
++  '/carbonjourney': 'CarbonJourney',
++  '/carboninsights': 'CarbonInsights',
++};
++const PROTECTED = Object.keys(PROTECTED_ROUTES);
  
  // Capture as early as possible (before the router rewrites the URL). No-op unless
-@@ -50,6 +54,12 @@ export function capturePendingDeepLink(): void {
+ // the current URL is a protected route on web.
+@@ -50,6 +57,12 @@ export function capturePendingDeepLink(): void {
    }
  }
  
@@ -2522,8 +2461,20 @@ index 1b56b42..2f05b47 100644
  export function hasPendingReferral(): boolean {
    return pendingReferral;
  }
+@@ -71,8 +84,9 @@ export function consumePendingDeepLink(navigation: any): boolean {
+   pendingUrl = null;
+   try {
+     const qIdx = url.indexOf('?');
+-    const routeName = (qIdx >= 0 ? url.slice(0, qIdx) : url).replace(/^\/+|\/+$/g, '');
+-    if (!routeName) return false;
++    const path = (qIdx >= 0 ? url.slice(0, qIdx) : url).replace(/^\/+|\/+$/g, '');
++    if (!path) return false;
++    const routeName = PROTECTED_ROUTES['/' + path.toLowerCase()] ?? path;
+     const params: Record<string, string> = {};
+     const query = qIdx >= 0 ? url.slice(qIdx + 1) : '';
+     if (query) {
 diff --git a/src/utils/notificationRoute.ts b/src/utils/notificationRoute.ts
-index 89be5b3..c0ddab0 100644
+index 89be5b3..f9829ab 100644
 --- a/src/utils/notificationRoute.ts
 +++ b/src/utils/notificationRoute.ts
 @@ -15,7 +15,7 @@ export const DEFAULT_ACTION = 'expo.modules.notifications.actions.DEFAULT';
@@ -2544,12 +2495,25 @@ index 89be5b3..c0ddab0 100644
  };
  
  function goToScreen(nav: any, screen?: string): boolean {
-@@ -63,6 +65,8 @@ export function routeNotification(data: any, actionIdentifier?: string): void {
+@@ -62,7 +64,7 @@ export function routeNotification(data: any, actionIdentifier?: string): void {
+       case 'open_pickup': nav.navigate('SchedulePickup'); return;
        case 'open_referral': nav.navigate('Referral'); return;
        case 'open':
-         if (goToScreen(nav, data?.screen)) return;
-+  // backend-email-service/templates/pushTemplates.js sends the target as `route`.
-+  if (goToScreen(nav, data?.route)) return;
+-        if (goToScreen(nav, data?.screen)) return;
++        if (goToScreen(nav, data?.screen) || goToScreen(nav, data?.route)) return;
          break;
      }
    }
+@@ -85,9 +87,10 @@ export function routeNotification(data: any, actionIdentifier?: string): void {
+   }
+ 
+   // ── NON-TRANSACTIONAL — engagement / marketing. Route by a known type first,
+-  //    then by an explicit `screen` target the backend set. ──
++  //    then by an explicit target the backend set. The push templates in
++  //    backend-email-service/templates/pushTemplates.js send it as `route`. ──
+   if (data?.type && goToScreen(nav, TYPE_SCREEN[data.type])) return;
+-  if (goToScreen(nav, data?.screen)) return;
++  if (goToScreen(nav, data?.screen) || goToScreen(nav, data?.route)) return;
+ 
+   // Fallback: any booking-linked notification with no/unknown type → booking details.
+   if (booking) nav.navigate('BookingDetails', { booking });

@@ -116,7 +116,7 @@ const pushTemplates = {
   // Carbon footprint discovery — to users who have never calculated it.
   CARBON_FOOTPRINT_INVITE: () => ({
     title: "What's your carbon footprint?",
-    body: 'Find out in about 4 minutes — just tap your answers.',
+    body: 'Find out in about 2 minutes — just tap your answers.',
     data: { route: 'CarbonFootprint', type: 'CARBON_FOOTPRINT_INVITE' },
   }),
 

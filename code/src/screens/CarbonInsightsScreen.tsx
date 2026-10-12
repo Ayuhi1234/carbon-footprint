@@ -2,14 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Pressable, StatusBar, ActivityIndicator, Platform, LayoutChangeEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Line, Circle, Text as SvgText } from 'react-native-svg';
-import { ChevronLeft, BarChart3, TrendingDown, TrendingUp, Table2, Target, Minus } from 'lucide-react-native';
+import { ChevronLeft, BarChart3, TrendingDown, TrendingUp, Table2, Minus } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
-import { carbonService, CarbonAssessment, CarbonSummary, CarbonCategoryKey, CARBON_CATEGORY_ORDER } from '../services/carbon';
-import { CARBON_CATEGORIES, formatKg, formatDate } from '../utils/carbon';
+import { carbonService, CarbonResult, CarbonSummary, CarbonCategoryKey, CARBON_CATEGORY_ORDER } from '../services/carbon';
+import { CARBON_CATEGORIES, formatKg, formatDate, formatPeriod } from '../utils/carbon';
 
 // Carbon insights — the visual dashboard. Every number here comes from stored
-// assessment results and the CO₂-saved summary; the app only formats and compares
+// results (GET /result/history) and the summary; the app only formats and compares
 // them (no carbon calculation). Charts follow the app's chart rules: one hue,
 // thin marks, hairline grid, selective labels, tap/focus readouts, and a table view.
 
@@ -22,8 +22,8 @@ const RANGES: { key: Range; label: string; months: number | null }[] = [
 ];
 
 const pctChange = (current: number, previous: number) => (previous > 0 ? Math.round(((current - previous) / previous) * 100) : null);
-const monthLabel = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short' });
-const catKg = (a: CarbonAssessment | undefined, key: CarbonCategoryKey) => a?.categories.find((c) => c.key === key)?.kgCo2e;
+const monthLabel = (p: CarbonResult) => formatPeriod(p.periodLabel, true) || new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short' });
+const catKg = (a: CarbonResult | undefined, key: CarbonCategoryKey) => a?.breakdown?.[key];
 const SVG_FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' : undefined;
 
 // Clean axis ticks: 0, step, 2·step… with the top tick just above the max.
@@ -65,7 +65,8 @@ function StatTile({ label, value, sub }: { label: string; value: string; sub?: s
 }
 
 // ── Footprint over time: single-series line + 10% area, dots with a surface ring ──
-function TrendChart({ points, goal }: { points: CarbonAssessment[]; goal: number | null }) {
+// TODO(backend): draw a goal line here once a monthly-goal endpoint exists.
+function TrendChart({ points }: { points: CarbonResult[] }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [w, setW] = useState(0);
@@ -73,12 +74,12 @@ function TrendChart({ points, goal }: { points: CarbonAssessment[]; goal: number
   useEffect(() => setSel(points.length - 1), [points.length]);
 
   const H = 170, X_BAND = 24, PAD_L = 36, PAD_R = 16, PAD_T = 22;
-  const max = Math.max(...points.map((p) => p.totalKgPerMonth), goal ?? 0);
+  const max = Math.max(...points.map((p) => p.totalKgCO2ePerMonth));
   const { top, ticks } = niceScale(max);
   const plotW = Math.max(w - PAD_L - PAD_R, 1);
   const x = (i: number) => PAD_L + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
   const y = (v: number) => PAD_T + (1 - v / top) * (H - PAD_T);
-  const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.totalKgPerMonth)}`).join(' ');
+  const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.totalKgCO2ePerMonth)}`).join(' ');
   const area = `${line} L${x(points.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
   const every = Math.ceil(points.length / 6); // at most ~6 month labels
   const s = points[sel];
@@ -87,7 +88,7 @@ function TrendChart({ points, goal }: { points: CarbonAssessment[]; goal: number
     <View onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}>
       {/* Readout — the selected point (latest by default); tap or focus a point to change it */}
       <View style={styles.readout} accessibilityLiveRegion="polite">
-        <Text style={styles.readoutValue}>{s ? `${formatKg(s.totalKgPerMonth)} kg` : ''}</Text>
+        <Text style={styles.readoutValue}>{s ? `${formatKg(s.totalKgCO2ePerMonth)} kg` : ''}</Text>
         <Text style={styles.readoutLabel}>{s ? ` CO₂e / month · ${formatDate(s.createdAt)}` : ''}</Text>
       </View>
       {w > 0 && (
@@ -99,20 +100,14 @@ function TrendChart({ points, goal }: { points: CarbonAssessment[]; goal: number
                 <SvgText fontFamily={SVG_FONT} x={PAD_L - 8} y={y(t) + 4} fontSize={11} fill={colors.textFaint} textAnchor="end">{t.toLocaleString()}</SvgText>
               </React.Fragment>
             ))}
-            {goal !== null && (
-              <>
-                <Line x1={PAD_L} x2={w - PAD_R} y1={y(goal)} y2={y(goal)} stroke={colors.warning} strokeWidth={1.5} strokeDasharray="5 4" />
-                <SvgText fontFamily={SVG_FONT} x={PAD_L + 6} y={y(goal) + 15} fontSize={11} fontWeight="700" fill={colors.textMuted} textAnchor="start">Goal {Math.round(goal).toLocaleString()} kg</SvgText>
-              </>
-            )}
             {points.length > 1 && <Path d={area} fill={colors.primary} fillOpacity={0.1} />}
             {points.length > 1 && <Path d={line} stroke={colors.primary} strokeWidth={2} fill="none" strokeLinejoin="round" strokeLinecap="round" />}
             {s && <Line x1={x(sel)} x2={x(sel)} y1={PAD_T} y2={y(0)} stroke={colors.borderStrong} strokeWidth={1} />}
             {points.map((p, i) => (
-              <Circle key={p._id} cx={x(i)} cy={y(p.totalKgPerMonth)} r={i === sel ? 6 : 4} fill={colors.primary} stroke={colors.surface} strokeWidth={2} />
+              <Circle key={p._id} cx={x(i)} cy={y(p.totalKgCO2ePerMonth)} r={i === sel ? 6 : 4} fill={colors.primary} stroke={colors.surface} strokeWidth={2} />
             ))}
             {points.map((p, i) => (i % every === 0 || i === points.length - 1) && (
-              <SvgText fontFamily={SVG_FONT} key={`x${p._id}`} x={x(i)} y={H + 16} fontSize={11} fontWeight={i === sel ? '700' : '400'} fill={i === sel ? colors.text : colors.textFaint} textAnchor="middle">{monthLabel(p.createdAt)}</SvgText>
+              <SvgText fontFamily={SVG_FONT} key={`x${p._id}`} x={x(i)} y={H + 16} fontSize={11} fontWeight={i === sel ? '700' : '400'} fill={i === sel ? colors.text : colors.textFaint} textAnchor="middle">{monthLabel(p)}</SvgText>
             ))}
           </Svg>
           {/* Hit targets: bigger than the dots, focusable on web, announced on native */}
@@ -122,8 +117,8 @@ function TrendChart({ points, goal }: { points: CarbonAssessment[]; goal: number
               onPress={() => setSel(i)}
               onFocus={() => setSel(i)}
               accessibilityRole="button"
-              accessibilityLabel={`${formatDate(p.createdAt)}: ${formatKg(p.totalKgPerMonth)} kilograms CO2e per month`}
-              style={{ position: 'absolute', left: x(i) - 18, top: y(p.totalKgPerMonth) - 18, width: 36, height: 36, borderRadius: 18 }}
+              accessibilityLabel={`${formatDate(p.createdAt)}: ${formatKg(p.totalKgCO2ePerMonth)} kilograms CO2e per month`}
+              style={{ position: 'absolute', left: x(i) - 18, top: y(p.totalKgCO2ePerMonth) - 18, width: 36, height: 36, borderRadius: 18 }}
             />
           ))}
         </View>
@@ -133,7 +128,7 @@ function TrendChart({ points, goal }: { points: CarbonAssessment[]; goal: number
 }
 
 // ── Where it comes from: horizontal bars, one hue; the biggest source emphasised ──
-function CategoryBars({ latest }: { latest: CarbonAssessment }) {
+function CategoryBars({ latest }: { latest: CarbonResult }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const rows = CARBON_CATEGORY_ORDER
@@ -141,7 +136,7 @@ function CategoryBars({ latest }: { latest: CarbonAssessment }) {
     .filter((r): r is { key: CarbonCategoryKey; kg: number } => typeof r.kg === 'number')
     .sort((a, b) => b.kg - a.kg);
   const max = Math.max(0, ...rows.map((r) => r.kg));
-  const total = latest.totalKgPerMonth;
+  const total = latest.totalKgCO2ePerMonth;
   return (
     <View style={{ gap: 12 }}>
       {rows.map((r, i) => {
@@ -178,7 +173,7 @@ function Sparkline({ values, width, height }: { values: number[]; width: number;
   );
 }
 
-function MultipleCell({ k, points }: { k: CarbonCategoryKey; points: CarbonAssessment[] }) {
+function MultipleCell({ k, points }: { k: CarbonCategoryKey; points: CarbonResult[] }) {
   const styles = useStyles();
   const [cellW, setCellW] = useState(0);
   const latest = points[points.length - 1];
@@ -202,7 +197,7 @@ function MultipleCell({ k, points }: { k: CarbonCategoryKey; points: CarbonAsses
   );
 }
 
-function CategoryMultiples({ points }: { points: CarbonAssessment[] }) {
+function CategoryMultiples({ points }: { points: CarbonResult[] }) {
   const styles = useStyles();
   const latest = points[points.length - 1];
   const keys = CARBON_CATEGORY_ORDER.filter((k) => typeof catKg(latest, k) === 'number');
@@ -216,7 +211,7 @@ function CategoryMultiples({ points }: { points: CarbonAssessment[] }) {
 export function CarbonInsightsScreen({ navigation }: any) {
   const styles = useStyles();
   const { colors } = useTheme();
-  const [assessments, setAssessments] = useState<CarbonAssessment[]>([]);
+  const [assessments, setAssessments] = useState<CarbonResult[]>([]);
   const [summary, setSummary] = useState<CarbonSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [range, setRange] = useState<Range>('6m');
@@ -224,11 +219,12 @@ export function CarbonInsightsScreen({ navigation }: any) {
 
   const fetchData = async () => {
     try {
+      // Newest first; 50 is the backend's page-size limit.
       const [history, summaryData] = await Promise.all([
-        carbonService.getAssessments().catch(() => [] as CarbonAssessment[]),
-        carbonService.getSummary().catch(() => null),
+        carbonService.getHistory(1, 50),
+        carbonService.getSummary(),
       ]);
-      setAssessments(history);
+      setAssessments(history.results);
       setSummary(summaryData);
     } catch (error) {
       console.error('Carbon insights fetch error:', error);
@@ -254,10 +250,8 @@ export function CarbonInsightsScreen({ navigation }: any) {
 
   const latest = assessments[0];
   const previous = assessments[1];
-  const avg = points.length ? points.reduce((s, p) => s + p.totalKgPerMonth, 0) / points.length : 0;
-  const lowest = points.reduce<CarbonAssessment | null>((lo, p) => (!lo || p.totalKgPerMonth < lo.totalKgPerMonth ? p : lo), null);
-  const goalPct = summary?.goal?.reductionPercent;
-  const goal = goalPct && previous ? previous.totalKgPerMonth * (1 - goalPct / 100) : null;
+  const avg = points.length ? points.reduce((s, p) => s + p.totalKgCO2ePerMonth, 0) / points.length : 0;
+  const lowest = points.reduce<CarbonResult | null>((lo, p) => (!lo || p.totalKgCO2ePerMonth < lo.totalKgCO2ePerMonth ? p : lo), null);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -276,13 +270,13 @@ export function CarbonInsightsScreen({ navigation }: any) {
             <View style={styles.bigRow}>
               <BarChart3 size={40} color="#86efac" />
               <View>
-                <Text style={styles.bigValue}>{latest ? formatKg(latest.totalKgPerMonth) : '—'}</Text>
+                <Text style={styles.bigValue}>{latest ? formatKg(latest.totalKgCO2ePerMonth) : '—'}</Text>
                 <Text style={styles.unitTag}>kg CO₂e / month</Text>
               </View>
             </View>
             <Text style={styles.heroSub}>
               {latest && previous
-                ? (() => { const p = pctChange(latest.totalKgPerMonth, previous.totalKgPerMonth); return p === null ? '' : p === 0 ? 'Same as last time' : `${Math.abs(p)}% ${p < 0 ? 'lower' : 'higher'} than last time (${formatKg(previous.totalKgPerMonth)} kg)`; })()
+                ? (() => { const p = pctChange(latest.totalKgCO2ePerMonth, previous.totalKgCO2ePerMonth); return p === null ? '' : p === 0 ? 'Same as last time' : `${Math.abs(p)}% ${p < 0 ? 'lower' : 'higher'} than last time (${formatKg(previous.totalKgCO2ePerMonth)} kg)`; })()
                 : latest ? `Calculated ${formatDate(latest.createdAt)}` : 'No footprint calculated yet'}
             </Text>
           </View>
@@ -323,8 +317,8 @@ export function CarbonInsightsScreen({ navigation }: any) {
             {/* KPI row */}
             <View style={styles.tiles}>
               <StatTile label="Average" value={`${formatKg(avg)} kg`} sub={`per month · ${points.length.toLocaleString()} ${points.length === 1 ? 'result' : 'results'}`} />
-              <StatTile label="Lowest" value={lowest ? `${formatKg(lowest.totalKgPerMonth)} kg` : '—'} sub={lowest ? formatDate(lowest.createdAt) : undefined} />
-              <StatTile label="CO₂ saved" value={`${formatKg(summary?.savedKgLifetime ?? 0)} kg`} sub="from green actions" />
+              <StatTile label="Lowest" value={lowest ? `${formatKg(lowest.totalKgCO2ePerMonth)} kg` : '—'} sub={lowest ? formatDate(lowest.createdAt) : undefined} />
+              <StatTile label="Assessments" value={(summary?.totalAssessments ?? assessments.length).toLocaleString()} sub="in total" />
             </View>
 
             {/* Footprint over time */}
@@ -346,11 +340,11 @@ export function CarbonInsightsScreen({ navigation }: any) {
                     </View>
                     {[...points].reverse().map((p, i, arr) => {
                       const older = arr[i + 1];
-                      const pct = older ? pctChange(p.totalKgPerMonth, older.totalKgPerMonth) : null;
+                      const pct = older ? pctChange(p.totalKgCO2ePerMonth, older.totalKgCO2ePerMonth) : null;
                       return (
                         <View key={p._id} style={styles.tr}>
                           <Text style={[styles.td, { flex: 1.4 }]}>{formatDate(p.createdAt)}</Text>
-                          <Text style={[styles.td, styles.num]}>{formatKg(p.totalKgPerMonth)}</Text>
+                          <Text style={[styles.td, styles.num]}>{formatKg(p.totalKgCO2ePerMonth)}</Text>
                           <Text style={[styles.td, styles.num]}>{pct === null ? '—' : `${pct > 0 ? '+' : ''}${pct}%`}</Text>
                         </View>
                       );
@@ -359,13 +353,7 @@ export function CarbonInsightsScreen({ navigation }: any) {
                 ) : points.length < 2 ? (
                   <Text style={styles.cardNote}>Calculate again later to see how your footprint changes over time.</Text>
                 ) : (
-                  <TrendChart points={points} goal={goal} />
-                )}
-                {goal !== null && !showTable && points.length >= 2 && (
-                  <View style={styles.goalNote}>
-                    <Target size={13} color={colors.warning} />
-                    <Text style={styles.cardNote}>Your goal: {goalPct}% below your previous result.</Text>
-                  </View>
+                  <TrendChart points={points} />
                 )}
               </View>
             </View>
@@ -430,7 +418,6 @@ const useStyles = makeStyles((c) => ({
   linkText: { fontSize: 12, color: c.primary, fontWeight: '700' },
   card: { padding: 16, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border, elevation: 2, shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
   cardNote: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
-  goalNote: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
 
   readout: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 6, minHeight: 24 },
   readoutValue: { fontSize: 18, fontWeight: '900', color: c.text },

@@ -1,34 +1,20 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { getToken } from '../utils/tokenStore';
 import { addNotificationResponseListener, getLastNotificationResponse, markNotificationOpened } from '../utils/notifications';
+// Eager: the landing page plus every screen a logged-out visitor can open via a
+// direct link. Everything behind auth is lazy-loaded below (see lazyScreen), so a
+// first-time visitor's bundle doesn't ship or execute the whole app.
 import { SplashScreen } from '../screens/SplashScreen';
 import { LoginScreen } from '../screens/LoginScreen';
-import { ProfileScreen } from '../screens/ProfileScreen';
-import { SchedulePickupScreen } from '../screens/SchedulePickupScreen';
-import { KnowledgeHubScreen } from '../screens/KnowledgeHubScreen';
-import { ArticleDetailScreen } from '../screens/ArticleDetailScreen';
-import { QuizScreen } from '../screens/QuizScreen';
-import { ReferralScreen } from '../screens/ReferralScreen';
-import { OrderTrackingScreen } from '../screens/OrderTrackingScreen';
-import { BookingDetailsScreen } from '../screens/BookingDetailsScreen';
 import { LegalScreen } from '../screens/LegalScreen';
-import { RedeemScreen } from '../screens/RedeemScreen';
-import { RedeemHistoryScreen } from '../screens/RedeemHistoryScreen';
-import { DonationScreen } from '../screens/DonationScreen';
-import { TransferScreen } from '../screens/TransferScreen';
 import { AboutUsScreen } from '../screens/AboutUsScreen';
 import { FeedbackScreen } from '../screens/FeedbackScreen';
 import { UnsubscribeScreen } from '../screens/UnsubscribeScreen';
 import { EmailPreferencesScreen } from '../screens/EmailPreferencesScreen';
 import { NotFoundScreen } from '../screens/NotFoundScreen';
-import { CarbonFootprintScreen } from '../screens/CarbonFootprintScreen';
-import { CarbonAssessmentScreen } from '../screens/CarbonAssessmentScreen';
-import { CarbonJourneyScreen } from '../screens/CarbonJourneyScreen';
-import { CarbonInsightsScreen } from '../screens/CarbonInsightsScreen';
-import { TabNavigator } from './TabNavigator';
 import { navigationRef } from './navRef';
 import { capturePendingDeepLink, clearPendingDeepLink, hasPendingDeepLink, hasPendingReferral } from '../utils/deepLink';
 import { routeNotification } from '../utils/notificationRoute';
@@ -61,6 +47,42 @@ function AuthLoadingScreen() {
     </View>
   );
 }
+
+// ── Code-splitting ───────────────────────────────────────────────────────────
+// Each authenticated screen is loaded on first navigation instead of up front, so
+// the landing bundle stays small. The wrapper keeps the same name the navigator
+// already references, and shows the auth loader while the chunk fetches.
+function lazyScreen<T extends React.ComponentType<any>>(
+  loader: () => Promise<any>,
+  pick: (m: any) => T,
+) {
+  const C = lazy(() => loader().then((m) => ({ default: pick(m) })));
+  return function LazyScreen(props: any) {
+    return (
+      <Suspense fallback={<AuthLoadingScreen />}>
+        <C {...props} />
+      </Suspense>
+    );
+  };
+}
+
+const TabNavigator = lazyScreen(() => import('./TabNavigator'), (m) => m.TabNavigator);
+const ProfileScreen = lazyScreen(() => import('../screens/ProfileScreen'), (m) => m.ProfileScreen);
+const SchedulePickupScreen = lazyScreen(() => import('../screens/SchedulePickupScreen'), (m) => m.SchedulePickupScreen);
+const KnowledgeHubScreen = lazyScreen(() => import('../screens/KnowledgeHubScreen'), (m) => m.KnowledgeHubScreen);
+const ArticleDetailScreen = lazyScreen(() => import('../screens/ArticleDetailScreen'), (m) => m.ArticleDetailScreen);
+const QuizScreen = lazyScreen(() => import('../screens/QuizScreen'), (m) => m.QuizScreen);
+const ReferralScreen = lazyScreen(() => import('../screens/ReferralScreen'), (m) => m.ReferralScreen);
+const OrderTrackingScreen = lazyScreen(() => import('../screens/OrderTrackingScreen'), (m) => m.OrderTrackingScreen);
+const BookingDetailsScreen = lazyScreen(() => import('../screens/BookingDetailsScreen'), (m) => m.BookingDetailsScreen);
+const RedeemScreen = lazyScreen(() => import('../screens/RedeemScreen'), (m) => m.RedeemScreen);
+const RedeemHistoryScreen = lazyScreen(() => import('../screens/RedeemHistoryScreen'), (m) => m.RedeemHistoryScreen);
+const DonationScreen = lazyScreen(() => import('../screens/DonationScreen'), (m) => m.DonationScreen);
+const TransferScreen = lazyScreen(() => import('../screens/TransferScreen'), (m) => m.TransferScreen);
+const CarbonFootprintScreen = lazyScreen(() => import('../screens/CarbonFootprintScreen'), (m) => m.CarbonFootprintScreen);
+const CarbonAssessmentScreen = lazyScreen(() => import('../screens/CarbonAssessmentScreen'), (m) => m.CarbonAssessmentScreen);
+const CarbonJourneyScreen = lazyScreen(() => import('../screens/CarbonJourneyScreen'), (m) => m.CarbonJourneyScreen);
+const CarbonInsightsScreen = lazyScreen(() => import('../screens/CarbonInsightsScreen'), (m) => m.CarbonInsightsScreen);
 
 export function RootNavigator() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);

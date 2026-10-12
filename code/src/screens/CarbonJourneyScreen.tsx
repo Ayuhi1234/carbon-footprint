@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, LineChart, TrendingDown, TrendingUp, History, Clock } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
-import { carbonService, CarbonAssessment } from '../services/carbon';
-import { formatKg, formatDate } from '../utils/carbon';
+import { carbonService, CarbonResult } from '../services/carbon';
+import { formatKg, formatDate, formatPeriod } from '../utils/carbon';
 
 // Percentage change between two stored results — display only; the results
 // themselves are calculated and stored by the backend and never edited here.
@@ -30,15 +30,14 @@ export function CarbonJourneyScreen({ navigation }: any) {
   const { colors, isDark } = useTheme();
   // Pastel category tiles read as glare on dark surfaces; use the raised surface there.
   const tint = (bg: string) => (isDark ? colors.surfaceAlt : bg);
-  const [assessments, setAssessments] = useState<CarbonAssessment[]>([]);
+  const [assessments, setAssessments] = useState<CarbonResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
     try {
-      const [history] = await Promise.all([
-        carbonService.getAssessments().catch(() => [] as CarbonAssessment[]),
-      ]);
-      setAssessments(history);
+      // Newest first; 50 is the backend's page-size limit.
+      const { results } = await carbonService.getHistory(1, 50);
+      setAssessments(results);
     } catch (error) {
       console.error('Carbon journey fetch error:', error);
     } finally {
@@ -55,15 +54,14 @@ export function CarbonJourneyScreen({ navigation }: any) {
   const goBack = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('CarbonFootprint'));
   const calculate = () => navigation.navigate('CarbonAssessment');
 
-  // Newest first from the API.
   const current = assessments[0];
   const previous = assessments[1];
   const first = assessments[assessments.length - 1];
-  const vsPrevious = current && previous ? pctChange(current.totalKgPerMonth, previous.totalKgPerMonth) : null;
-  const vsFirst = current && first && first !== current ? pctChange(current.totalKgPerMonth, first.totalKgPerMonth) : null;
+  const vsPrevious = current && previous ? pctChange(current.totalKgCO2ePerMonth, previous.totalKgCO2ePerMonth) : null;
+  const vsFirst = current && first && first !== current ? pctChange(current.totalKgCO2ePerMonth, first.totalKgCO2ePerMonth) : null;
 
   const trend = assessments.slice(0, 6).reverse(); // oldest → newest
-  const trendMax = Math.max(0, ...trend.map((a) => a.totalKgPerMonth));
+  const trendMax = Math.max(0, ...trend.map((a) => a.totalKgCO2ePerMonth));
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -90,7 +88,7 @@ export function CarbonJourneyScreen({ navigation }: any) {
             <View style={styles.bigRow}>
               <LineChart size={40} color="#86efac" />
               <View>
-                <Text style={styles.bigValue}>{current ? formatKg(current.totalKgPerMonth) : '—'}</Text>
+                <Text style={styles.bigValue}>{current ? formatKg(current.totalKgCO2ePerMonth) : '—'}</Text>
                 <Text style={styles.unitTag}>kg CO₂e / month</Text>
               </View>
             </View>
@@ -100,7 +98,7 @@ export function CarbonJourneyScreen({ navigation }: any) {
             <View style={styles.colsRow}>
               <View style={styles.col}>
                 <Text style={styles.colLabel}>Previous</Text>
-                <Text style={styles.colValue}>{previous ? `${formatKg(previous.totalKgPerMonth)} kg` : '—'}</Text>
+                <Text style={styles.colValue}>{previous ? `${formatKg(previous.totalKgCO2ePerMonth)} kg` : '—'}</Text>
                 <Text style={styles.colSub}>{previous ? formatDate(previous.createdAt) : 'No earlier result'}</Text>
               </View>
               <View style={styles.colDivider} />
@@ -149,17 +147,17 @@ export function CarbonJourneyScreen({ navigation }: any) {
                 <View
                   style={[styles.rowCard, styles.chartCard]}
                   accessible
-                  accessibilityLabel={`Footprint trend: ${trend.map((a) => `${formatDate(a.createdAt)} ${formatKg(a.totalKgPerMonth)} kilograms`).join(', ')}`}
+                  accessibilityLabel={`Footprint trend: ${trend.map((a) => `${formatDate(a.createdAt)} ${formatKg(a.totalKgCO2ePerMonth)} kilograms`).join(', ')}`}
                 >
                   {trend.map((a, i) => {
                     const latest = i === trend.length - 1;
-                    const h = trendMax > 0 ? Math.max((a.totalKgPerMonth / trendMax) * 110, 6) : 6;
+                    const h = trendMax > 0 ? Math.max((a.totalKgCO2ePerMonth / trendMax) * 110, 6) : 6;
                     return (
                       <View key={a._id} style={styles.barCol}>
-                        <Text style={[styles.barValue, latest && { color: colors.text }]}>{formatKg(a.totalKgPerMonth)}</Text>
+                        <Text style={[styles.barValue, latest && { color: colors.text }]}>{formatKg(a.totalKgCO2ePerMonth)}</Text>
                         <View style={[styles.bar, { height: h, backgroundColor: colors.primary, opacity: latest ? 1 : 0.35 }]} />
                         <Text style={styles.barLabel} numberOfLines={1}>
-                          {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short' })}
+                          {formatPeriod(a.periodLabel, true) || new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short' })}
                         </Text>
                       </View>
                     );
@@ -174,14 +172,14 @@ export function CarbonJourneyScreen({ navigation }: any) {
               <View style={styles.list}>
                 {assessments.map((a, i) => {
                   const older = assessments[i + 1];
-                  const pct = older ? pctChange(a.totalKgPerMonth, older.totalKgPerMonth) : null;
+                  const pct = older ? pctChange(a.totalKgCO2ePerMonth, older.totalKgCO2ePerMonth) : null;
                   return (
                     <View key={a._id} style={styles.rowCard}>
                       <View style={[styles.iconTile, { backgroundColor: tint('#f0fdf4') }]}>
                         <LineChart size={20} color="#16a34a" />
                       </View>
                       <View style={styles.rowContent}>
-                        <Text style={styles.rowTitle}>{formatKg(a.totalKgPerMonth)} kg CO₂e / month</Text>
+                        <Text style={styles.rowTitle}>{formatKg(a.totalKgCO2ePerMonth)} kg CO₂e / month</Text>
                         <View style={styles.timeRow}>
                           <Clock size={12} color={colors.textFaint} />
                           <Text style={styles.rowMeta}>{formatDate(a.createdAt)}</Text>

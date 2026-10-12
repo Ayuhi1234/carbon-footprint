@@ -211,7 +211,6 @@ const s = StyleSheet.create({
   bottomTab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   bottomTabText: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '600' },
   bottomTabTextActive: { color: '#4ade80' },
-  bellBadgeMobile: { position: 'absolute', top: -4, right: -6, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
 
   // Desktop top navbar
   // Pinned to the very top (Flipkart-style). The tab bar is rendered after the
