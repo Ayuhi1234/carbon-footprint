@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock } from 'lucide-react-native';
+import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock, Share2 } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
 import {
@@ -11,6 +11,7 @@ import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod,
 import { showAlert } from '../utils/alert';
 import { CarbonDonut, useCountUp } from '../components/carbon/CarbonVisuals';
 import { EarthBuddy } from '../components/carbon/EarthBuddy';
+import { ShareSheet } from '../components/carbon/ShareSheet';
 
 // Logging green actions has no backend yet.
 const comingSoon = () => showCarbonError('', new CarbonApiNotReadyError());
@@ -68,6 +69,9 @@ export function CarbonFootprintScreen({ navigation }: any) {
   const goBack = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('App'));
   const startAssessment = () => navigation.navigate('CarbonAssessment');
   const openJourney = () => navigation.navigate('CarbonJourney');
+
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareResult = () => setShareOpen(true);
 
   // A goal needs a result to start from.
   const openGoalSheet = () => {
@@ -143,9 +147,16 @@ export function CarbonFootprintScreen({ navigation }: any) {
               </TouchableOpacity>
               <Text style={styles.headerTitle} numberOfLines={2} accessibilityRole="header">My carbon footprint</Text>
             </View>
-            <TouchableOpacity style={styles.iconBtn} onPress={openJourney} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="My carbon journey">
-              <History size={18} color="white" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              {latest && (
+                <TouchableOpacity style={styles.iconBtn} onPress={shareResult} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Share my result">
+                  <Share2 size={18} color="white" />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.iconBtn} onPress={openJourney} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="My carbon journey">
+                <History size={18} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Glass card */}
@@ -366,6 +377,8 @@ export function CarbonFootprintScreen({ navigation }: any) {
 
         {Platform.OS === 'web' && <WebFooter />}
       </ScrollView>
+
+      <ShareSheet result={latest} visible={shareOpen} onClose={() => setShareOpen(false)} />
 
       {/* Set goal — web: centred dialog; native: bottom sheet (same as Wallet) */}
       <Modal visible={goalSheet} transparent animationType="fade" onRequestClose={() => setGoalSheet(false)}>

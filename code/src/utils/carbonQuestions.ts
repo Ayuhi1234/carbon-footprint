@@ -142,3 +142,48 @@ export function parseNumber(field: Field, text: string): number | null {
   const n = Number(match[0]);
   return n >= field.number.min && n <= field.number.max ? n : null;
 }
+
+// ── Typed answers → suggested options ────────────────────────────────────────
+// Everyday words (including common Hinglish) for each tap option, keyed by
+// "fieldKey:value". The option's own label always counts too. A match only ever
+// SUGGESTS options; the user taps to confirm, so typed text never becomes an
+// answer on its own.
+const KEYWORDS: Record<string, string[]> = {
+  'mode:walk_cycle': ['walk', 'walking', 'on foot', 'paidal', 'cycle', 'cycling', 'bicycle', 'bike ride'],
+  'mode:bus': ['bus', 'buses', 'best bus', 'dtc', 'public transport'],
+  'mode:train': ['metro', 'train', 'local train', 'local', 'rail', 'railway', 'subway'],
+  'mode:bike': ['two wheeler', 'twowheeler', 'scooter', 'scooty', 'motorbike', 'motorcycle', 'activa', 'splendor', 'bike'],
+  'mode:car_petrol': ['petrol car', 'petrol', 'car', 'cab', 'taxi', 'uber', 'ola'],
+  'mode:car_diesel': ['diesel car', 'diesel', 'car'],
+  'mode:car_ev': ['electric car', 'ev', 'e car', 'tesla', 'nexon ev', 'car'],
+  'mode:none': ['work from home', 'wfh', 'from home', 'dont travel', 'do not travel', 'no travel', 'ghar se', 'stay home'],
+  'source:grid': ['grid', 'electricity board', 'board', 'government', 'normal', 'regular', 'mseb', 'bescom', 'tata power', 'adani'],
+  'source:solar': ['solar', 'rooftop', 'solar panel', 'solar panels'],
+  'source:mixed': ['both', 'mix', 'mixed', 'grid and solar', 'solar and grid', 'some solar', 'partly solar'],
+  'dietType:vegan': ['vegan', 'plant based', 'no dairy', 'no milk'],
+  'dietType:vegetarian': ['vegetarian', 'veg', 'pure veg', 'shakahari', 'no meat'],
+  'dietType:eggetarian': ['eggetarian', 'egg', 'eggs', 'anda', 'veg and egg'],
+  'dietType:non_veg_moderate': ['sometimes', 'occasionally', 'weekends', 'few times', 'once a week', 'twice a week', 'non veg sometimes', 'nonveg sometimes'],
+  'dietType:non_veg_heavy': ['daily', 'every day', 'everyday', 'most days', 'non veg daily', 'chicken daily', 'meat daily', 'all the time'],
+  'segregatesWaste:true': ['yes', 'yeah', 'yep', 'haan', 'ha', 'ji', 'sure', 'i do', 'we do', 'always', 'separate', 'segregate', 'wet and dry'],
+  'segregatesWaste:false': ['no', 'nope', 'nahi', 'nahin', 'never', 'dont', 'do not', 'not really', 'mix it', 'together'],
+  'shortHaulPerYear:0': ['none', 'no', 'zero', 'never', 'nahi', 'no flights'],
+  'longHaulPerYear:0': ['none', 'no', 'zero', 'never', 'nahi', 'no flights'],
+};
+
+const normalize = (t: string) => ` ${t.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').trim()} `;
+
+// The options a typed answer most likely means: best-scoring first, at most 3.
+// Longer phrases score more, so "petrol car" beats a bare "car".
+export function matchOptions(field: Field, text: string): QOption[] {
+  const said = normalize(text);
+  if (said.trim().length < 2) return [];
+  const scored = field.options.map((o) => {
+    const terms = [o.label.replace(/\(.*?\)/g, ''), ...(KEYWORDS[`${field.key}:${String(o.value)}`] ?? [])].map(normalize);
+    const score = terms.reduce((sum, term) => (term.trim() && said.includes(term) ? sum + term.trim().split(' ').length : sum), 0);
+    return { o, score };
+  });
+  const best = Math.max(0, ...scored.map((x) => x.score));
+  if (best === 0) return [];
+  return scored.filter((x) => x.score === best).slice(0, 3).map((x) => x.o);
+}

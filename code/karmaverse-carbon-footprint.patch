@@ -388,12 +388,12 @@ index 0000000..bd05076
 +}));
 diff --git a/src/components/carbon/CarbonVisuals.tsx b/src/components/carbon/CarbonVisuals.tsx
 new file mode 100644
-index 0000000..524aa8c
+index 0000000..660f562
 --- /dev/null
 +++ b/src/components/carbon/CarbonVisuals.tsx
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,158 @@
 +import React, { useEffect, useRef, useState } from 'react';
-+import { View, Text, AccessibilityInfo } from 'react-native';
++import { View, Text, AccessibilityInfo, Animated, Easing, Platform } from 'react-native';
 +import Svg, { Circle } from 'react-native-svg';
 +import { Check } from 'lucide-react-native';
 +import { useTheme, makeStyles } from '../../theme';
@@ -492,6 +492,48 @@ index 0000000..524aa8c
 +          </React.Fragment>
 +        );
 +      })}
++    </View>
++  );
++}
++
++// One-off confetti burst for milestones: pieces fall, drift and spin, then fade.
++// Renders nothing when the user prefers reduced motion.
++const CONFETTI_COLORS = ['#16a34a', '#86efac', '#fcd34d', '#0ea5e9', '#f472b6', '#a78bfa'];
++export function Confetti({ width, height, count = 26 }: { width: number; height: number; count?: number }) {
++  const [reduce, setReduce] = useState(false);
++  const pieces = useRef(Array.from({ length: count }, (_, i) => ({
++    x: Math.random() * width, drift: (Math.random() - 0.5) * 80, spin: (Math.random() - 0.5) * 720,
++    delay: Math.random() * 350, size: 6 + Math.random() * 6, color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
++    round: Math.random() > 0.6, t: new Animated.Value(0),
++  }))).current;
++  useEffect(() => {
++    AccessibilityInfo.isReduceMotionEnabled().then((r) => {
++      setReduce(r);
++      if (r) return;
++      Animated.parallel(pieces.map((p) => Animated.sequence([
++        Animated.delay(p.delay),
++        Animated.timing(p.t, { toValue: 1, duration: 2200, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
++      ]))).start();
++    }).catch(() => {});
++  }, []);
++  if (reduce) return null;
++  return (
++    <View style={{ position: 'absolute', top: 0, left: 0, width, height, overflow: 'hidden', pointerEvents: 'none' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
++      {pieces.map((p, i) => (
++        <Animated.View
++          key={i}
++          style={{
++            position: 'absolute', left: p.x, top: -16, width: p.size, height: p.round ? p.size : p.size * 1.6,
++            borderRadius: p.round ? p.size : 2, backgroundColor: p.color,
++            opacity: p.t.interpolate({ inputRange: [0, 0.8, 1], outputRange: [1, 1, 0] }),
++            transform: [
++              { translateY: p.t.interpolate({ inputRange: [0, 1], outputRange: [0, height + 20] }) },
++              { translateX: p.t.interpolate({ inputRange: [0, 1], outputRange: [0, p.drift] }) },
++              { rotate: p.t.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${p.spin}deg`] }) },
++            ],
++          }}
++        />
++      ))}
 +    </View>
 +  );
 +}
@@ -626,6 +668,119 @@ index 0000000..562aebf
 +const useStyles = makeStyles((c) => ({
 +  faceRing: { borderRadius: 999, backgroundColor: c.primarySoft },
 +}));
+diff --git a/src/components/carbon/ShareSheet.tsx b/src/components/carbon/ShareSheet.tsx
+new file mode 100644
+index 0000000..18d57d3
+--- /dev/null
++++ b/src/components/carbon/ShareSheet.tsx
+@@ -0,0 +1,107 @@
++import React, { useEffect, useState } from 'react';
++import { View, Text, TouchableOpacity, Modal, Platform, Share, Linking } from 'react-native';
++import { MessageCircle, Linkedin, Facebook, Twitter, Mail, Copy, Check, MoreHorizontal, X } from 'lucide-react-native';
++import { useTheme, makeStyles } from '../../theme';
++import { CarbonResult } from '../../services/carbon';
++import { buildCarbonShare } from '../../utils/carbon';
++
++// Share sheet for a carbon result: a preview of the message, then one-tap
++// targets (WhatsApp, X, LinkedIn, Facebook, Email), Copy message, and "More"
++// for the device's own share menu. Every action gives visible feedback, unlike
++// the browser's bare share call, which can fail or close silently on desktop.
++export function ShareSheet({ result, visible, onClose }: { result: CarbonResult | null; visible: boolean; onClose: () => void }) {
++  const styles = useStyles();
++  const { colors } = useTheme();
++  const [copied, setCopied] = useState(false);
++  useEffect(() => { if (!visible) setCopied(false); }, [visible]);
++  if (!result) return null;
++
++  const { text, url } = buildCarbonShare(result);
++  const full = `${text} ${url}`;
++  const nav: any = typeof navigator !== 'undefined' ? navigator : null;
++  const hasMore = Platform.OS !== 'web' || !!nav?.share;
++
++  const targets = [
++    { key: 'whatsapp', label: 'WhatsApp', Icon: MessageCircle, color: '#25D366', href: `https://api.whatsapp.com/send?text=${encodeURIComponent(full)}` /* direct: the wa.me redirect breaks emoji */ },
++    { key: 'x', label: 'X', Icon: Twitter, color: '#0f172a', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
++    { key: 'linkedin', label: 'LinkedIn', Icon: Linkedin, color: '#0A66C2', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}` },
++    { key: 'facebook', label: 'Facebook', Icon: Facebook, color: '#1877F2', href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
++    { key: 'email', label: 'Email', Icon: Mail, color: '#ea4335', href: `mailto:?subject=${encodeURIComponent('My carbon footprint')}&body=${encodeURIComponent(`${text}\n\n${url}`)}` },
++  ];
++
++  const open = (href: string) => {
++    if (Platform.OS === 'web' && typeof window !== 'undefined' && !href.startsWith('mailto:')) window.open(href, '_blank', 'noopener');
++    else Linking.openURL(href).catch(() => {});
++  };
++
++  const copy = async () => {
++    try {
++      if (nav?.clipboard?.writeText) await nav.clipboard.writeText(full);
++      else await Share.share({ message: full });
++      setCopied(true);
++      setTimeout(() => setCopied(false), 2500);
++    } catch { /* clipboard blocked: the message is still shown above to select */ }
++  };
++
++  const more = async () => {
++    try {
++      if (Platform.OS === 'web') await nav.share({ title: 'My carbon footprint', text, url });
++      else await Share.share({ message: full });
++    } catch { /* cancelled */ }
++  };
++
++  return (
++    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
++      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
++        <TouchableOpacity style={styles.sheet} activeOpacity={1}>
++          <View style={styles.titleRow}>
++            <Text style={styles.title}>Share my result</Text>
++            <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close"><X size={22} color={colors.textMuted} /></TouchableOpacity>
++          </View>
++          <View style={styles.preview}>
++            <Text style={styles.previewText} selectable>{text}</Text>
++            <Text style={styles.previewUrl} selectable numberOfLines={1}>{url}</Text>
++          </View>
++          <View style={styles.grid}>
++            {targets.map((t) => (
++              <TouchableOpacity key={t.key} style={styles.target} onPress={() => open(t.href)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`Share on ${t.label}`}>
++                <View style={[styles.targetIcon, { backgroundColor: t.color }]}><t.Icon size={20} color="white" /></View>
++                <Text style={styles.targetLabel}>{t.label}</Text>
++              </TouchableOpacity>
++            ))}
++            {hasMore && (
++              <TouchableOpacity style={styles.target} onPress={more} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="More share options">
++                <View style={[styles.targetIcon, { backgroundColor: colors.textMuted }]}><MoreHorizontal size={20} color="white" /></View>
++                <Text style={styles.targetLabel}>More</Text>
++              </TouchableOpacity>
++            )}
++          </View>
++          <TouchableOpacity style={[styles.copyBtn, copied && styles.copyBtnDone]} onPress={copy} activeOpacity={0.8} accessibilityRole="button" accessibilityLiveRegion="polite">
++            {copied ? <Check size={18} color="white" /> : <Copy size={18} color="white" />}
++            <Text style={styles.copyText}>{copied ? 'Copied! Paste it anywhere' : 'Copy message'}</Text>
++          </TouchableOpacity>
++        </TouchableOpacity>
++      </TouchableOpacity>
++    </Modal>
++  );
++}
++
++const useStyles = makeStyles((c) => ({
++  overlay: { flex: 1, backgroundColor: c.overlay, justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end', alignItems: 'center', padding: Platform.OS === 'web' ? 20 : 0 },
++  sheet: {
++    backgroundColor: c.surface, width: '100%', maxWidth: 520, padding: 22, paddingBottom: Platform.OS === 'web' ? 22 : 34, gap: 16,
++    borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomLeftRadius: Platform.OS === 'web' ? 24 : 0, borderBottomRightRadius: Platform.OS === 'web' ? 24 : 0,
++  },
++  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
++  title: { fontSize: 18, fontWeight: '900', color: c.text },
++  preview: { backgroundColor: c.primarySoft, borderRadius: 14, padding: 14, gap: 6 },
++  previewText: { fontSize: 14, lineHeight: 20, fontWeight: '700', color: c.text },
++  previewUrl: { fontSize: 12.5, fontWeight: '700', color: c.primary },
++  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 14 },
++  target: { width: '25%', alignItems: 'center', gap: 6 },
++  targetIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
++  targetLabel: { fontSize: 12, fontWeight: '700', color: c.textMuted },
++  copyBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, backgroundColor: '#16a34a', borderRadius: 12, paddingVertical: 14 },
++  copyBtnDone: { backgroundColor: '#15803d' },
++  copyText: { color: 'white', fontSize: 15, fontWeight: '800' },
++}));
 diff --git a/src/navigation/RootNavigator.tsx b/src/navigation/RootNavigator.tsx
 index b9c5728..2bc6434 100644
 --- a/src/navigation/RootNavigator.tsx
@@ -696,25 +851,26 @@ index c2e1b4b..07e3784 100644
    // Pinned to the very top (Flipkart-style). The tab bar is rendered after the
 diff --git a/src/screens/CarbonAssessmentScreen.tsx b/src/screens/CarbonAssessmentScreen.tsx
 new file mode 100644
-index 0000000..2bcaae0
+index 0000000..1cb6c81
 --- /dev/null
 +++ b/src/screens/CarbonAssessmentScreen.tsx
-@@ -0,0 +1,519 @@
+@@ -0,0 +1,602 @@
 +import React, { useEffect, useRef, useState } from 'react';
 +import { View, Text, ScrollView, TouchableOpacity, TextInput, StatusBar, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 +import { SafeAreaView } from 'react-native-safe-area-context';
 +import { LinearGradient } from 'expo-linear-gradient';
-+import { X, Mic, Send } from 'lucide-react-native';
++import { X, Mic, Send, Share2 } from 'lucide-react-native';
 +import {
 +  carbonService, CarbonResult, CarbonSession, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER,
 +} from '../services/carbon';
 +import { profileService } from '../services/profile';
 +import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, showCarbonError } from '../utils/carbon';
-+import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber } from '../utils/carbonQuestions';
++import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber, matchOptions, QOption } from '../utils/carbonQuestions';
 +import { showAlert } from '../utils/alert';
 +import { useTheme, makeStyles } from '../theme';
-+import { TopicStepper, useCountUp } from '../components/carbon/CarbonVisuals';
++import { TopicStepper, useCountUp, Confetti } from '../components/carbon/CarbonVisuals';
 +import { EarthBuddy, TypingDots } from '../components/carbon/EarthBuddy';
++import { ShareSheet } from '../components/carbon/ShareSheet';
 +
 +type Phase = 'loading' | 'intro' | 'starting' | 'chat' | 'sending' | 'result';
 +type LoggedAnswer = { field: Field; label: string };
@@ -776,6 +932,11 @@ index 0000000..2bcaae0
 +  const [inputError, setInputError] = useState<string | null>(null);
 +  const [listening, setListening] = useState(false);
 +  const [result, setResult] = useState<CarbonResult | null>(null);
++  // Typed answer waiting for the user to confirm one of the suggested options.
++  const [suggest, setSuggest] = useState<{ fieldKey: string; text: string; options: QOption[] } | null>(null);
++  // Celebration shown on the result card (first result, lower footprint, goal reached).
++  const [milestone, setMilestone] = useState<{ emoji: string; title: string; body: string } | null>(null);
++  const [cardBox, setCardBox] = useState<{ width: number; height: number } | null>(null);
 +  const scrollRef = useRef<ScrollView>(null);
 +  const recRef = useRef<any>(null);
 +  // Set while a start or answer request is in flight, so a fast double tap
@@ -804,7 +965,7 @@ index 0000000..2bcaae0
 +
 +  const close = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('CarbonFootprint'));
 +
-+  const clearComposer = () => { setInput(''); setInputError(null); };
++  const clearComposer = () => { setInput(''); setInputError(null); setSuggest(null); };
 +
 +  // Back to the start screen with an empty transcript.
 +  const resetToIntro = () => {
@@ -867,6 +1028,7 @@ index 0000000..2bcaae0
 +        setResult(res.result);
 +        setCategory(null);
 +        setPhase('result');
++        detectMilestone(res.result);
 +      } else {
 +        setCategory(res.nextQuestion.category);
 +        setPhase('chat');
@@ -893,6 +1055,24 @@ index 0000000..2bcaae0
 +    }
 +  };
 +
++  // Celebrate real progress, from the backend's own data: a reached goal first,
++  // then a lower footprint than last time, then a very first result.
++  const detectMilestone = (r: CarbonResult) => {
++    Promise.all([carbonService.getLatestResult(), carbonService.getGoal()]).then(([latest, goal]) => {
++      if (latest?.result?._id && latest.result._id !== r._id) return; // not this result
++      if (goal?.progress.achieved && goal.progress.currentKgCO2ePerMonth === r.totalKgCO2ePerMonth) {
++        setMilestone({ emoji: '🏆', title: 'Goal reached!', body: `You're under your target of ${formatKg(goal.goal.targetKgCO2ePerMonth)} kg a month.` });
++      } else if (latest?.comparison?.improved && latest.comparison.deltaKgCO2ePerMonth < 0) {
++        setMilestone({ emoji: '🌱', title: `You cut ${formatKg(Math.abs(latest.comparison.deltaKgCO2ePerMonth))} kg!`, body: 'Lower than last time. Keep it up!' });
++      } else if (latest && !latest.comparison) {
++        setMilestone({ emoji: '🎉', title: 'Your first footprint!', body: 'Now you know where you stand. Check in next month to see your progress.' });
++      }
++    }).catch(() => {});
++  };
++
++  const [shareOpen, setShareOpen] = useState(false);
++  const share = () => setShareOpen(true);
++
 +  const answerField = (f: Field, value: FieldValue, label: string) => {
 +    if (!category || busyRef.current) return;
 +    clearComposer();
@@ -901,14 +1081,24 @@ index 0000000..2bcaae0
 +    if (buildAnswer(category, next)) send(category, next, f);
 +  };
 +
++  // Typed (or spoken) answer: a number field takes the number directly; otherwise
++  // Earth Buddy suggests the matching options and the user taps one to confirm.
 +  const sendText = () => {
-+    if (!current?.number) return;
-+    const n = parseNumber(current, input);
-+    if (n === null) {
++    if (!current) return;
++    const text = input.trim();
++    if (!text) return;
++    if (current.number) {
++      const n = parseNumber(current, text);
++      if (n !== null) { answerField(current, n, `${n.toLocaleString()} ${current.number.unit}`); return; }
++    }
++    const options = matchOptions(current, text);
++    if (current.number && options.length === 0) {
 +      setInputError(`Enter a number from ${current.number.min.toLocaleString()} to ${current.number.max.toLocaleString()}.`);
 +      return;
 +    }
-+    answerField(current, n, `${n.toLocaleString()} ${current.number.unit}`);
++    setSuggest({ fieldKey: current.key, text, options });
++    setInput('');
++    setInputError(null);
 +  };
 +
 +  // Undo the latest answer in this category (sent categories can't be changed).
@@ -1075,6 +1265,37 @@ index 0000000..2bcaae0
 +                  </TouchableOpacity>
 +                ))}
 +              </View>
++              {suggest && suggest.fieldKey === current.key && (
++                <>
++                  <View style={styles.userRow}>
++                    <View style={[styles.userBubble, styles.userBubbleTyped]}><Text style={styles.userText}>{suggest.text}</Text></View>
++                  </View>
++                  <BotBubble live>
++                    <Text style={styles.botText}>
++                      {suggest.options.length ? (suggest.options.length === 1 ? 'Did you mean this?' : 'Did you mean one of these?') : "Sorry, I didn't catch that. Please tap one of the options above."}
++                    </Text>
++                  </BotBubble>
++                  {suggest.options.length > 0 && (
++                    <View style={styles.chips}>
++                      {suggest.options.map((o) => (
++                        <TouchableOpacity
++                          key={`s-${String(o.value)}`}
++                          style={[styles.chip, styles.chipPrimary]}
++                          onPress={() => answerField(current, o.value, o.label)}
++                          activeOpacity={0.8}
++                          accessibilityRole="button"
++                          accessibilityLabel={`Yes, ${o.label}`}
++                        >
++                          <Text style={[styles.chipText, styles.chipTextPrimary]}>✓ {o.label}</Text>
++                        </TouchableOpacity>
++                      ))}
++                      <TouchableOpacity style={styles.chip} onPress={() => setSuggest(null)} activeOpacity={0.8} accessibilityRole="button">
++                        <Text style={styles.chipText}>None of these</Text>
++                      </TouchableOpacity>
++                    </View>
++                  )}
++                </>
++              )}
 +            </>
 +          )}
 +
@@ -1090,7 +1311,14 @@ index 0000000..2bcaae0
 +          {phase === 'result' && result && (
 +            <>
 +              <BotBubble live><Text style={styles.botText}>That's everything! Here's your carbon footprint.</Text></BotBubble>
-+              <View style={styles.resultCard}>
++              <View style={styles.resultCard} onLayout={(e) => setCardBox({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}>
++                {milestone && cardBox && <Confetti width={cardBox.width} height={cardBox.height} />}
++                {milestone && (
++                  <View style={styles.milestone} accessibilityLiveRegion="polite">
++                    <Text style={styles.milestoneTitle}>{milestone.emoji} {milestone.title}</Text>
++                    <Text style={styles.milestoneBody}>{milestone.body}</Text>
++                  </View>
++                )}
 +                <EarthBuddy size={112} wave cheer />
 +                <Text style={styles.resultValue}>{formatKg(Math.round(shownResult * 10) / 10)}</Text>
 +                <Text style={styles.resultUnit}>kg CO₂e / month</Text>
@@ -1107,6 +1335,10 @@ index 0000000..2bcaae0
 +                <TouchableOpacity style={[styles.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => navigation.replace('CarbonJourney')} activeOpacity={0.8} accessibilityRole="button">
 +                  <Text style={styles.primaryBtnText}>View my journey</Text>
 +                </TouchableOpacity>
++                <TouchableOpacity style={[styles.ghostBtn, styles.shareBtn, { alignSelf: 'stretch' }]} onPress={share} activeOpacity={0.8} accessibilityRole="button">
++                  <Share2 size={16} color={colors.primary} />
++                  <Text style={styles.ghostBtnText}>Share my result</Text>
++                </TouchableOpacity>
 +                <TouchableOpacity style={[styles.ghostBtn, { alignSelf: 'stretch' }]} onPress={close} activeOpacity={0.8} accessibilityRole="button">
 +                  <Text style={styles.ghostBtnText}>Done</Text>
 +                </TouchableOpacity>
@@ -1115,8 +1347,8 @@ index 0000000..2bcaae0
 +          )}
 +        </ScrollView>
 +
-+        {/* Composer — for number questions, type or speak the exact figure */}
-+        {current?.number && (
++        {/* Composer — type or speak: a number, or your own words for Earth Buddy to match */}
++        {current && (
 +          <View style={styles.composer}>
 +            {(inputError || listening) && (
 +              <Text style={[styles.voiceHint, inputError ? { color: colors.danger } : null]}>
@@ -1126,15 +1358,15 @@ index 0000000..2bcaae0
 +            <View style={styles.composerRow}>
 +              <TextInput
 +                style={styles.input}
-+                placeholder={`Or type a number (${current.number.unit})…`}
++                placeholder={current.number ? `Or type a number (${current.number.unit})…` : 'Or type in your own words…'}
 +                placeholderTextColor={colors.textFaint}
 +                value={input}
 +                onChangeText={(t) => { setInput(t); setInputError(null); }}
 +                onSubmitEditing={sendText}
 +                returnKeyType="send"
-+                keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'}
-+                maxLength={60}
-+                accessibilityLabel={`Your answer in ${current.number.unit} to: ${current.ask(ctx, draft)}`}
++                keyboardType={current.number && Platform.OS !== 'web' ? 'decimal-pad' : 'default'}
++                maxLength={120}
++                accessibilityLabel={`Your answer to: ${current.ask(ctx, draft)}`}
 +              />
 +              {SpeechRecognition && (
 +                <TouchableOpacity
@@ -1161,6 +1393,7 @@ index 0000000..2bcaae0
 +          </View>
 +        )}
 +      </KeyboardAvoidingView>
++      <ShareSheet result={result} visible={shareOpen} onClose={() => setShareOpen(false)} />
 +    </SafeAreaView>
 +  );
 +}
@@ -1202,6 +1435,11 @@ index 0000000..2bcaae0
 +  ghostBtn: { marginTop: 10, borderWidth: 1, borderColor: c.borderStrong, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
 +  ghostBtnText: { color: c.primary, fontSize: 14.5, fontWeight: '800' },
 +
++  userBubbleTyped: { backgroundColor: '#4ade80' },
++  milestone: { alignSelf: 'stretch', alignItems: 'center', backgroundColor: c.primarySoft, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 6 },
++  milestoneTitle: { fontSize: 18, fontWeight: '900', color: c.primary, textAlign: 'center' },
++  milestoneBody: { fontSize: 13, fontWeight: '600', color: c.textMuted, textAlign: 'center', marginTop: 3, lineHeight: 18 },
++  shareBtn: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
 +  resultCard: { backgroundColor: c.surface, borderRadius: 24, padding: 20, alignItems: 'center', elevation: 8, shadowColor: c.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 16 },
 +  resultValue: { fontSize: 44, fontWeight: '900', color: c.text, letterSpacing: -1 },
 +  resultUnit: { fontSize: 13, fontWeight: '600', color: c.textMuted },
@@ -1221,14 +1459,14 @@ index 0000000..2bcaae0
 +}));
 diff --git a/src/screens/CarbonFootprintScreen.tsx b/src/screens/CarbonFootprintScreen.tsx
 new file mode 100644
-index 0000000..d991d7a
+index 0000000..843f9c8
 --- /dev/null
 +++ b/src/screens/CarbonFootprintScreen.tsx
-@@ -0,0 +1,522 @@
+@@ -0,0 +1,535 @@
 +import React, { useEffect, useState } from 'react';
 +import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
 +import { LinearGradient } from 'expo-linear-gradient';
-+import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock } from 'lucide-react-native';
++import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock, Share2 } from 'lucide-react-native';
 +import { WebFooter } from '../components/shared/WebFooter';
 +import { useTheme, makeStyles } from '../theme';
 +import {
@@ -1238,6 +1476,7 @@ index 0000000..d991d7a
 +import { showAlert } from '../utils/alert';
 +import { CarbonDonut, useCountUp } from '../components/carbon/CarbonVisuals';
 +import { EarthBuddy } from '../components/carbon/EarthBuddy';
++import { ShareSheet } from '../components/carbon/ShareSheet';
 +
 +// Logging green actions has no backend yet.
 +const comingSoon = () => showCarbonError('', new CarbonApiNotReadyError());
@@ -1295,6 +1534,9 @@ index 0000000..d991d7a
 +  const goBack = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('App'));
 +  const startAssessment = () => navigation.navigate('CarbonAssessment');
 +  const openJourney = () => navigation.navigate('CarbonJourney');
++
++  const [shareOpen, setShareOpen] = useState(false);
++  const shareResult = () => setShareOpen(true);
 +
 +  // A goal needs a result to start from.
 +  const openGoalSheet = () => {
@@ -1370,9 +1612,16 @@ index 0000000..d991d7a
 +              </TouchableOpacity>
 +              <Text style={styles.headerTitle} numberOfLines={2} accessibilityRole="header">My carbon footprint</Text>
 +            </View>
-+            <TouchableOpacity style={styles.iconBtn} onPress={openJourney} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="My carbon journey">
-+              <History size={18} color="white" />
-+            </TouchableOpacity>
++            <View style={{ flexDirection: 'row', gap: 10 }}>
++              {latest && (
++                <TouchableOpacity style={styles.iconBtn} onPress={shareResult} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Share my result">
++                  <Share2 size={18} color="white" />
++                </TouchableOpacity>
++              )}
++              <TouchableOpacity style={styles.iconBtn} onPress={openJourney} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="My carbon journey">
++                <History size={18} color="white" />
++              </TouchableOpacity>
++            </View>
 +          </View>
 +
 +          {/* Glass card */}
@@ -1593,6 +1842,8 @@ index 0000000..d991d7a
 +
 +        {Platform.OS === 'web' && <WebFooter />}
 +      </ScrollView>
++
++      <ShareSheet result={latest} visible={shareOpen} onClose={() => setShareOpen(false)} />
 +
 +      {/* Set goal — web: centred dialog; native: bottom sheet (same as Wallet) */}
 +      <Modal visible={goalSheet} transparent animationType="fade" onRequestClose={() => setGoalSheet(false)}>
@@ -2972,13 +3223,14 @@ index 0000000..9f5df33
 +};
 diff --git a/src/utils/carbon.ts b/src/utils/carbon.ts
 new file mode 100644
-index 0000000..b3cd7d3
+index 0000000..76ceb06
 --- /dev/null
 +++ b/src/utils/carbon.ts
-@@ -0,0 +1,71 @@
+@@ -0,0 +1,85 @@
 +import { Bus, Zap, Utensils, Recycle, Droplets, Plane, Leaf } from 'lucide-react-native';
++import { Platform } from 'react-native';
 +import { showAlert } from './alert';
-+import { CarbonApiNotReadyError, CarbonCategoryKey } from '../services/carbon';
++import { CarbonApiNotReadyError, CarbonCategoryKey, CarbonResult, CARBON_CATEGORY_ORDER } from '../services/carbon';
 +
 +type Icon = typeof Leaf;
 +
@@ -3047,12 +3299,25 @@ index 0000000..b3cd7d3
 +  }
 +  showAlert(title, error?.response?.data?.message || 'Please try again.');
 +}
++
++// The share message and link for a result. The link opens the carbon footprint
++// screen (logged-out visitors log in first and land there).
++export function buildCarbonShare(r: CarbonResult): { text: string; url: string } {
++  const top = CARBON_CATEGORY_ORDER.reduce<CarbonCategoryKey | null>(
++    (best, k) => ((r.breakdown?.[k] ?? 0) > (best ? r.breakdown?.[best] ?? 0 : 0) ? k : best), null,
++  );
++  const origin = Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://karmaverse.earth';
++  const text = `My carbon footprint is ${formatKg(r.totalKgCO2ePerMonth)} kg CO₂e a month 🌍.`
++    + (top ? ` My biggest source is ${CARBON_CATEGORIES[top].label.toLowerCase()}.` : '')
++    + ' Find out yours in 2 minutes on KarmaVer$e:';
++  return { text, url: `${origin}/CarbonFootprint` };
++}
 diff --git a/src/utils/carbonQuestions.ts b/src/utils/carbonQuestions.ts
 new file mode 100644
-index 0000000..d3c7335
+index 0000000..f98c1f5
 --- /dev/null
 +++ b/src/utils/carbonQuestions.ts
-@@ -0,0 +1,144 @@
+@@ -0,0 +1,189 @@
 +import { CarbonCategoryKey, CarbonAnswers } from '../services/carbon';
 +
 +// What the chat asks for each backend category, one field at a time. Each field
@@ -3196,6 +3461,51 @@ index 0000000..d3c7335
 +  // A minus sign must not be dropped: "-5" is out of range, not 5.
 +  const n = Number(match[0]);
 +  return n >= field.number.min && n <= field.number.max ? n : null;
++}
++
++// ── Typed answers → suggested options ────────────────────────────────────────
++// Everyday words (including common Hinglish) for each tap option, keyed by
++// "fieldKey:value". The option's own label always counts too. A match only ever
++// SUGGESTS options; the user taps to confirm, so typed text never becomes an
++// answer on its own.
++const KEYWORDS: Record<string, string[]> = {
++  'mode:walk_cycle': ['walk', 'walking', 'on foot', 'paidal', 'cycle', 'cycling', 'bicycle', 'bike ride'],
++  'mode:bus': ['bus', 'buses', 'best bus', 'dtc', 'public transport'],
++  'mode:train': ['metro', 'train', 'local train', 'local', 'rail', 'railway', 'subway'],
++  'mode:bike': ['two wheeler', 'twowheeler', 'scooter', 'scooty', 'motorbike', 'motorcycle', 'activa', 'splendor', 'bike'],
++  'mode:car_petrol': ['petrol car', 'petrol', 'car', 'cab', 'taxi', 'uber', 'ola'],
++  'mode:car_diesel': ['diesel car', 'diesel', 'car'],
++  'mode:car_ev': ['electric car', 'ev', 'e car', 'tesla', 'nexon ev', 'car'],
++  'mode:none': ['work from home', 'wfh', 'from home', 'dont travel', 'do not travel', 'no travel', 'ghar se', 'stay home'],
++  'source:grid': ['grid', 'electricity board', 'board', 'government', 'normal', 'regular', 'mseb', 'bescom', 'tata power', 'adani'],
++  'source:solar': ['solar', 'rooftop', 'solar panel', 'solar panels'],
++  'source:mixed': ['both', 'mix', 'mixed', 'grid and solar', 'solar and grid', 'some solar', 'partly solar'],
++  'dietType:vegan': ['vegan', 'plant based', 'no dairy', 'no milk'],
++  'dietType:vegetarian': ['vegetarian', 'veg', 'pure veg', 'shakahari', 'no meat'],
++  'dietType:eggetarian': ['eggetarian', 'egg', 'eggs', 'anda', 'veg and egg'],
++  'dietType:non_veg_moderate': ['sometimes', 'occasionally', 'weekends', 'few times', 'once a week', 'twice a week', 'non veg sometimes', 'nonveg sometimes'],
++  'dietType:non_veg_heavy': ['daily', 'every day', 'everyday', 'most days', 'non veg daily', 'chicken daily', 'meat daily', 'all the time'],
++  'segregatesWaste:true': ['yes', 'yeah', 'yep', 'haan', 'ha', 'ji', 'sure', 'i do', 'we do', 'always', 'separate', 'segregate', 'wet and dry'],
++  'segregatesWaste:false': ['no', 'nope', 'nahi', 'nahin', 'never', 'dont', 'do not', 'not really', 'mix it', 'together'],
++  'shortHaulPerYear:0': ['none', 'no', 'zero', 'never', 'nahi', 'no flights'],
++  'longHaulPerYear:0': ['none', 'no', 'zero', 'never', 'nahi', 'no flights'],
++};
++
++const normalize = (t: string) => ` ${t.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').trim()} `;
++
++// The options a typed answer most likely means: best-scoring first, at most 3.
++// Longer phrases score more, so "petrol car" beats a bare "car".
++export function matchOptions(field: Field, text: string): QOption[] {
++  const said = normalize(text);
++  if (said.trim().length < 2) return [];
++  const scored = field.options.map((o) => {
++    const terms = [o.label.replace(/\(.*?\)/g, ''), ...(KEYWORDS[`${field.key}:${String(o.value)}`] ?? [])].map(normalize);
++    const score = terms.reduce((sum, term) => (term.trim() && said.includes(term) ? sum + term.trim().split(' ').length : sum), 0);
++    return { o, score };
++  });
++  const best = Math.max(0, ...scored.map((x) => x.score));
++  if (best === 0) return [];
++  return scored.filter((x) => x.score === best).slice(0, 3).map((x) => x.o);
 +}
 diff --git a/src/utils/deepLink.ts b/src/utils/deepLink.ts
 index 1b56b42..35ad377 100644

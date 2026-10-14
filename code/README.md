@@ -26,9 +26,10 @@ git push -u origin carbon-footprint
 | `src/screens/CarbonJourneyScreen.tsx` | **My carbon journey**: current vs previous, trend bars, read-only history |
 | `src/screens/CarbonInsightsScreen.tsx` | **Carbon insights** dashboard: range filter, KPI tiles, footprint-over-time line chart with goal line + table view, category bars, per-category small multiples |
 | `src/components/carbon/EarthBuddy.tsx` | **Earth Buddy** mascot: blinks, floats, waves, talks, pops in; round face for chat avatars; typing dots |
-| `src/components/carbon/CarbonVisuals.tsx` | Donut chart, topic stepper for the chat header, number count-up |
+| `src/components/carbon/CarbonVisuals.tsx` | Donut chart, topic stepper for the chat header, number count-up, confetti for milestones |
+| `src/components/carbon/ShareSheet.tsx` | **Share my result**: message preview, WhatsApp / X / LinkedIn / Facebook / Email, Copy message, More |
 | `src/components/carbon/CarbonImpactCard.tsx` | Animated **Home "Your impact" card** (web and native): invite or latest footprint, check-in countdown |
-| `src/utils/carbonQuestions.ts` | What the chat asks per topic, one prompt per backend answer field; tap options with representative values; number parsing |
+| `src/utils/carbonQuestions.ts` | What the chat asks per topic, one prompt per backend answer field; tap options with representative values; number parsing; `matchOptions` turns typed words (incl. Hinglish) into suggested options |
 | `src/utils/carbon.ts` | Category icons, colours and tips; footprint band labels; formatting; "Coming soon!" helper |
 | `src/services/carbon.ts` | API service for `/api/v1/carbon-footprint` (switched off by default — see below) |
 | `src/navigation/RootNavigator.tsx` | Registers `CarbonFootprint`, `CarbonAssessment`, `CarbonJourney`, `CarbonInsights` as lazy-loaded screens (+ web URLs) |

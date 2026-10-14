@@ -2,17 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StatusBar, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Mic, Send } from 'lucide-react-native';
+import { X, Mic, Send, Share2 } from 'lucide-react-native';
 import {
   carbonService, CarbonResult, CarbonSession, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER,
 } from '../services/carbon';
 import { profileService } from '../services/profile';
 import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, showCarbonError } from '../utils/carbon';
-import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber } from '../utils/carbonQuestions';
+import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber, matchOptions, QOption } from '../utils/carbonQuestions';
 import { showAlert } from '../utils/alert';
 import { useTheme, makeStyles } from '../theme';
-import { TopicStepper, useCountUp } from '../components/carbon/CarbonVisuals';
+import { TopicStepper, useCountUp, Confetti } from '../components/carbon/CarbonVisuals';
 import { EarthBuddy, TypingDots } from '../components/carbon/EarthBuddy';
+import { ShareSheet } from '../components/carbon/ShareSheet';
 
 type Phase = 'loading' | 'intro' | 'starting' | 'chat' | 'sending' | 'result';
 type LoggedAnswer = { field: Field; label: string };
@@ -74,6 +75,11 @@ export function CarbonAssessmentScreen({ navigation }: any) {
   const [inputError, setInputError] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const [result, setResult] = useState<CarbonResult | null>(null);
+  // Typed answer waiting for the user to confirm one of the suggested options.
+  const [suggest, setSuggest] = useState<{ fieldKey: string; text: string; options: QOption[] } | null>(null);
+  // Celebration shown on the result card (first result, lower footprint, goal reached).
+  const [milestone, setMilestone] = useState<{ emoji: string; title: string; body: string } | null>(null);
+  const [cardBox, setCardBox] = useState<{ width: number; height: number } | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const recRef = useRef<any>(null);
   // Set while a start or answer request is in flight, so a fast double tap
@@ -102,7 +108,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
 
   const close = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('CarbonFootprint'));
 
-  const clearComposer = () => { setInput(''); setInputError(null); };
+  const clearComposer = () => { setInput(''); setInputError(null); setSuggest(null); };
 
   // Back to the start screen with an empty transcript.
   const resetToIntro = () => {
@@ -165,6 +171,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
         setResult(res.result);
         setCategory(null);
         setPhase('result');
+        detectMilestone(res.result);
       } else {
         setCategory(res.nextQuestion.category);
         setPhase('chat');
@@ -191,6 +198,24 @@ export function CarbonAssessmentScreen({ navigation }: any) {
     }
   };
 
+  // Celebrate real progress, from the backend's own data: a reached goal first,
+  // then a lower footprint than last time, then a very first result.
+  const detectMilestone = (r: CarbonResult) => {
+    Promise.all([carbonService.getLatestResult(), carbonService.getGoal()]).then(([latest, goal]) => {
+      if (latest?.result?._id && latest.result._id !== r._id) return; // not this result
+      if (goal?.progress.achieved && goal.progress.currentKgCO2ePerMonth === r.totalKgCO2ePerMonth) {
+        setMilestone({ emoji: '🏆', title: 'Goal reached!', body: `You're under your target of ${formatKg(goal.goal.targetKgCO2ePerMonth)} kg a month.` });
+      } else if (latest?.comparison?.improved && latest.comparison.deltaKgCO2ePerMonth < 0) {
+        setMilestone({ emoji: '🌱', title: `You cut ${formatKg(Math.abs(latest.comparison.deltaKgCO2ePerMonth))} kg!`, body: 'Lower than last time. Keep it up!' });
+      } else if (latest && !latest.comparison) {
+        setMilestone({ emoji: '🎉', title: 'Your first footprint!', body: 'Now you know where you stand. Check in next month to see your progress.' });
+      }
+    }).catch(() => {});
+  };
+
+  const [shareOpen, setShareOpen] = useState(false);
+  const share = () => setShareOpen(true);
+
   const answerField = (f: Field, value: FieldValue, label: string) => {
     if (!category || busyRef.current) return;
     clearComposer();
@@ -199,14 +224,24 @@ export function CarbonAssessmentScreen({ navigation }: any) {
     if (buildAnswer(category, next)) send(category, next, f);
   };
 
+  // Typed (or spoken) answer: a number field takes the number directly; otherwise
+  // Earth Buddy suggests the matching options and the user taps one to confirm.
   const sendText = () => {
-    if (!current?.number) return;
-    const n = parseNumber(current, input);
-    if (n === null) {
+    if (!current) return;
+    const text = input.trim();
+    if (!text) return;
+    if (current.number) {
+      const n = parseNumber(current, text);
+      if (n !== null) { answerField(current, n, `${n.toLocaleString()} ${current.number.unit}`); return; }
+    }
+    const options = matchOptions(current, text);
+    if (current.number && options.length === 0) {
       setInputError(`Enter a number from ${current.number.min.toLocaleString()} to ${current.number.max.toLocaleString()}.`);
       return;
     }
-    answerField(current, n, `${n.toLocaleString()} ${current.number.unit}`);
+    setSuggest({ fieldKey: current.key, text, options });
+    setInput('');
+    setInputError(null);
   };
 
   // Undo the latest answer in this category (sent categories can't be changed).
@@ -373,6 +408,37 @@ export function CarbonAssessmentScreen({ navigation }: any) {
                   </TouchableOpacity>
                 ))}
               </View>
+              {suggest && suggest.fieldKey === current.key && (
+                <>
+                  <View style={styles.userRow}>
+                    <View style={[styles.userBubble, styles.userBubbleTyped]}><Text style={styles.userText}>{suggest.text}</Text></View>
+                  </View>
+                  <BotBubble live>
+                    <Text style={styles.botText}>
+                      {suggest.options.length ? (suggest.options.length === 1 ? 'Did you mean this?' : 'Did you mean one of these?') : "Sorry, I didn't catch that. Please tap one of the options above."}
+                    </Text>
+                  </BotBubble>
+                  {suggest.options.length > 0 && (
+                    <View style={styles.chips}>
+                      {suggest.options.map((o) => (
+                        <TouchableOpacity
+                          key={`s-${String(o.value)}`}
+                          style={[styles.chip, styles.chipPrimary]}
+                          onPress={() => answerField(current, o.value, o.label)}
+                          activeOpacity={0.8}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Yes, ${o.label}`}
+                        >
+                          <Text style={[styles.chipText, styles.chipTextPrimary]}>✓ {o.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                      <TouchableOpacity style={styles.chip} onPress={() => setSuggest(null)} activeOpacity={0.8} accessibilityRole="button">
+                        <Text style={styles.chipText}>None of these</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              )}
             </>
           )}
 
@@ -388,7 +454,14 @@ export function CarbonAssessmentScreen({ navigation }: any) {
           {phase === 'result' && result && (
             <>
               <BotBubble live><Text style={styles.botText}>That's everything! Here's your carbon footprint.</Text></BotBubble>
-              <View style={styles.resultCard}>
+              <View style={styles.resultCard} onLayout={(e) => setCardBox({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}>
+                {milestone && cardBox && <Confetti width={cardBox.width} height={cardBox.height} />}
+                {milestone && (
+                  <View style={styles.milestone} accessibilityLiveRegion="polite">
+                    <Text style={styles.milestoneTitle}>{milestone.emoji} {milestone.title}</Text>
+                    <Text style={styles.milestoneBody}>{milestone.body}</Text>
+                  </View>
+                )}
                 <EarthBuddy size={112} wave cheer />
                 <Text style={styles.resultValue}>{formatKg(Math.round(shownResult * 10) / 10)}</Text>
                 <Text style={styles.resultUnit}>kg CO₂e / month</Text>
@@ -405,6 +478,10 @@ export function CarbonAssessmentScreen({ navigation }: any) {
                 <TouchableOpacity style={[styles.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => navigation.replace('CarbonJourney')} activeOpacity={0.8} accessibilityRole="button">
                   <Text style={styles.primaryBtnText}>View my journey</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={[styles.ghostBtn, styles.shareBtn, { alignSelf: 'stretch' }]} onPress={share} activeOpacity={0.8} accessibilityRole="button">
+                  <Share2 size={16} color={colors.primary} />
+                  <Text style={styles.ghostBtnText}>Share my result</Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={[styles.ghostBtn, { alignSelf: 'stretch' }]} onPress={close} activeOpacity={0.8} accessibilityRole="button">
                   <Text style={styles.ghostBtnText}>Done</Text>
                 </TouchableOpacity>
@@ -413,8 +490,8 @@ export function CarbonAssessmentScreen({ navigation }: any) {
           )}
         </ScrollView>
 
-        {/* Composer — for number questions, type or speak the exact figure */}
-        {current?.number && (
+        {/* Composer — type or speak: a number, or your own words for Earth Buddy to match */}
+        {current && (
           <View style={styles.composer}>
             {(inputError || listening) && (
               <Text style={[styles.voiceHint, inputError ? { color: colors.danger } : null]}>
@@ -424,15 +501,15 @@ export function CarbonAssessmentScreen({ navigation }: any) {
             <View style={styles.composerRow}>
               <TextInput
                 style={styles.input}
-                placeholder={`Or type a number (${current.number.unit})…`}
+                placeholder={current.number ? `Or type a number (${current.number.unit})…` : 'Or type in your own words…'}
                 placeholderTextColor={colors.textFaint}
                 value={input}
                 onChangeText={(t) => { setInput(t); setInputError(null); }}
                 onSubmitEditing={sendText}
                 returnKeyType="send"
-                keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'}
-                maxLength={60}
-                accessibilityLabel={`Your answer in ${current.number.unit} to: ${current.ask(ctx, draft)}`}
+                keyboardType={current.number && Platform.OS !== 'web' ? 'decimal-pad' : 'default'}
+                maxLength={120}
+                accessibilityLabel={`Your answer to: ${current.ask(ctx, draft)}`}
               />
               {SpeechRecognition && (
                 <TouchableOpacity
@@ -459,6 +536,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
           </View>
         )}
       </KeyboardAvoidingView>
+      <ShareSheet result={result} visible={shareOpen} onClose={() => setShareOpen(false)} />
     </SafeAreaView>
   );
 }
@@ -500,6 +578,11 @@ const useStyles = makeStyles((c) => ({
   ghostBtn: { marginTop: 10, borderWidth: 1, borderColor: c.borderStrong, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
   ghostBtnText: { color: c.primary, fontSize: 14.5, fontWeight: '800' },
 
+  userBubbleTyped: { backgroundColor: '#4ade80' },
+  milestone: { alignSelf: 'stretch', alignItems: 'center', backgroundColor: c.primarySoft, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 6 },
+  milestoneTitle: { fontSize: 18, fontWeight: '900', color: c.primary, textAlign: 'center' },
+  milestoneBody: { fontSize: 13, fontWeight: '600', color: c.textMuted, textAlign: 'center', marginTop: 3, lineHeight: 18 },
+  shareBtn: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
   resultCard: { backgroundColor: c.surface, borderRadius: 24, padding: 20, alignItems: 'center', elevation: 8, shadowColor: c.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 16 },
   resultValue: { fontSize: 44, fontWeight: '900', color: c.text, letterSpacing: -1 },
   resultUnit: { fontSize: 13, fontWeight: '600', color: c.textMuted },

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, AccessibilityInfo } from 'react-native';
+import { View, Text, AccessibilityInfo, Animated, Easing, Platform } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Check } from 'lucide-react-native';
 import { useTheme, makeStyles } from '../../theme';
@@ -98,6 +98,48 @@ export function TopicStepper({ answered, current }: { answered: CarbonCategoryKe
           </React.Fragment>
         );
       })}
+    </View>
+  );
+}
+
+// One-off confetti burst for milestones: pieces fall, drift and spin, then fade.
+// Renders nothing when the user prefers reduced motion.
+const CONFETTI_COLORS = ['#16a34a', '#86efac', '#fcd34d', '#0ea5e9', '#f472b6', '#a78bfa'];
+export function Confetti({ width, height, count = 26 }: { width: number; height: number; count?: number }) {
+  const [reduce, setReduce] = useState(false);
+  const pieces = useRef(Array.from({ length: count }, (_, i) => ({
+    x: Math.random() * width, drift: (Math.random() - 0.5) * 80, spin: (Math.random() - 0.5) * 720,
+    delay: Math.random() * 350, size: 6 + Math.random() * 6, color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    round: Math.random() > 0.6, t: new Animated.Value(0),
+  }))).current;
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then((r) => {
+      setReduce(r);
+      if (r) return;
+      Animated.parallel(pieces.map((p) => Animated.sequence([
+        Animated.delay(p.delay),
+        Animated.timing(p.t, { toValue: 1, duration: 2200, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+      ]))).start();
+    }).catch(() => {});
+  }, []);
+  if (reduce) return null;
+  return (
+    <View style={{ position: 'absolute', top: 0, left: 0, width, height, overflow: 'hidden', pointerEvents: 'none' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {pieces.map((p, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            position: 'absolute', left: p.x, top: -16, width: p.size, height: p.round ? p.size : p.size * 1.6,
+            borderRadius: p.round ? p.size : 2, backgroundColor: p.color,
+            opacity: p.t.interpolate({ inputRange: [0, 0.8, 1], outputRange: [1, 1, 0] }),
+            transform: [
+              { translateY: p.t.interpolate({ inputRange: [0, 1], outputRange: [0, height + 20] }) },
+              { translateX: p.t.interpolate({ inputRange: [0, 1], outputRange: [0, p.drift] }) },
+              { rotate: p.t.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${p.spin}deg`] }) },
+            ],
+          }}
+        />
+      ))}
     </View>
   );
 }
