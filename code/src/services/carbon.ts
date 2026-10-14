@@ -66,6 +66,8 @@ export interface CarbonResult {
   periodLabel?: string; // "YYYY-MM"
   emissionFactorVersion?: string;
   createdAt: string;
+  // createdAt already formatted by the backend in IST, e.g. { date: "07/10/2026", day: "Wednesday", time: "03:45 PM" }
+  assessedAt?: { date: string; day: string; time: string };
 }
 
 export interface CarbonComparison {
@@ -79,6 +81,23 @@ export interface CarbonSummary {
   averageKgCO2ePerMonth: number;
   bestKgCO2ePerMonth: number;
 }
+
+// One active reduction goal per user. The baseline is frozen when the goal is set.
+export interface CarbonGoal {
+  reductionPercent: number;
+  baselineKgCO2ePerMonth: number;
+  targetKgCO2ePerMonth: number;
+  status: 'active' | 'achieved' | string;
+  createdAt: string;
+}
+
+export interface CarbonGoalProgress {
+  currentKgCO2ePerMonth: number;
+  progressPercent: number; // 0–100: how far from baseline towards target
+  achieved: boolean;
+}
+
+export type CarbonGoalState = { goal: CarbonGoal; progress: CarbonGoalProgress };
 
 export type AnswerResponse =
   | { completed: false; nextQuestion: CarbonQuestion }
@@ -165,6 +184,27 @@ export const carbonService = {
     }
   },
 
-  // TODO(backend): no endpoints yet for logging green actions or setting a monthly
-  // goal — the hub shows "Coming soon!" for both.
+  // The user's goal with progress against their latest result; null if none set.
+  // Read-only and safe to call on every render.
+  getGoal: async (): Promise<CarbonGoalState | null> => {
+    if (!CARBON_API_READY) return null;
+    try {
+      const data = unwrap(await api.get(`${BASE}/goal`));
+      return data?.goal ? data : null;
+    } catch (error: any) {
+      if (!is404(error)) console.error('Get Carbon Goal Error:', error);
+      return null;
+    }
+  },
+
+  // Sets or REPLACES the goal: the baseline resets to the latest result and progress
+  // starts again from 0. Only call when the user deliberately picks a goal — never
+  // to refresh progress (use getGoal for that). 404 = no completed assessment yet.
+  setGoal: async (reductionPercent: number): Promise<CarbonGoalState> => {
+    if (!CARBON_API_READY) return notReady();
+    return unwrap(await api.post(`${BASE}/goal`, { reductionPercent }));
+  },
+
+  // TODO(backend): no endpoint yet for logging green actions — the hub shows
+  // "Coming soon!" for Log activity.
 };

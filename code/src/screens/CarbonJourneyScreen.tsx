@@ -5,7 +5,7 @@ import { ChevronLeft, LineChart, TrendingDown, TrendingUp, History, Clock } from
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
 import { carbonService, CarbonResult } from '../services/carbon';
-import { formatKg, formatDate, formatPeriod } from '../utils/carbon';
+import { formatKg, formatAssessed, formatPeriod } from '../utils/carbon';
 
 // Percentage change between two stored results — display only; the results
 // themselves are calculated and stored by the backend and never edited here.
@@ -99,13 +99,13 @@ export function CarbonJourneyScreen({ navigation }: any) {
               <View style={styles.col}>
                 <Text style={styles.colLabel}>Previous</Text>
                 <Text style={styles.colValue}>{previous ? `${formatKg(previous.totalKgCO2ePerMonth)} kg` : '—'}</Text>
-                <Text style={styles.colSub}>{previous ? formatDate(previous.createdAt) : 'No earlier result'}</Text>
+                <Text style={styles.colSub}>{previous ? formatAssessed(previous) : 'No earlier result'}</Text>
               </View>
               <View style={styles.colDivider} />
               <View style={styles.col}>
                 <Text style={styles.colLabel}>Since first</Text>
                 <Text style={styles.colValue}>{vsFirst !== null ? `${vsFirst > 0 ? '+' : ''}${vsFirst}%` : '—'}</Text>
-                <Text style={styles.colSub}>{first && first !== current ? `First on ${formatDate(first.createdAt)}` : `${assessments.length.toLocaleString()} ${assessments.length === 1 ? 'assessment' : 'assessments'}`}</Text>
+                <Text style={styles.colSub}>{first && first !== current ? `First on ${formatAssessed(first)}` : `${assessments.length.toLocaleString()} ${assessments.length === 1 ? 'assessment' : 'assessments'}`}</Text>
               </View>
             </View>
           </View>
@@ -147,7 +147,7 @@ export function CarbonJourneyScreen({ navigation }: any) {
                 <View
                   style={[styles.rowCard, styles.chartCard]}
                   accessible
-                  accessibilityLabel={`Footprint trend: ${trend.map((a) => `${formatDate(a.createdAt)} ${formatKg(a.totalKgCO2ePerMonth)} kilograms`).join(', ')}`}
+                  accessibilityLabel={`Footprint trend: ${trend.map((a) => `${formatAssessed(a)} ${formatKg(a.totalKgCO2ePerMonth)} kilograms`).join(', ')}`}
                 >
                   {trend.map((a, i) => {
                     const latest = i === trend.length - 1;
@@ -182,7 +182,7 @@ export function CarbonJourneyScreen({ navigation }: any) {
                         <Text style={styles.rowTitle}>{formatKg(a.totalKgCO2ePerMonth)} kg CO₂e / month</Text>
                         <View style={styles.timeRow}>
                           <Clock size={12} color={colors.textFaint} />
-                          <Text style={styles.rowMeta}>{formatDate(a.createdAt)}</Text>
+                          <Text style={styles.rowMeta}>{formatAssessed(a)}</Text>
                         </View>
                       </View>
                       {older ? <ChangeText pct={pct} /> : <Text style={styles.firstTag}>First</Text>}

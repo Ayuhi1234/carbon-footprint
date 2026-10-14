@@ -7,7 +7,7 @@ import {
   carbonService, CarbonResult, CarbonSession, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER,
 } from '../services/carbon';
 import { profileService } from '../services/profile';
-import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatDate, showCarbonError } from '../utils/carbon';
+import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, showCarbonError } from '../utils/carbon';
 import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber } from '../utils/carbonQuestions';
 import { showAlert } from '../utils/alert';
 import { useTheme, makeStyles } from '../theme';
@@ -391,7 +391,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
                 )}
                 {!!result.tips?.[0] && <Text style={styles.resultTip}>{result.tips[0]}</Text>}
                 <Text style={styles.fine}>
-                  Calculated {formatDate(result.createdAt)}{result.emissionFactorVersion ? ` · emission factors ${result.emissionFactorVersion}` : ''}
+                  Calculated {formatAssessed(result)}{result.emissionFactorVersion ? ` · emission factors ${result.emissionFactorVersion}` : ''}
                 </Text>
                 <TouchableOpacity style={[styles.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => navigation.replace('CarbonJourney')} activeOpacity={0.8} accessibilityRole="button">
                   <Text style={styles.primaryBtnText}>View my journey</Text>

@@ -48,6 +48,12 @@ export const formatKg = (kg: number) => kg.toLocaleString(undefined, { maximumFr
 export const formatDate = (iso?: string) =>
   iso ? new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
+// "Calculated on" label: the backend's IST assessedAt when present, else createdAt.
+export function formatAssessed(r?: { assessedAt?: { date: string; time: string }; createdAt?: string }) {
+  if (r?.assessedAt?.date) return `${r.assessedAt.date}, ${r.assessedAt.time}`;
+  return formatDate(r?.createdAt);
+}
+
 // "2026-10" → "Oct 2026" (or "Oct" when short).
 export function formatPeriod(period?: string, short = false) {
   const [y, m] = (period || '').split('-').map(Number);

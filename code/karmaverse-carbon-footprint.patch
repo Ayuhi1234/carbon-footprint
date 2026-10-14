@@ -109,6 +109,77 @@ index 3261fb6..1c8f34e 100644
    // Feedback / NPS survey request. `surveyUrl` links to the survey form.
    FEEDBACK_SURVEY: ({ name, surveyUrl, unsubscribeUrl }) => ({
      subject: `We'd love your feedback on ${BRAND.namePlain}`,
+diff --git a/dev-cors-proxy.js b/dev-cors-proxy.js
+index 93a1fd7..316b6cc 100644
+--- a/dev-cors-proxy.js
++++ b/dev-cors-proxy.js
+@@ -7,12 +7,14 @@
+ //
+ // USE ONLY FOR LOCAL DEV. Production still needs CORS fixed on the backend.
+ //
+-// Run:  node dev-cors-proxy.js   (keep it running alongside `npm run web`)
++// Run:  node dev-cors-proxy.js   (keep it running alongside `npm run web:local`)
+ 
+ const http = require('http');
+ const https = require('https');
+ 
+-const TARGET = 'karmacoin-backend-productionn.onrender.com';
++// The live backend only allows https://karmaverse.earth as a browser origin, so a
++// locally run web app (http://localhost:8081) needs this proxy to log in at all.
++const TARGET = 'api.karmaverse.earth';
+ const PORT = 8899; // kept clear of Expo's 8081/8082/8083 range
+ 
+ const server = http.createServer((req, res) => {
+diff --git a/package.json b/package.json
+index 4bb44d4..4d8e428 100644
+--- a/package.json
++++ b/package.json
+@@ -7,6 +7,7 @@
+     "android": "expo run:android",
+     "ios": "expo run:ios",
+     "web": "expo start --web",
++    "web:local": "node scripts/web-local.js",
+     "build:web": "npx expo export --platform web && node scripts/generate-seo-pages.js && node scripts/spa-fallback.js",
+     "start:mem": "cross-env NODE_OPTIONS=--max_old_space_size=4096 expo start",
+     "tunnel": "expo start --tunnel"
+diff --git a/scripts/web-local.js b/scripts/web-local.js
+new file mode 100644
+index 0000000..7eff233
+--- /dev/null
++++ b/scripts/web-local.js
+@@ -0,0 +1,32 @@
++// Run the web app on this laptop against the live backend: `npm run web:local`.
++//
++// The live backend (api.karmaverse.earth) only allows https://karmaverse.earth as a
++// browser origin, so a web app on http://localhost is blocked by CORS and login
++// fails with "Please try again". This starts dev-cors-proxy.js (adds the missing
++// CORS headers) and Expo web pointed at it, on port 8081 — the localhost port that
++// is an Authorized JavaScript origin for Google Sign-In. USE ONLY FOR LOCAL DEV.
++//
++// Optional: CARBON=1 npm run web:local  → also switches the carbon footprint
++// feature on (its backend routes must exist on the server you're pointing at).
++
++const { spawn } = require('child_process');
++const path = require('path');
++
++const root = path.resolve(__dirname, '..');
++const PROXY_URL = 'http://localhost:8899';
++
++const run = (cmd, args, env) =>
++  spawn(cmd, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32', env: { ...process.env, ...env } });
++
++const proxy = run('node', ['dev-cors-proxy.js']);
++const web = run('npx', ['expo', 'start', '--web', '--port', '8081', '-c'], {
++  EXPO_PUBLIC_API_URL: PROXY_URL,
++  ...(process.env.CARBON === '1' ? { EXPO_PUBLIC_CARBON_API: 'true' } : {}),
++});
++
++// Stop both together.
++const stop = () => { proxy.kill(); web.kill(); process.exit(); };
++process.on('SIGINT', stop);
++process.on('SIGTERM', stop);
++web.on('exit', stop);
++proxy.on('exit', (code) => { if (code) console.error(`dev-cors-proxy exited (${code}) — is port 8899 already in use?`); });
 diff --git a/src/navigation/RootNavigator.tsx b/src/navigation/RootNavigator.tsx
 index b9c5728..2bc6434 100644
 --- a/src/navigation/RootNavigator.tsx
@@ -179,7 +250,7 @@ index c2e1b4b..07e3784 100644
    // Pinned to the very top (Flipkart-style). The tab bar is rendered after the
 diff --git a/src/screens/CarbonAssessmentScreen.tsx b/src/screens/CarbonAssessmentScreen.tsx
 new file mode 100644
-index 0000000..11090b6
+index 0000000..415336d
 --- /dev/null
 +++ b/src/screens/CarbonAssessmentScreen.tsx
 @@ -0,0 +1,511 @@
@@ -192,7 +263,7 @@ index 0000000..11090b6
 +  carbonService, CarbonResult, CarbonSession, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER,
 +} from '../services/carbon';
 +import { profileService } from '../services/profile';
-+import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatDate, showCarbonError } from '../utils/carbon';
++import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, showCarbonError } from '../utils/carbon';
 +import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber } from '../utils/carbonQuestions';
 +import { showAlert } from '../utils/alert';
 +import { useTheme, makeStyles } from '../theme';
@@ -576,7 +647,7 @@ index 0000000..11090b6
 +                )}
 +                {!!result.tips?.[0] && <Text style={styles.resultTip}>{result.tips[0]}</Text>}
 +                <Text style={styles.fine}>
-+                  Calculated {formatDate(result.createdAt)}{result.emissionFactorVersion ? ` · emission factors ${result.emissionFactorVersion}` : ''}
++                  Calculated {formatAssessed(result)}{result.emissionFactorVersion ? ` · emission factors ${result.emissionFactorVersion}` : ''}
 +                </Text>
 +                <TouchableOpacity style={[styles.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => navigation.replace('CarbonJourney')} activeOpacity={0.8} accessibilityRole="button">
 +                  <Text style={styles.primaryBtnText}>View my journey</Text>
@@ -696,23 +767,30 @@ index 0000000..11090b6
 +}));
 diff --git a/src/screens/CarbonFootprintScreen.tsx b/src/screens/CarbonFootprintScreen.tsx
 new file mode 100644
-index 0000000..4473028
+index 0000000..18b955d
 --- /dev/null
 +++ b/src/screens/CarbonFootprintScreen.tsx
-@@ -0,0 +1,332 @@
+@@ -0,0 +1,451 @@
 +import React, { useEffect, useState } from 'react';
-+import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform } from 'react-native';
++import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
 +import { LinearGradient } from 'expo-linear-gradient';
-+import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3 } from 'lucide-react-native';
++import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2 } from 'lucide-react-native';
 +import { WebFooter } from '../components/shared/WebFooter';
 +import { useTheme, makeStyles } from '../theme';
 +import {
-+  carbonService, CarbonResult, CarbonComparison, CarbonSummary, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER, CarbonCategoryKey,
++  carbonService, CarbonResult, CarbonComparison, CarbonSummary, CarbonGoalState, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER, CarbonCategoryKey,
 +} from '../services/carbon';
-+import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatDate, formatPeriod, showCarbonError } from '../utils/carbon';
++import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError } from '../utils/carbon';
++import { showAlert } from '../utils/alert';
 +
-+// Logging green actions and monthly goals have no backend yet.
++// Logging green actions has no backend yet.
 +const comingSoon = () => showCarbonError('', new CarbonApiNotReadyError());
++
++const GOAL_OPTIONS = [
++  { percent: 5, meta: 'A gentle start' },
++  { percent: 10, meta: 'A steady push' },
++  { percent: 20, meta: 'A big stretch' },
++];
 +
 +// Layout, cards, banner and action row deliberately mirror WalletScreen.
 +export function CarbonFootprintScreen({ navigation }: any) {
@@ -724,15 +802,20 @@ index 0000000..4473028
 +  const [comparison, setComparison] = useState<CarbonComparison | null>(null);
 +  const [summary, setSummary] = useState<CarbonSummary | null>(null);
 +  const [inProgress, setInProgress] = useState(false);
++  const [goalState, setGoalState] = useState<CarbonGoalState | null>(null);
++  const [goalSheet, setGoalSheet] = useState(false);
++  const [savingGoal, setSavingGoal] = useState<number | null>(null);
 +  const [isLoading, setIsLoading] = useState(true);
 +
 +  const fetchData = async () => {
 +    try {
-+      const [latestData, summaryData, session] = await Promise.all([
++      const [latestData, summaryData, session, goalData] = await Promise.all([
 +        carbonService.getLatestResult(),
 +        carbonService.getSummary(),
 +        carbonService.getSession(),
++        carbonService.getGoal(), // read-only; never POST just to refresh progress
 +      ]);
++      setGoalState(goalData);
 +      setLatest(latestData?.result ?? null);
 +      setComparison(latestData?.comparison ?? null);
 +      setSummary(summaryData);
@@ -753,6 +836,32 @@ index 0000000..4473028
 +  const goBack = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('App'));
 +  const startAssessment = () => navigation.navigate('CarbonAssessment');
 +  const openJourney = () => navigation.navigate('CarbonJourney');
++
++  // A goal needs a result to start from.
++  const openGoalSheet = () => {
++    if (!latest) {
++      showAlert('Calculate your footprint first', 'Your goal starts from your latest result.');
++      return;
++    }
++    setGoalSheet(true);
++  };
++
++  // POST /goal replaces any existing goal and restarts progress from the latest result.
++  const handleGoal = async (percent: number) => {
++    if (savingGoal !== null) return;
++    setSavingGoal(percent);
++    try {
++      const next = await carbonService.setGoal(percent);
++      setGoalState(next);
++      setGoalSheet(false);
++      showAlert('Goal set', `Aim for ${formatKg(next.goal.targetKgCO2ePerMonth)} kg CO₂e a month.`);
++    } catch (error: any) {
++      if (error?.response?.status === 404) showAlert('Calculate your footprint first', 'Your goal starts from your latest result.');
++      else showCarbonError("Couldn't set your goal", error);
++    } finally {
++      setSavingGoal(null);
++    }
++  };
 +
 +  // Breakdown: only the categories the backend returned, in its fixed order.
 +  const rows = latest?.breakdown
@@ -872,15 +981,40 @@ index 0000000..4473028
 +            <Plus size={18} color="#16a34a" />
 +            <Text style={[styles.actionLabel, { color: '#16a34a' }]} numberOfLines={1}>Log activity</Text>
 +          </TouchableOpacity>
-+          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnAmber]} onPress={comingSoon} activeOpacity={0.8} accessibilityRole="button">
++          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnAmber]} onPress={openGoalSheet} activeOpacity={0.8} accessibilityRole="button">
 +            <Target size={18} color="#d97706" />
-+            <Text style={[styles.actionLabel, { color: '#d97706' }]} numberOfLines={1}>Set goal</Text>
++            <Text style={[styles.actionLabel, { color: '#d97706' }]} numberOfLines={1}>{goalState ? 'My goal' : 'Set goal'}</Text>
 +          </TouchableOpacity>
 +          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSky]} onPress={() => navigation.navigate('CarbonInsights')} activeOpacity={0.8} accessibilityRole="button">
 +            <BarChart3 size={18} color="#0ea5e9" />
 +            <Text style={[styles.actionLabel, { color: '#0ea5e9' }]} numberOfLines={1}>Insights</Text>
 +          </TouchableOpacity>
 +        </View>
++
++        {/* Goal progress — from GET /goal; tap to change the goal */}
++        {!isLoading && goalState && (
++          <TouchableOpacity
++            style={styles.goalCard}
++            onPress={openGoalSheet}
++            activeOpacity={0.8}
++            accessibilityRole="button"
++            accessibilityLabel={`Goal: cut ${goalState.goal.reductionPercent} percent. ${goalState.progress.achieved ? 'Achieved' : `${Math.round(goalState.progress.progressPercent)} percent of the way`}. Tap to change`}
++          >
++            <View style={styles.goalTop}>
++              {goalState.progress.achieved ? <CheckCircle2 size={20} color="#16a34a" /> : <Target size={20} color="#d97706" />}
++              <View style={{ flex: 1 }}>
++                <Text style={styles.rowTitle}>{goalState.progress.achieved ? 'Goal reached!' : `Goal: cut ${goalState.goal.reductionPercent}%`}</Text>
++                <Text style={styles.rowMeta}>
++                  From {formatKg(goalState.goal.baselineKgCO2ePerMonth)} to {formatKg(goalState.goal.targetKgCO2ePerMonth)} kg a month · now {formatKg(goalState.progress.currentKgCO2ePerMonth)} kg
++                </Text>
++              </View>
++              <Text style={styles.goalPct}>{Math.round(goalState.progress.progressPercent)}%</Text>
++            </View>
++            <View style={styles.barTrack}>
++              <View style={[styles.barFill, { width: `${Math.min(Math.max(goalState.progress.progressPercent, 0), 100)}%` as any, backgroundColor: goalState.progress.achieved ? '#16a34a' : '#d97706' }]} />
++            </View>
++          </TouchableOpacity>
++        )}
 +
 +        {/* Breakdown, or the calculate CTA when there is no result yet */}
 +        <View style={[styles.section, { marginBottom: 32 }]}>
@@ -942,7 +1076,7 @@ index 0000000..4473028
 +                );
 +              })}
 +              <Text style={styles.footnote}>
-+                Calculated {formatDate(latest.createdAt)}{latest.emissionFactorVersion ? ` · emission factors ${latest.emissionFactorVersion}` : ''}
++                Calculated {formatAssessed(latest)}{latest.emissionFactorVersion ? ` · emission factors ${latest.emissionFactorVersion}` : ''}
 +              </Text>
 +            </View>
 +          )}
@@ -950,6 +1084,42 @@ index 0000000..4473028
 +
 +        {Platform.OS === 'web' && <WebFooter />}
 +      </ScrollView>
++
++      {/* Set goal — web: centred dialog; native: bottom sheet (same as Wallet) */}
++      <Modal visible={goalSheet} transparent animationType="fade" onRequestClose={() => setGoalSheet(false)}>
++        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setGoalSheet(false)}>
++          <TouchableOpacity style={styles.sheet} activeOpacity={1}>
++            <View style={styles.sheetHandle} />
++            <Text style={styles.sheetTitle}>Set a monthly goal</Text>
++            <Text style={styles.sheetHint}>
++              {goalState
++                ? `Choosing a new goal starts your progress again from your latest result (${formatKg(total)} kg a month).`
++                : `How much would you like to cut your footprint? You're at ${formatKg(total)} kg a month.`}
++            </Text>
++            {GOAL_OPTIONS.map((o) => {
++              const active = goalState?.goal.reductionPercent === o.percent && !goalState.progress.achieved;
++              return (
++                <TouchableOpacity
++                  key={o.percent}
++                  style={[styles.option, active && { borderColor: '#fcd34d', backgroundColor: tint('#fffbeb') }]}
++                  onPress={() => handleGoal(o.percent)}
++                  disabled={savingGoal !== null}
++                  activeOpacity={0.8}
++                  accessibilityRole="button"
++                  accessibilityState={{ selected: active }}
++                >
++                  <View style={[styles.optionIcon, { backgroundColor: tint('#fffbeb') }]}><Target size={22} color="#d97706" /></View>
++                  <View style={{ flex: 1 }}>
++                    <Text style={styles.optionName}>Cut {o.percent}%</Text>
++                    <Text style={styles.optionMeta}>{active ? 'Your current goal' : `${o.meta} · about ${formatKg(total * (1 - o.percent / 100))} kg a month`}</Text>
++                  </View>
++                  {savingGoal === o.percent ? <ActivityIndicator size="small" color="#d97706" /> : <ChevronRight size={20} color={colors.textFaint} />}
++                </TouchableOpacity>
++              );
++            })}
++          </TouchableOpacity>
++        </TouchableOpacity>
++      </Modal>
 +    </View>
 +  );
 +}
@@ -1031,22 +1201,42 @@ index 0000000..4473028
 +  ctaTop: { flexDirection: 'row', alignItems: 'center' },
 +  primaryPill: { backgroundColor: '#16a34a', borderRadius: 100, paddingVertical: 13, alignItems: 'center' },
 +  primaryPillText: { color: 'white', fontWeight: '800', fontSize: 14 },
++
++  goalCard: { marginTop: 16, marginHorizontal: 16, padding: 14, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, maxWidth: 800, width: '100%', alignSelf: 'center', gap: 8 },
++  goalTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
++  goalPct: { fontSize: 16, fontWeight: '900', color: c.text },
++
++  // Modal — web: centred dialog; native: bottom sheet (same as Wallet)
++  modalOverlay: { flex: 1, backgroundColor: c.overlay, justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end', alignItems: 'center', padding: Platform.OS === 'web' ? 20 : 0 },
++  sheet: {
++    backgroundColor: c.surface,
++    borderTopLeftRadius: 24, borderTopRightRadius: 24,
++    borderBottomLeftRadius: Platform.OS === 'web' ? 24 : 0, borderBottomRightRadius: Platform.OS === 'web' ? 24 : 0,
++    padding: 22, paddingBottom: Platform.OS === 'web' ? 22 : 34, maxWidth: 560, width: '100%', alignSelf: 'center',
++  },
++  sheetHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
++  sheetTitle: { fontSize: 18, fontWeight: '900', color: c.text, marginBottom: 4 },
++  sheetHint: { fontSize: 12.5, color: c.textMuted, fontWeight: '600', lineHeight: 18, marginTop: 6 },
++  option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceAlt, marginTop: 12 },
++  optionIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
++  optionName: { fontSize: 15, fontWeight: '800', color: c.text, marginBottom: 2 },
++  optionMeta: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
 +}));
 diff --git a/src/screens/CarbonInsightsScreen.tsx b/src/screens/CarbonInsightsScreen.tsx
 new file mode 100644
-index 0000000..6707ff0
+index 0000000..3627331
 --- /dev/null
 +++ b/src/screens/CarbonInsightsScreen.tsx
-@@ -0,0 +1,452 @@
+@@ -0,0 +1,472 @@
 +import React, { useEffect, useMemo, useState } from 'react';
 +import { View, Text, ScrollView, TouchableOpacity, Pressable, StatusBar, ActivityIndicator, Platform, LayoutChangeEvent } from 'react-native';
 +import { LinearGradient } from 'expo-linear-gradient';
 +import Svg, { Path, Line, Circle, Text as SvgText } from 'react-native-svg';
-+import { ChevronLeft, BarChart3, TrendingDown, TrendingUp, Table2, Minus } from 'lucide-react-native';
++import { ChevronLeft, BarChart3, TrendingDown, TrendingUp, Table2, Minus, Target } from 'lucide-react-native';
 +import { WebFooter } from '../components/shared/WebFooter';
 +import { useTheme, makeStyles } from '../theme';
-+import { carbonService, CarbonResult, CarbonSummary, CarbonCategoryKey, CARBON_CATEGORY_ORDER } from '../services/carbon';
-+import { CARBON_CATEGORIES, formatKg, formatDate, formatPeriod } from '../utils/carbon';
++import { carbonService, CarbonResult, CarbonSummary, CarbonGoalState, CarbonCategoryKey, CARBON_CATEGORY_ORDER } from '../services/carbon';
++import { CARBON_CATEGORIES, formatKg, formatAssessed, formatPeriod } from '../utils/carbon';
 +
 +// Carbon insights — the visual dashboard. Every number here comes from stored
 +// results (GET /result/history) and the summary; the app only formats and compares
@@ -1105,8 +1295,8 @@ index 0000000..6707ff0
 +}
 +
 +// ── Footprint over time: single-series line + 10% area, dots with a surface ring ──
-+// TODO(backend): draw a goal line here once a monthly-goal endpoint exists.
-+function TrendChart({ points }: { points: CarbonResult[] }) {
++// The dashed line is the goal's target from GET /goal, when the user has one.
++function TrendChart({ points, goal }: { points: CarbonResult[]; goal: number | null }) {
 +  const styles = useStyles();
 +  const { colors } = useTheme();
 +  const [w, setW] = useState(0);
@@ -1114,7 +1304,7 @@ index 0000000..6707ff0
 +  useEffect(() => setSel(points.length - 1), [points.length]);
 +
 +  const H = 170, X_BAND = 24, PAD_L = 36, PAD_R = 16, PAD_T = 22;
-+  const max = Math.max(...points.map((p) => p.totalKgCO2ePerMonth));
++  const max = Math.max(...points.map((p) => p.totalKgCO2ePerMonth), goal ?? 0);
 +  const { top, ticks } = niceScale(max);
 +  const plotW = Math.max(w - PAD_L - PAD_R, 1);
 +  const x = (i: number) => PAD_L + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
@@ -1129,7 +1319,7 @@ index 0000000..6707ff0
 +      {/* Readout — the selected point (latest by default); tap or focus a point to change it */}
 +      <View style={styles.readout} accessibilityLiveRegion="polite">
 +        <Text style={styles.readoutValue}>{s ? `${formatKg(s.totalKgCO2ePerMonth)} kg` : ''}</Text>
-+        <Text style={styles.readoutLabel}>{s ? ` CO₂e / month · ${formatDate(s.createdAt)}` : ''}</Text>
++        <Text style={styles.readoutLabel}>{s ? ` CO₂e / month · ${formatAssessed(s)}` : ''}</Text>
 +      </View>
 +      {w > 0 && (
 +        <View style={{ height: H + X_BAND }}>
@@ -1140,6 +1330,12 @@ index 0000000..6707ff0
 +                <SvgText fontFamily={SVG_FONT} x={PAD_L - 8} y={y(t) + 4} fontSize={11} fill={colors.textFaint} textAnchor="end">{t.toLocaleString()}</SvgText>
 +              </React.Fragment>
 +            ))}
++            {goal !== null && (
++              <>
++                <Line x1={PAD_L} x2={w - PAD_R} y1={y(goal)} y2={y(goal)} stroke={colors.warning} strokeWidth={1.5} strokeDasharray="5 4" />
++                <SvgText fontFamily={SVG_FONT} x={PAD_L + 6} y={y(goal) + 15} fontSize={11} fontWeight="700" fill={colors.textMuted} textAnchor="start">Goal {Math.round(goal).toLocaleString()} kg</SvgText>
++              </>
++            )}
 +            {points.length > 1 && <Path d={area} fill={colors.primary} fillOpacity={0.1} />}
 +            {points.length > 1 && <Path d={line} stroke={colors.primary} strokeWidth={2} fill="none" strokeLinejoin="round" strokeLinecap="round" />}
 +            {s && <Line x1={x(sel)} x2={x(sel)} y1={PAD_T} y2={y(0)} stroke={colors.borderStrong} strokeWidth={1} />}
@@ -1157,7 +1353,7 @@ index 0000000..6707ff0
 +              onPress={() => setSel(i)}
 +              onFocus={() => setSel(i)}
 +              accessibilityRole="button"
-+              accessibilityLabel={`${formatDate(p.createdAt)}: ${formatKg(p.totalKgCO2ePerMonth)} kilograms CO2e per month`}
++              accessibilityLabel={`${formatAssessed(p)}: ${formatKg(p.totalKgCO2ePerMonth)} kilograms CO2e per month`}
 +              style={{ position: 'absolute', left: x(i) - 18, top: y(p.totalKgCO2ePerMonth) - 18, width: 36, height: 36, borderRadius: 18 }}
 +            />
 +          ))}
@@ -1253,6 +1449,7 @@ index 0000000..6707ff0
 +  const { colors } = useTheme();
 +  const [assessments, setAssessments] = useState<CarbonResult[]>([]);
 +  const [summary, setSummary] = useState<CarbonSummary | null>(null);
++  const [goalState, setGoalState] = useState<CarbonGoalState | null>(null);
 +  const [isLoading, setIsLoading] = useState(true);
 +  const [range, setRange] = useState<Range>('6m');
 +  const [showTable, setShowTable] = useState(false);
@@ -1260,12 +1457,14 @@ index 0000000..6707ff0
 +  const fetchData = async () => {
 +    try {
 +      // Newest first; 50 is the backend's page-size limit.
-+      const [history, summaryData] = await Promise.all([
++      const [history, summaryData, goalData] = await Promise.all([
 +        carbonService.getHistory(1, 50),
 +        carbonService.getSummary(),
++        carbonService.getGoal(), // read-only; safe on every visit
 +      ]);
 +      setAssessments(history.results);
 +      setSummary(summaryData);
++      setGoalState(goalData);
 +    } catch (error) {
 +      console.error('Carbon insights fetch error:', error);
 +    } finally {
@@ -1317,7 +1516,7 @@ index 0000000..6707ff0
 +            <Text style={styles.heroSub}>
 +              {latest && previous
 +                ? (() => { const p = pctChange(latest.totalKgCO2ePerMonth, previous.totalKgCO2ePerMonth); return p === null ? '' : p === 0 ? 'Same as last time' : `${Math.abs(p)}% ${p < 0 ? 'lower' : 'higher'} than last time (${formatKg(previous.totalKgCO2ePerMonth)} kg)`; })()
-+                : latest ? `Calculated ${formatDate(latest.createdAt)}` : 'No footprint calculated yet'}
++                : latest ? `Calculated ${formatAssessed(latest)}` : 'No footprint calculated yet'}
 +            </Text>
 +          </View>
 +        </LinearGradient>
@@ -1357,7 +1556,7 @@ index 0000000..6707ff0
 +            {/* KPI row */}
 +            <View style={styles.tiles}>
 +              <StatTile label="Average" value={`${formatKg(avg)} kg`} sub={`per month · ${points.length.toLocaleString()} ${points.length === 1 ? 'result' : 'results'}`} />
-+              <StatTile label="Lowest" value={lowest ? `${formatKg(lowest.totalKgCO2ePerMonth)} kg` : '—'} sub={lowest ? formatDate(lowest.createdAt) : undefined} />
++              <StatTile label="Lowest" value={lowest ? `${formatKg(lowest.totalKgCO2ePerMonth)} kg` : '—'} sub={lowest ? formatAssessed(lowest) : undefined} />
 +              <StatTile label="Assessments" value={(summary?.totalAssessments ?? assessments.length).toLocaleString()} sub="in total" />
 +            </View>
 +
@@ -1383,7 +1582,7 @@ index 0000000..6707ff0
 +                      const pct = older ? pctChange(p.totalKgCO2ePerMonth, older.totalKgCO2ePerMonth) : null;
 +                      return (
 +                        <View key={p._id} style={styles.tr}>
-+                          <Text style={[styles.td, { flex: 1.4 }]}>{formatDate(p.createdAt)}</Text>
++                          <Text style={[styles.td, { flex: 1.4 }]}>{formatAssessed(p)}</Text>
 +                          <Text style={[styles.td, styles.num]}>{formatKg(p.totalKgCO2ePerMonth)}</Text>
 +                          <Text style={[styles.td, styles.num]}>{pct === null ? '—' : `${pct > 0 ? '+' : ''}${pct}%`}</Text>
 +                        </View>
@@ -1393,7 +1592,17 @@ index 0000000..6707ff0
 +                ) : points.length < 2 ? (
 +                  <Text style={styles.cardNote}>Calculate again later to see how your footprint changes over time.</Text>
 +                ) : (
-+                  <TrendChart points={points} />
++                  <TrendChart points={points} goal={goalState ? goalState.goal.targetKgCO2ePerMonth : null} />
++                )}
++                {goalState && !showTable && points.length >= 2 && (
++                  <View style={styles.goalNote}>
++                    <Target size={13} color={colors.warning} />
++                    <Text style={styles.cardNote}>
++                      {goalState.progress.achieved
++                        ? `Goal reached: ${goalState.goal.reductionPercent}% below ${formatKg(goalState.goal.baselineKgCO2ePerMonth)} kg.`
++                        : `Your goal: ${goalState.goal.reductionPercent}% below ${formatKg(goalState.goal.baselineKgCO2ePerMonth)} kg · ${Math.round(goalState.progress.progressPercent)}% of the way.`}
++                    </Text>
++                  </View>
 +                )}
 +              </View>
 +            </View>
@@ -1401,7 +1610,7 @@ index 0000000..6707ff0
 +            {/* Where it comes from — latest result */}
 +            <View style={styles.section}>
 +              <Text style={[styles.sectionTitle, { marginBottom: 4 }]}>Where it comes from</Text>
-+              <Text style={styles.sectionSub}>Latest result · {formatDate(latest.createdAt)}</Text>
++              <Text style={styles.sectionSub}>Latest result · {formatAssessed(latest)}</Text>
 +              <View style={styles.card}>
 +                <CategoryBars latest={latest} />
 +              </View>
@@ -1458,6 +1667,7 @@ index 0000000..6707ff0
 +  linkText: { fontSize: 12, color: c.primary, fontWeight: '700' },
 +  card: { padding: 16, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border, elevation: 2, shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
 +  cardNote: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
++  goalNote: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
 +
 +  readout: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 6, minHeight: 24 },
 +  readoutValue: { fontSize: 18, fontWeight: '900', color: c.text },
@@ -1492,7 +1702,7 @@ index 0000000..6707ff0
 +}));
 diff --git a/src/screens/CarbonJourneyScreen.tsx b/src/screens/CarbonJourneyScreen.tsx
 new file mode 100644
-index 0000000..b45d1c9
+index 0000000..af707cd
 --- /dev/null
 +++ b/src/screens/CarbonJourneyScreen.tsx
 @@ -0,0 +1,254 @@
@@ -1503,7 +1713,7 @@ index 0000000..b45d1c9
 +import { WebFooter } from '../components/shared/WebFooter';
 +import { useTheme, makeStyles } from '../theme';
 +import { carbonService, CarbonResult } from '../services/carbon';
-+import { formatKg, formatDate, formatPeriod } from '../utils/carbon';
++import { formatKg, formatAssessed, formatPeriod } from '../utils/carbon';
 +
 +// Percentage change between two stored results — display only; the results
 +// themselves are calculated and stored by the backend and never edited here.
@@ -1597,13 +1807,13 @@ index 0000000..b45d1c9
 +              <View style={styles.col}>
 +                <Text style={styles.colLabel}>Previous</Text>
 +                <Text style={styles.colValue}>{previous ? `${formatKg(previous.totalKgCO2ePerMonth)} kg` : '—'}</Text>
-+                <Text style={styles.colSub}>{previous ? formatDate(previous.createdAt) : 'No earlier result'}</Text>
++                <Text style={styles.colSub}>{previous ? formatAssessed(previous) : 'No earlier result'}</Text>
 +              </View>
 +              <View style={styles.colDivider} />
 +              <View style={styles.col}>
 +                <Text style={styles.colLabel}>Since first</Text>
 +                <Text style={styles.colValue}>{vsFirst !== null ? `${vsFirst > 0 ? '+' : ''}${vsFirst}%` : '—'}</Text>
-+                <Text style={styles.colSub}>{first && first !== current ? `First on ${formatDate(first.createdAt)}` : `${assessments.length.toLocaleString()} ${assessments.length === 1 ? 'assessment' : 'assessments'}`}</Text>
++                <Text style={styles.colSub}>{first && first !== current ? `First on ${formatAssessed(first)}` : `${assessments.length.toLocaleString()} ${assessments.length === 1 ? 'assessment' : 'assessments'}`}</Text>
 +              </View>
 +            </View>
 +          </View>
@@ -1645,7 +1855,7 @@ index 0000000..b45d1c9
 +                <View
 +                  style={[styles.rowCard, styles.chartCard]}
 +                  accessible
-+                  accessibilityLabel={`Footprint trend: ${trend.map((a) => `${formatDate(a.createdAt)} ${formatKg(a.totalKgCO2ePerMonth)} kilograms`).join(', ')}`}
++                  accessibilityLabel={`Footprint trend: ${trend.map((a) => `${formatAssessed(a)} ${formatKg(a.totalKgCO2ePerMonth)} kilograms`).join(', ')}`}
 +                >
 +                  {trend.map((a, i) => {
 +                    const latest = i === trend.length - 1;
@@ -1680,7 +1890,7 @@ index 0000000..b45d1c9
 +                        <Text style={styles.rowTitle}>{formatKg(a.totalKgCO2ePerMonth)} kg CO₂e / month</Text>
 +                        <View style={styles.timeRow}>
 +                          <Clock size={12} color={colors.textFaint} />
-+                          <Text style={styles.rowMeta}>{formatDate(a.createdAt)}</Text>
++                          <Text style={styles.rowMeta}>{formatAssessed(a)}</Text>
 +                        </View>
 +                      </View>
 +                      {older ? <ChangeText pct={pct} /> : <Text style={styles.firstTag}>First</Text>}
@@ -1938,6 +2148,35 @@ index bccb1e0..df43475 100644
    heroGreet: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' },
    heroName: { color: 'white', fontSize: 22, fontWeight: '900', letterSpacing: -0.3, marginBottom: 16 },
    heroBalance: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
+diff --git a/src/screens/LoginScreen.tsx b/src/screens/LoginScreen.tsx
+index 19b3f5e..bd43fd6 100644
+--- a/src/screens/LoginScreen.tsx
++++ b/src/screens/LoginScreen.tsx
+@@ -407,7 +407,11 @@ export function LoginScreen({ navigation }: any) {
+       // them on to it now (e.g. the specific booking's tracking page).
+       consumePendingDeepLink(navigation);
+     } catch (error: any) {
+-      showAlert('Google sign-in failed', error?.response?.data?.message || 'Please try again.');
++      // Dev builds show the underlying reason (e.g. "Network Error", "No token received")
++      // instead of the generic message, so a failed sign-in can be diagnosed.
++      const reason = error?.response?.data?.message || (__DEV__ && error?.message ? `${error.message} (dev detail)` : '');
++      console.error('Google sign-in failed after Google returned a credential:', error?.message, error?.response?.status);
++      showAlert('Google sign-in failed', reason || 'Please try again.');
+     } finally {
+       setGoogleLoading(false);
+     }
+@@ -465,7 +469,10 @@ export function LoginScreen({ navigation }: any) {
+           client_id: GOOGLE_WEB_CLIENT_ID,
+           callback: (resp: any) => {
+             if (resp?.credential) finishGoogleLogin(resp.credential);
+-            else showAlert('Google sign-in failed', 'Please try again.');
++            else {
++              console.error('Google Identity Services returned no credential:', resp);
++              showAlert('Google sign-in failed', __DEV__ ? 'Google returned no credential (dev detail).' : 'Please try again.');
++            }
+           },
+           log_level: 'debug',
+         });
 diff --git a/src/screens/SplashScreen.web.tsx b/src/screens/SplashScreen.web.tsx
 index b0d67bc..da5e988 100644
 --- a/src/screens/SplashScreen.web.tsx
@@ -2007,10 +2246,10 @@ index b0d67bc..da5e988 100644
    // Steps
 diff --git a/src/services/carbon.ts b/src/services/carbon.ts
 new file mode 100644
-index 0000000..8242664
+index 0000000..9f5df33
 --- /dev/null
 +++ b/src/services/carbon.ts
-@@ -0,0 +1,170 @@
+@@ -0,0 +1,210 @@
 +import api from './api';
 +
 +// ─────────────────────────────────────────────────────────────────────────────
@@ -2079,6 +2318,8 @@ index 0000000..8242664
 +  periodLabel?: string; // "YYYY-MM"
 +  emissionFactorVersion?: string;
 +  createdAt: string;
++  // createdAt already formatted by the backend in IST, e.g. { date: "07/10/2026", day: "Wednesday", time: "03:45 PM" }
++  assessedAt?: { date: string; day: string; time: string };
 +}
 +
 +export interface CarbonComparison {
@@ -2092,6 +2333,23 @@ index 0000000..8242664
 +  averageKgCO2ePerMonth: number;
 +  bestKgCO2ePerMonth: number;
 +}
++
++// One active reduction goal per user. The baseline is frozen when the goal is set.
++export interface CarbonGoal {
++  reductionPercent: number;
++  baselineKgCO2ePerMonth: number;
++  targetKgCO2ePerMonth: number;
++  status: 'active' | 'achieved' | string;
++  createdAt: string;
++}
++
++export interface CarbonGoalProgress {
++  currentKgCO2ePerMonth: number;
++  progressPercent: number; // 0–100: how far from baseline towards target
++  achieved: boolean;
++}
++
++export type CarbonGoalState = { goal: CarbonGoal; progress: CarbonGoalProgress };
 +
 +export type AnswerResponse =
 +  | { completed: false; nextQuestion: CarbonQuestion }
@@ -2178,15 +2436,36 @@ index 0000000..8242664
 +    }
 +  },
 +
-+  // TODO(backend): no endpoints yet for logging green actions or setting a monthly
-+  // goal — the hub shows "Coming soon!" for both.
++  // The user's goal with progress against their latest result; null if none set.
++  // Read-only and safe to call on every render.
++  getGoal: async (): Promise<CarbonGoalState | null> => {
++    if (!CARBON_API_READY) return null;
++    try {
++      const data = unwrap(await api.get(`${BASE}/goal`));
++      return data?.goal ? data : null;
++    } catch (error: any) {
++      if (!is404(error)) console.error('Get Carbon Goal Error:', error);
++      return null;
++    }
++  },
++
++  // Sets or REPLACES the goal: the baseline resets to the latest result and progress
++  // starts again from 0. Only call when the user deliberately picks a goal — never
++  // to refresh progress (use getGoal for that). 404 = no completed assessment yet.
++  setGoal: async (reductionPercent: number): Promise<CarbonGoalState> => {
++    if (!CARBON_API_READY) return notReady();
++    return unwrap(await api.post(`${BASE}/goal`, { reductionPercent }));
++  },
++
++  // TODO(backend): no endpoint yet for logging green actions — the hub shows
++  // "Coming soon!" for Log activity.
 +};
 diff --git a/src/utils/carbon.ts b/src/utils/carbon.ts
 new file mode 100644
-index 0000000..89343e3
+index 0000000..b3cd7d3
 --- /dev/null
 +++ b/src/utils/carbon.ts
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,71 @@
 +import { Bus, Zap, Utensils, Recycle, Droplets, Plane, Leaf } from 'lucide-react-native';
 +import { showAlert } from './alert';
 +import { CarbonApiNotReadyError, CarbonCategoryKey } from '../services/carbon';
@@ -2236,6 +2515,12 @@ index 0000000..89343e3
 +
 +export const formatDate = (iso?: string) =>
 +  iso ? new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
++
++// "Calculated on" label: the backend's IST assessedAt when present, else createdAt.
++export function formatAssessed(r?: { assessedAt?: { date: string; time: string }; createdAt?: string }) {
++  if (r?.assessedAt?.date) return `${r.assessedAt.date}, ${r.assessedAt.time}`;
++  return formatDate(r?.createdAt);
++}
 +
 +// "2026-10" → "Oct 2026" (or "Oct" when short).
 +export function formatPeriod(period?: string, short = false) {

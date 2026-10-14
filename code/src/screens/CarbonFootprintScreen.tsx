@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3 } from 'lucide-react-native';
+import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2 } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
 import {
-  carbonService, CarbonResult, CarbonComparison, CarbonSummary, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER, CarbonCategoryKey,
+  carbonService, CarbonResult, CarbonComparison, CarbonSummary, CarbonGoalState, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER, CarbonCategoryKey,
 } from '../services/carbon';
-import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatDate, formatPeriod, showCarbonError } from '../utils/carbon';
+import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError } from '../utils/carbon';
+import { showAlert } from '../utils/alert';
 
-// Logging green actions and monthly goals have no backend yet.
+// Logging green actions has no backend yet.
 const comingSoon = () => showCarbonError('', new CarbonApiNotReadyError());
+
+const GOAL_OPTIONS = [
+  { percent: 5, meta: 'A gentle start' },
+  { percent: 10, meta: 'A steady push' },
+  { percent: 20, meta: 'A big stretch' },
+];
 
 // Layout, cards, banner and action row deliberately mirror WalletScreen.
 export function CarbonFootprintScreen({ navigation }: any) {
@@ -22,15 +29,20 @@ export function CarbonFootprintScreen({ navigation }: any) {
   const [comparison, setComparison] = useState<CarbonComparison | null>(null);
   const [summary, setSummary] = useState<CarbonSummary | null>(null);
   const [inProgress, setInProgress] = useState(false);
+  const [goalState, setGoalState] = useState<CarbonGoalState | null>(null);
+  const [goalSheet, setGoalSheet] = useState(false);
+  const [savingGoal, setSavingGoal] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
     try {
-      const [latestData, summaryData, session] = await Promise.all([
+      const [latestData, summaryData, session, goalData] = await Promise.all([
         carbonService.getLatestResult(),
         carbonService.getSummary(),
         carbonService.getSession(),
+        carbonService.getGoal(), // read-only; never POST just to refresh progress
       ]);
+      setGoalState(goalData);
       setLatest(latestData?.result ?? null);
       setComparison(latestData?.comparison ?? null);
       setSummary(summaryData);
@@ -51,6 +63,32 @@ export function CarbonFootprintScreen({ navigation }: any) {
   const goBack = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('App'));
   const startAssessment = () => navigation.navigate('CarbonAssessment');
   const openJourney = () => navigation.navigate('CarbonJourney');
+
+  // A goal needs a result to start from.
+  const openGoalSheet = () => {
+    if (!latest) {
+      showAlert('Calculate your footprint first', 'Your goal starts from your latest result.');
+      return;
+    }
+    setGoalSheet(true);
+  };
+
+  // POST /goal replaces any existing goal and restarts progress from the latest result.
+  const handleGoal = async (percent: number) => {
+    if (savingGoal !== null) return;
+    setSavingGoal(percent);
+    try {
+      const next = await carbonService.setGoal(percent);
+      setGoalState(next);
+      setGoalSheet(false);
+      showAlert('Goal set', `Aim for ${formatKg(next.goal.targetKgCO2ePerMonth)} kg CO₂e a month.`);
+    } catch (error: any) {
+      if (error?.response?.status === 404) showAlert('Calculate your footprint first', 'Your goal starts from your latest result.');
+      else showCarbonError("Couldn't set your goal", error);
+    } finally {
+      setSavingGoal(null);
+    }
+  };
 
   // Breakdown: only the categories the backend returned, in its fixed order.
   const rows = latest?.breakdown
@@ -170,15 +208,40 @@ export function CarbonFootprintScreen({ navigation }: any) {
             <Plus size={18} color="#16a34a" />
             <Text style={[styles.actionLabel, { color: '#16a34a' }]} numberOfLines={1}>Log activity</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnAmber]} onPress={comingSoon} activeOpacity={0.8} accessibilityRole="button">
+          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnAmber]} onPress={openGoalSheet} activeOpacity={0.8} accessibilityRole="button">
             <Target size={18} color="#d97706" />
-            <Text style={[styles.actionLabel, { color: '#d97706' }]} numberOfLines={1}>Set goal</Text>
+            <Text style={[styles.actionLabel, { color: '#d97706' }]} numberOfLines={1}>{goalState ? 'My goal' : 'Set goal'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSky]} onPress={() => navigation.navigate('CarbonInsights')} activeOpacity={0.8} accessibilityRole="button">
             <BarChart3 size={18} color="#0ea5e9" />
             <Text style={[styles.actionLabel, { color: '#0ea5e9' }]} numberOfLines={1}>Insights</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Goal progress — from GET /goal; tap to change the goal */}
+        {!isLoading && goalState && (
+          <TouchableOpacity
+            style={styles.goalCard}
+            onPress={openGoalSheet}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`Goal: cut ${goalState.goal.reductionPercent} percent. ${goalState.progress.achieved ? 'Achieved' : `${Math.round(goalState.progress.progressPercent)} percent of the way`}. Tap to change`}
+          >
+            <View style={styles.goalTop}>
+              {goalState.progress.achieved ? <CheckCircle2 size={20} color="#16a34a" /> : <Target size={20} color="#d97706" />}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>{goalState.progress.achieved ? 'Goal reached!' : `Goal: cut ${goalState.goal.reductionPercent}%`}</Text>
+                <Text style={styles.rowMeta}>
+                  From {formatKg(goalState.goal.baselineKgCO2ePerMonth)} to {formatKg(goalState.goal.targetKgCO2ePerMonth)} kg a month · now {formatKg(goalState.progress.currentKgCO2ePerMonth)} kg
+                </Text>
+              </View>
+              <Text style={styles.goalPct}>{Math.round(goalState.progress.progressPercent)}%</Text>
+            </View>
+            <View style={styles.barTrack}>
+              <View style={[styles.barFill, { width: `${Math.min(Math.max(goalState.progress.progressPercent, 0), 100)}%` as any, backgroundColor: goalState.progress.achieved ? '#16a34a' : '#d97706' }]} />
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Breakdown, or the calculate CTA when there is no result yet */}
         <View style={[styles.section, { marginBottom: 32 }]}>
@@ -240,7 +303,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
                 );
               })}
               <Text style={styles.footnote}>
-                Calculated {formatDate(latest.createdAt)}{latest.emissionFactorVersion ? ` · emission factors ${latest.emissionFactorVersion}` : ''}
+                Calculated {formatAssessed(latest)}{latest.emissionFactorVersion ? ` · emission factors ${latest.emissionFactorVersion}` : ''}
               </Text>
             </View>
           )}
@@ -248,6 +311,42 @@ export function CarbonFootprintScreen({ navigation }: any) {
 
         {Platform.OS === 'web' && <WebFooter />}
       </ScrollView>
+
+      {/* Set goal — web: centred dialog; native: bottom sheet (same as Wallet) */}
+      <Modal visible={goalSheet} transparent animationType="fade" onRequestClose={() => setGoalSheet(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setGoalSheet(false)}>
+          <TouchableOpacity style={styles.sheet} activeOpacity={1}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Set a monthly goal</Text>
+            <Text style={styles.sheetHint}>
+              {goalState
+                ? `Choosing a new goal starts your progress again from your latest result (${formatKg(total)} kg a month).`
+                : `How much would you like to cut your footprint? You're at ${formatKg(total)} kg a month.`}
+            </Text>
+            {GOAL_OPTIONS.map((o) => {
+              const active = goalState?.goal.reductionPercent === o.percent && !goalState.progress.achieved;
+              return (
+                <TouchableOpacity
+                  key={o.percent}
+                  style={[styles.option, active && { borderColor: '#fcd34d', backgroundColor: tint('#fffbeb') }]}
+                  onPress={() => handleGoal(o.percent)}
+                  disabled={savingGoal !== null}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <View style={[styles.optionIcon, { backgroundColor: tint('#fffbeb') }]}><Target size={22} color="#d97706" /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.optionName}>Cut {o.percent}%</Text>
+                    <Text style={styles.optionMeta}>{active ? 'Your current goal' : `${o.meta} · about ${formatKg(total * (1 - o.percent / 100))} kg a month`}</Text>
+                  </View>
+                  {savingGoal === o.percent ? <ActivityIndicator size="small" color="#d97706" /> : <ChevronRight size={20} color={colors.textFaint} />}
+                </TouchableOpacity>
+              );
+            })}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -329,4 +428,24 @@ const useStyles = makeStyles((c) => ({
   ctaTop: { flexDirection: 'row', alignItems: 'center' },
   primaryPill: { backgroundColor: '#16a34a', borderRadius: 100, paddingVertical: 13, alignItems: 'center' },
   primaryPillText: { color: 'white', fontWeight: '800', fontSize: 14 },
+
+  goalCard: { marginTop: 16, marginHorizontal: 16, padding: 14, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, maxWidth: 800, width: '100%', alignSelf: 'center', gap: 8 },
+  goalTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  goalPct: { fontSize: 16, fontWeight: '900', color: c.text },
+
+  // Modal — web: centred dialog; native: bottom sheet (same as Wallet)
+  modalOverlay: { flex: 1, backgroundColor: c.overlay, justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end', alignItems: 'center', padding: Platform.OS === 'web' ? 20 : 0 },
+  sheet: {
+    backgroundColor: c.surface,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderBottomLeftRadius: Platform.OS === 'web' ? 24 : 0, borderBottomRightRadius: Platform.OS === 'web' ? 24 : 0,
+    padding: 22, paddingBottom: Platform.OS === 'web' ? 22 : 34, maxWidth: 560, width: '100%', alignSelf: 'center',
+  },
+  sheetHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
+  sheetTitle: { fontSize: 18, fontWeight: '900', color: c.text, marginBottom: 4 },
+  sheetHint: { fontSize: 12.5, color: c.textMuted, fontWeight: '600', lineHeight: 18, marginTop: 6 },
+  option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceAlt, marginTop: 12 },
+  optionIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  optionName: { fontSize: 15, fontWeight: '800', color: c.text, marginBottom: 2 },
+  optionMeta: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
 }));

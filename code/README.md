@@ -21,10 +21,10 @@ git push -u origin carbon-footprint
 
 | File | Purpose |
 |---|---|
-| `src/screens/CarbonFootprintScreen.tsx` | **My carbon footprint**: latest footprint and band, change since last time, average and best, tip, "carry on" banner for an unfinished interview, Log activity / Set goal (Coming soon) / Insights, "Where it comes from" |
+| `src/screens/CarbonFootprintScreen.tsx` | **My carbon footprint**: latest footprint and band, change since last time, average and best, tip, "carry on" banner for an unfinished interview, goal progress card and Set goal sheet, Log activity (Coming soon) / Insights, "Where it comes from" |
 | `src/screens/CarbonAssessmentScreen.tsx` | **Chat assessment** on the server session: Carry on / Start over, six topics in the backend's order, each sent when complete; tap an option or type a number (spoken on web); result card |
 | `src/screens/CarbonJourneyScreen.tsx` | **My carbon journey**: current vs previous, trend bars, read-only history |
-| `src/screens/CarbonInsightsScreen.tsx` | **Carbon insights** dashboard: range filter, KPI tiles, footprint-over-time line chart + table view, category bars, per-category small multiples |
+| `src/screens/CarbonInsightsScreen.tsx` | **Carbon insights** dashboard: range filter, KPI tiles, footprint-over-time line chart with goal line + table view, category bars, per-category small multiples |
 | `src/utils/carbonQuestions.ts` | What the chat asks per topic, one prompt per backend answer field; tap options with representative values; number parsing |
 | `src/utils/carbon.ts` | Category icons, colours and tips; footprint band labels; formatting; "Coming soon!" helper |
 | `src/services/carbon.ts` | API service for `/api/v1/carbon-footprint` (switched off by default — see below) |
@@ -35,6 +35,8 @@ git push -u origin carbon-footprint
 | `src/navigation/TabNavigator.web.tsx` | Mobile-web bottom bar cut to 5 tabs |
 | `src/screens/SplashScreen.web.tsx` | Logged-out landing-page teaser |
 | `backend-email-service/templates/*.js` | `CARBON_FOOTPRINT_INVITE` and `CARBON_FOOTPRINT_CHECKIN` email + push templates |
+| `dev-cors-proxy.js`, `scripts/web-local.js`, `package.json` | `npm run web:local`: run the web app on a laptop against the live backend (see below) |
+| `src/screens/LoginScreen.tsx` | Dev builds show the underlying reason when Google sign-in fails |
 
 All screens use `StyleSheet` via the app's `makeStyles` + theme tokens, so they follow light and dark mode.
 
@@ -51,13 +53,27 @@ The app follows the backend contract in "Carbon Footprint — API Integration Gu
 | GET | `/result/latest` | Hub: latest result and change since the previous one |
 | GET | `/result/history` | Journey and Insights (first 50, newest first) |
 | GET | `/result/summary` | Hub and Insights: count, average, best |
+| POST | `/goal` | Set or replace the goal (only when the user picks one) |
+| GET | `/goal` | Hub progress card and Insights goal line (read-only) |
 
 The routes are not deployed to `api.karmaverse.earth` yet. Until they are, the screens show empty states and "Coming soon!". Turn the feature on with `EXPO_PUBLIC_CARBON_API=true` and restart Metro with a cleared cache (`npx expo start -c`).
+
+## Run it on a laptop
+
+The live backend only allows `https://karmaverse.earth` as a browser origin, so a web app on `http://localhost` is blocked (CORS) and login fails with "Please try again". From a Karmaverse checkout:
+
+```bash
+npm install
+npm run web:local            # proxy on :8899 + app on http://localhost:8081
+CARBON=1 npm run web:local   # same, with the carbon feature switched on
+```
+
+Port 8081 matters: it is an authorized origin for Google Sign-In. Opening the app by IP address (e.g. `http://192.168.x.x:8081`) can never use Google Sign-In; use email or mobile login there.
 
 ## Still to do
 
 - Backend: deploy the carbon-footprint routes.
-- Backend: endpoints for logging green actions and monthly goals (the hub shows "Coming soon!"; Insights will draw a goal line once a goal exists).
+- Backend: an endpoint for logging green actions (the hub shows "Coming soon!").
 - Confirm with the backend team: is water per person or per household, and is transport distance the daily round trip?
 - Backend sends the new push + email templates (marketing opt-in, frequency cap).
 - Test on iOS and Android (verified on web only).
