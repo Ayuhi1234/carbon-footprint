@@ -22,6 +22,7 @@ import { getLocalDateStr, getLocalYesterdayStr } from '../utils/quizDate';
 import { bookingService } from '../services/booking';
 import { BACKEND_BASE } from '../services/api';
 import { REDEEM_INFO_MESSAGE, showRedeemInfoOnce } from '../utils/redeemInfo';
+import { CarbonImpactCard } from '../components/carbon/CarbonImpactCard';
 import { getStableUserSuffix } from '../utils/userId';
 import { isLaunchDay } from '../utils/launchDay';
 import { EARLY_BIRD_COINS } from '../utils/earlyBird';
@@ -506,23 +507,7 @@ export function DashboardScreen({ navigation, route }: any) {
       {/* Impact — carbon footprint entry (reuses the Recent orders card styles) */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Your impact</Text>
-        <TouchableOpacity
-          style={styles.orderCard}
-          onPress={() => navigation.navigate('CarbonFootprint')}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel="Carbon footprint. Track and reduce your impact"
-        >
-          <View style={styles.orderIconBg}><Leaf size={20} color={colors.primary} /></View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.orderTitle}>Carbon footprint</Text>
-            <Text style={styles.orderSub}>Track and reduce your impact</Text>
-          </View>
-          <View style={styles.seeAllBtn}>
-            <Text style={styles.seeAllText}>View</Text>
-            <ChevronRight size={14} color={colors.primary} />
-          </View>
-        </TouchableOpacity>
+        <CarbonImpactCard onPress={() => navigation.navigate('CarbonFootprint')} />
       </View>
 
       {/* Impact Cards */}

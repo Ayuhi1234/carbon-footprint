@@ -13,6 +13,7 @@ import { profileService } from '../services/profile';
 import { bookingService } from '../services/booking';
 import { getLocalDateStr, getLocalYesterdayStr } from '../utils/quizDate';
 import { REDEEM_INFO_MESSAGE, showRedeemInfoOnce } from '../utils/redeemInfo';
+import { CarbonImpactCard } from '../components/carbon/CarbonImpactCard';
 import { getStableUserSuffix } from '../utils/userId';
 import { isLaunchDay } from '../utils/launchDay';
 import { EARLY_BIRD_COINS } from '../utils/earlyBird';
@@ -354,22 +355,7 @@ export function DashboardScreen({ navigation, route }: any) {
             <Text style={z.sectionTitle}>Your impact</Text>
           </View>
         </View>
-        <TouchableOpacity
-          style={[z.mobileOrderCard, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}
-          onPress={() => nav('CarbonFootprint')}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel="Carbon footprint. Track and reduce your impact"
-        >
-          <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
-            <Leaf size={20} color={colors.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>Carbon footprint</Text>
-            <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textMuted, marginTop: 2 }}>Track and reduce your impact</Text>
-          </View>
-          <Text style={z.viewAll}>View →</Text>
-        </TouchableOpacity>
+        <CarbonImpactCard onPress={() => nav('CarbonFootprint')} />
       </View>
 
       {/* ════════ DISCOVER FEATURES ════════ */}

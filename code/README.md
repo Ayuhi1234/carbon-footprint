@@ -25,13 +25,16 @@ git push -u origin carbon-footprint
 | `src/screens/CarbonAssessmentScreen.tsx` | **Chat assessment** on the server session: Carry on / Start over, six topics in the backend's order, each sent when complete; tap an option or type a number (spoken on web); result card |
 | `src/screens/CarbonJourneyScreen.tsx` | **My carbon journey**: current vs previous, trend bars, read-only history |
 | `src/screens/CarbonInsightsScreen.tsx` | **Carbon insights** dashboard: range filter, KPI tiles, footprint-over-time line chart with goal line + table view, category bars, per-category small multiples |
+| `src/components/carbon/EarthBuddy.tsx` | **Earth Buddy** mascot: blinks, floats, waves, talks, pops in; round face for chat avatars; typing dots |
+| `src/components/carbon/CarbonVisuals.tsx` | Donut chart, topic stepper for the chat header, number count-up |
+| `src/components/carbon/CarbonImpactCard.tsx` | Animated **Home "Your impact" card** (web and native): invite or latest footprint, check-in countdown |
 | `src/utils/carbonQuestions.ts` | What the chat asks per topic, one prompt per backend answer field; tap options with representative values; number parsing |
 | `src/utils/carbon.ts` | Category icons, colours and tips; footprint band labels; formatting; "Coming soon!" helper |
 | `src/services/carbon.ts` | API service for `/api/v1/carbon-footprint` (switched off by default — see below) |
 | `src/navigation/RootNavigator.tsx` | Registers `CarbonFootprint`, `CarbonAssessment`, `CarbonJourney`, `CarbonInsights` as lazy-loaded screens (+ web URLs) |
 | `src/utils/notificationRoute.ts` | Push taps open the carbon screens; honours `data.route` |
 | `src/utils/deepLink.ts` | Carbon routes return logged-out users there after login, whatever the URL's case |
-| `src/screens/DashboardScreen.tsx`, `DashboardScreen.web.tsx` | "Your impact" card + Discover features card; web: Alerts bell on Home |
+| `src/screens/DashboardScreen.tsx`, `DashboardScreen.web.tsx` | Animated "Your impact" card + Discover features card; web: Alerts bell on Home |
 | `src/navigation/TabNavigator.web.tsx` | Mobile-web bottom bar cut to 5 tabs |
 | `src/screens/SplashScreen.web.tsx` | Logged-out landing-page teaser |
 | `backend-email-service/templates/*.js` | `CARBON_FOOTPRINT_INVITE` and `CARBON_FOOTPRINT_CHECKIN` email + push templates |

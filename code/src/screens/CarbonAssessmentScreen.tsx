@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StatusBar, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Leaf, Mic, Send, CheckCircle2 } from 'lucide-react-native';
+import { X, Mic, Send } from 'lucide-react-native';
 import {
   carbonService, CarbonResult, CarbonSession, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER,
 } from '../services/carbon';
@@ -11,6 +11,8 @@ import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, showCarbonErr
 import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber } from '../utils/carbonQuestions';
 import { showAlert } from '../utils/alert';
 import { useTheme, makeStyles } from '../theme';
+import { TopicStepper, useCountUp } from '../components/carbon/CarbonVisuals';
+import { EarthBuddy, TypingDots } from '../components/carbon/EarthBuddy';
 
 type Phase = 'loading' | 'intro' | 'starting' | 'chat' | 'sending' | 'result';
 type LoggedAnswer = { field: Field; label: string };
@@ -28,12 +30,14 @@ const listLabels = (keys: CarbonCategoryKey[]) => {
   return labels.length > 1 ? `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}` : labels[0] ?? '';
 };
 
+// Earth Buddy is the chatbot: its face is the avatar on every message. Only the
+// newest ("live") message animates and talks; older ones stay still to keep long
+// chats light.
 function BotBubble({ children, live }: { children: React.ReactNode; live?: boolean }) {
   const styles = useStyles();
-  const { colors } = useTheme();
   return (
     <View style={styles.botRow} accessibilityLiveRegion={live ? 'polite' : 'none'}>
-      <View style={styles.avatar}><Leaf size={14} color={colors.primary} /></View>
+      <EarthBuddy face size={34} animate={!!live} talking={!!live} />
       <View style={styles.botBubble}>{children}</View>
     </View>
   );
@@ -242,6 +246,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
       }, null)
     : null;
   const band = result?.category ? BAND_LABELS[result.category] : undefined;
+  const shownResult = useCountUp(result?.totalKgCO2ePerMonth ?? 0);
 
   // Transcript: one section label whenever the category changes.
   let lastCategory: CarbonCategoryKey | null = null;
@@ -262,9 +267,8 @@ export function CarbonAssessmentScreen({ navigation }: any) {
           <Text style={styles.headerTitle}>Carbon footprint</Text>
           <Text style={styles.headerCount}>{inProgress ? `${stepNo} of ${TOTAL}` : ''}</Text>
         </View>
-        <View style={styles.progressTrack} accessible accessibilityLabel={inProgress && category ? `Topic ${stepNo} of ${TOTAL}, ${CARBON_CATEGORIES[category].label}` : phase === 'result' ? 'Complete' : 'Not started'}>
-          <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
-        </View>
+        {/* One icon per topic: done (tick), current (highlighted), still to come */}
+        <TopicStepper answered={phase === 'result' ? CARBON_CATEGORY_ORDER : answered} current={inProgress ? category : null} />
       </LinearGradient>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -275,7 +279,12 @@ export function CarbonAssessmentScreen({ navigation }: any) {
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
           showsVerticalScrollIndicator={false}
         >
-          <BotBubble>
+          <View style={styles.hello}>
+            <EarthBuddy size={120} wave cheer />
+            <Text style={styles.helloName}>I'm Earth Buddy</Text>
+            <Text style={styles.helloSub}>Your guide to a lighter footprint</Text>
+          </View>
+          <BotBubble live={phase === 'intro' || phase === 'loading'}>
             <Text style={styles.botText}>
               Hi{ctx.firstName ? ` ${ctx.firstName}` : ''}! Let's work out your carbon footprint{ctx.city ? ` in ${ctx.city}` : ''}.
             </Text>
@@ -369,9 +378,9 @@ export function CarbonAssessmentScreen({ navigation }: any) {
 
           {phase === 'sending' && (
             <BotBubble live>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <ActivityIndicator size="small" color={colors.primary} accessibilityLabel={lastIsFinal ? 'Calculating' : 'Saving'} />
-                <Text style={styles.botText}>{lastIsFinal ? 'Calculating your footprint…' : 'Saving…'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityLabel={lastIsFinal ? 'Calculating' : 'Saving'}>
+                <TypingDots color={colors.primary} />
+                <Text style={styles.botText}>{lastIsFinal ? 'Crunching your numbers…' : 'Got it!'}</Text>
               </View>
             </BotBubble>
           )}
@@ -380,8 +389,8 @@ export function CarbonAssessmentScreen({ navigation }: any) {
             <>
               <BotBubble live><Text style={styles.botText}>That's everything! Here's your carbon footprint.</Text></BotBubble>
               <View style={styles.resultCard}>
-                <View style={styles.tick}><CheckCircle2 size={28} color="#16a34a" /></View>
-                <Text style={styles.resultValue}>{formatKg(result.totalKgCO2ePerMonth)}</Text>
+                <EarthBuddy size={112} wave cheer />
+                <Text style={styles.resultValue}>{formatKg(Math.round(shownResult * 10) / 10)}</Text>
                 <Text style={styles.resultUnit}>kg CO₂e / month</Text>
                 {band && <Text style={[styles.band, { color: band.color }]}>{band.label}</Text>}
                 {top && (
@@ -461,12 +470,12 @@ const useStyles = makeStyles((c) => ({
   headerTitle: { fontSize: 17, fontWeight: '800', color: 'white' },
   headerCount: { width: 56, textAlign: 'right', fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
   closeBtn: { width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  progressTrack: { marginHorizontal: 20, height: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3, overflow: 'hidden', maxWidth: 760, width: '100%', alignSelf: 'center' },
-  progressFill: { height: '100%', backgroundColor: '#86efac', borderRadius: 3 },
 
   thread: { padding: 16, paddingBottom: 24, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   botRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '90%' },
-  avatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  hello: { alignItems: 'center', paddingTop: 4, paddingBottom: 6, gap: 2 },
+  helloName: { fontSize: 18, fontWeight: '900', color: c.text, marginTop: 6 },
+  helloSub: { fontSize: 13, fontWeight: '600', color: c.textMuted },
   botBubble: { flexShrink: 1, backgroundColor: c.surface, borderRadius: 16, borderBottomLeftRadius: 4, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: c.border, elevation: 2, shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
   botText: { fontSize: 15, lineHeight: 21, fontWeight: '600', color: c.text },
   botFine: { fontSize: 11.5, lineHeight: 16, fontWeight: '500', color: c.textMuted, marginTop: 6 },
@@ -492,7 +501,6 @@ const useStyles = makeStyles((c) => ({
   ghostBtnText: { color: c.primary, fontSize: 14.5, fontWeight: '800' },
 
   resultCard: { backgroundColor: c.surface, borderRadius: 24, padding: 20, alignItems: 'center', elevation: 8, shadowColor: c.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 16 },
-  tick: { width: 56, height: 56, borderRadius: 28, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   resultValue: { fontSize: 44, fontWeight: '900', color: c.text, letterSpacing: -1 },
   resultUnit: { fontSize: 13, fontWeight: '600', color: c.textMuted },
   band: { fontSize: 13, fontWeight: '900', marginTop: 8, letterSpacing: 0.3 },

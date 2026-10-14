@@ -180,6 +180,452 @@ index 0000000..7eff233
 +process.on('SIGTERM', stop);
 +web.on('exit', stop);
 +proxy.on('exit', (code) => { if (code) console.error(`dev-cors-proxy exited (${code}) — is port 8899 already in use?`); });
+diff --git a/src/components/carbon/CarbonImpactCard.tsx b/src/components/carbon/CarbonImpactCard.tsx
+new file mode 100644
+index 0000000..bd05076
+--- /dev/null
++++ b/src/components/carbon/CarbonImpactCard.tsx
+@@ -0,0 +1,200 @@
++import React, { useCallback, useEffect, useRef, useState } from 'react';
++import { View, Text, TouchableOpacity, useWindowDimensions, Animated, Easing, Platform, AccessibilityInfo } from 'react-native';
++import { LinearGradient } from 'expo-linear-gradient';
++import { useFocusEffect } from '@react-navigation/native';
++import { ArrowRight, CalendarClock, Leaf } from 'lucide-react-native';
++import { makeStyles } from '../../theme';
++import { carbonService, CarbonResult } from '../../services/carbon';
++import { BAND_LABELS, formatKg } from '../../utils/carbon';
++import { EarthBuddy } from './EarthBuddy';
++import { useCountUp } from './CarbonVisuals';
++
++const CHECK_IN_DAYS = 30;
++const nativeDriver = Platform.OS !== 'web';
++const run = (v: Animated.Value, toValue: number, duration: number, easing = Easing.inOut(Easing.sin)) =>
++  Animated.timing(v, { toValue, duration, easing, useNativeDriver: nativeDriver });
++
++// Where the drifting leaves start (fractions of the mascot area), how big they
++// are and when each one starts, so they never move in lockstep.
++const LEAVES = [
++  { x: 0.18, size: 14, delay: 0 },
++  { x: 0.62, size: 11, delay: 1100 },
++  { x: 0.4, size: 16, delay: 2300 },
++  { x: 0.82, size: 12, delay: 3300 },
++  { x: 0.05, size: 10, delay: 4200 },
++];
++
++// One leaf that floats up from the bottom of the mascot area, sways, spins a
++// little and fades out, then starts again.
++function DriftingLeaf({ x, size, delay, area }: { x: number; size: number; delay: number; area: number }) {
++  const t = useRef(new Animated.Value(0)).current;
++  useEffect(() => {
++    const loop = Animated.loop(Animated.sequence([
++      Animated.delay(delay),
++      Animated.timing(t, { toValue: 1, duration: 5200, easing: Easing.linear, useNativeDriver: nativeDriver }),
++      Animated.timing(t, { toValue: 0, duration: 0, useNativeDriver: nativeDriver }),
++    ]));
++    loop.start();
++    return () => loop.stop();
++  }, []);
++  return (
++    <Animated.View
++      style={{
++        position: 'absolute', bottom: 6, left: x * area,
++        opacity: t.interpolate({ inputRange: [0, 0.15, 0.7, 1], outputRange: [0, 0.75, 0.5, 0] }),
++        transform: [
++          { translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, -area * 0.95] }) },
++          { translateX: t.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [0, 8, 0, -8, 0] }) },
++          { rotate: t.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '160deg'] }) },
++        ],
++      }}
++    >
++      <Leaf size={size} color="#bbf7d0" fill="rgba(187,247,208,0.35)" />
++    </Animated.View>
++  );
++}
++
++// Home's "Your impact" card: Earth Buddy invites first-timers to calculate, and
++// shows returning users their latest footprint and when to check in again.
++// Reads GET /result/latest on focus; with the feature off it shows the invite.
++export function CarbonImpactCard({ onPress }: { onPress: () => void }) {
++  const styles = useStyles();
++  const { width } = useWindowDimensions();
++  const compact = width < 520;
++  const [latest, setLatest] = useState<CarbonResult | null>(null);
++
++  useFocusEffect(useCallback(() => {
++    let alive = true;
++    carbonService.getLatestResult().then((d) => { if (alive) setLatest(d?.result ?? null); }).catch(() => {});
++    return () => { alive = false; };
++  }, []));
++
++  const total = latest?.totalKgCO2ePerMonth ?? 0;
++  const shown = useCountUp(total);
++  const band = latest?.category ? BAND_LABELS[latest.category] : undefined;
++  const daysSince = latest ? Math.max(0, Math.floor((Date.now() - new Date(latest.createdAt).getTime()) / 86400000)) : null;
++  const due = daysSince !== null && daysSince >= CHECK_IN_DAYS;
++  const daysLeft = daysSince !== null ? CHECK_IN_DAYS - daysSince : null;
++  const buddyArea = compact ? 92 : 128;
++  const bubbleText = !latest ? "Let's find out! 🌍" : due ? 'Check-in time! 📅' : 'Looking good! 🌱';
++
++  // Motion: card entrance, breathing glow, CTA pulse + arrow nudge, and a speech
++  // bubble that pops in. All skipped when the user prefers reduced motion.
++  const [reduce, setReduce] = useState(false);
++  const enter = useRef(new Animated.Value(0)).current;
++  const glow = useRef(new Animated.Value(0)).current;
++  const pulse = useRef(new Animated.Value(0)).current;
++  const bubble = useRef(new Animated.Value(0)).current;
++  useEffect(() => {
++    let alive = true;
++    AccessibilityInfo.isReduceMotionEnabled().then((r) => { if (alive) setReduce(r); }).catch(() => {});
++    return () => { alive = false; };
++  }, []);
++  useEffect(() => {
++    if (reduce) { enter.setValue(1); bubble.setValue(1); return; }
++    Animated.timing(enter, { toValue: 1, duration: 650, easing: Easing.out(Easing.cubic), useNativeDriver: nativeDriver }).start();
++    const loops = [
++      Animated.loop(Animated.sequence([run(glow, 1, 2600), run(glow, 0, 2600)])),
++      Animated.loop(Animated.sequence([Animated.delay(1200), run(pulse, 1, 550), run(pulse, 0, 550)])),
++    ];
++    loops.forEach((l) => l.start());
++    const pop = Animated.sequence([Animated.delay(900), Animated.spring(bubble, { toValue: 1, friction: 5, tension: 90, useNativeDriver: nativeDriver })]);
++    pop.start();
++    return () => { loops.forEach((l) => l.stop()); pop.stop(); };
++  }, [reduce]);
++
++  return (
++    <Animated.View
++      style={{
++        opacity: enter,
++        transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }],
++      }}
++    >
++    <TouchableOpacity
++      onPress={onPress}
++      activeOpacity={0.9}
++      accessibilityRole="button"
++      accessibilityLabel={latest ? `Carbon footprint: ${formatKg(total)} kilograms CO2e a month. View my footprint` : 'Carbon footprint. Calculate now'}
++    >
++      <LinearGradient colors={['#052e16', '#166534', '#16a34a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, compact && styles.cardCompact]}>
++        <Animated.View
++          style={[styles.glow, {
++            opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
++            transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }],
++          }]}
++        />
++        <View style={{ flex: 1, minWidth: 0 }}>
++          <Text style={styles.eyebrow}>CARBON FOOTPRINT</Text>
++          {latest ? (
++            <>
++              <View style={styles.valueRow}>
++                <Text style={[styles.value, compact && { fontSize: 32 }]}>{formatKg(Math.round(shown * 10) / 10)}</Text>
++                <Text style={styles.unit}>kg CO₂e{'\n'}a month</Text>
++              </View>
++              <View style={styles.metaRow}>
++                {band && <View style={[styles.band, { backgroundColor: band.color }]}><Text style={styles.bandText}>{band.label}</Text></View>}
++                {daysLeft !== null && (
++                  <View style={[styles.chip, due && styles.chipDue]}>
++                    <CalendarClock size={12} color={due ? '#052e16' : '#bbf7d0'} />
++                    <Text style={[styles.chipText, due && { color: '#052e16' }]}>{due ? 'Check-in due' : `Check-in in ${daysLeft} days`}</Text>
++                  </View>
++                )}
++              </View>
++            </>
++          ) : (
++            <>
++              <Text style={[styles.title, compact && { fontSize: 20 }]}>What's your carbon footprint?</Text>
++              <Text style={styles.sub}>6 quick questions · about 2 minutes · see where it comes from and how to cut it</Text>
++            </>
++          )}
++          <Animated.View style={[styles.cta, { transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.045] }) }] }]}>
++            <Text style={styles.ctaText}>{latest ? (due ? 'Check in now' : 'View my footprint') : 'Calculate now'}</Text>
++            <Animated.View style={{ transform: [{ translateX: pulse.interpolate({ inputRange: [0, 1], outputRange: [0, 4] }) }] }}>
++              <ArrowRight size={15} color="#14532d" />
++            </Animated.View>
++          </Animated.View>
++        </View>
++        <View style={{ width: buddyArea, height: buddyArea }}>
++          {!reduce && LEAVES.map((l, i) => <DriftingLeaf key={i} {...l} area={buddyArea} />)}
++          <EarthBuddy size={buddyArea} wave />
++          <Animated.View
++            style={[styles.bubble, compact && styles.bubbleCompact, {
++              opacity: bubble,
++              transform: [{ scale: bubble.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }],
++            }]}
++          >
++            <Text style={styles.bubbleText} numberOfLines={1}>{bubbleText}</Text>
++            <View style={[styles.bubbleTail, compact && styles.bubbleTailUp]} />
++          </Animated.View>
++        </View>
++      </LinearGradient>
++    </TouchableOpacity>
++    </Animated.View>
++  );
++}
++
++const useStyles = makeStyles(() => ({
++  card: { flexDirection: 'row', alignItems: 'center', gap: 16, borderRadius: 22, paddingVertical: 22, paddingLeft: 24, paddingRight: 16, overflow: 'hidden', minHeight: 168 },
++  cardCompact: { paddingVertical: 18, paddingLeft: 18, paddingRight: 8, minHeight: 150, gap: 8 },
++  glow: { position: 'absolute', right: -60, top: -70, width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(134,239,172,0.16)' },
++  eyebrow: { color: '#86efac', fontSize: 11, fontWeight: '900', letterSpacing: 1.4, marginBottom: 6 },
++  title: { color: 'white', fontSize: 24, lineHeight: 29, fontWeight: '900', letterSpacing: -0.4 },
++  sub: { color: 'rgba(255,255,255,0.78)', fontSize: 13, lineHeight: 19, fontWeight: '600', marginTop: 6, maxWidth: 460 },
++  valueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
++  value: { color: 'white', fontSize: 40, fontWeight: '900', letterSpacing: -1, lineHeight: 44 },
++  unit: { color: 'rgba(255,255,255,0.7)', fontSize: 11.5, fontWeight: '700', lineHeight: 15, marginBottom: 5 },
++  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
++  band: { borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10 },
++  bandText: { color: 'white', fontSize: 11, fontWeight: '900' },
++  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.14)' },
++  chipDue: { backgroundColor: '#fcd34d' },
++  chipText: { color: '#bbf7d0', fontSize: 11, fontWeight: '800' },
++  cta: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: '#bbf7d0', borderRadius: 100, paddingVertical: 9, paddingHorizontal: 16, marginTop: 14 },
++  ctaText: { color: '#14532d', fontSize: 13.5, fontWeight: '900' },
++  bubble: { position: 'absolute', top: -14, right: '62%', backgroundColor: 'white', borderRadius: 12, paddingVertical: 5, paddingHorizontal: 10 },
++  // Narrow screens: sit under Earth Buddy so the bubble never covers the title.
++  bubbleCompact: { top: 'auto', bottom: -10, right: -2 },
++  bubbleText: { color: '#14532d', fontSize: 11.5, fontWeight: '900' },
++  bubbleTail: { position: 'absolute', bottom: -4, right: 10, width: 9, height: 9, backgroundColor: 'white', transform: [{ rotate: '45deg' }] },
++  bubbleTailUp: { bottom: 'auto', top: -4, right: 34 },
++}));
+diff --git a/src/components/carbon/CarbonVisuals.tsx b/src/components/carbon/CarbonVisuals.tsx
+new file mode 100644
+index 0000000..524aa8c
+--- /dev/null
++++ b/src/components/carbon/CarbonVisuals.tsx
+@@ -0,0 +1,116 @@
++import React, { useEffect, useRef, useState } from 'react';
++import { View, Text, AccessibilityInfo } from 'react-native';
++import Svg, { Circle } from 'react-native-svg';
++import { Check } from 'lucide-react-native';
++import { useTheme, makeStyles } from '../../theme';
++import { CarbonCategoryKey, CARBON_CATEGORY_ORDER } from '../../services/carbon';
++import { CARBON_CATEGORIES, formatKg } from '../../utils/carbon';
++
++// Small, dependency-free visuals shared by the carbon screens. Numbers shown here
++// always come from the backend; these components only animate and draw them.
++
++// Counts a number up from 0 when it first appears or changes (~0.9 s, ease-out).
++// Shows the final value straight away when the user has asked for reduced motion.
++export function useCountUp(value: number, duration = 900) {
++  const [shown, setShown] = useState(value);
++  const frame = useRef<number | null>(null);
++  useEffect(() => {
++    let cancelled = false;
++    AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
++      if (cancelled) return;
++      if (reduce || !Number.isFinite(value) || value <= 0) { setShown(value); return; }
++      const start = Date.now();
++      const tick = () => {
++        const t = Math.min((Date.now() - start) / duration, 1);
++        setShown(value * (1 - Math.pow(1 - t, 3)));
++        if (t < 1) frame.current = requestAnimationFrame(tick);
++      };
++      setShown(0);
++      frame.current = requestAnimationFrame(tick);
++    }).catch(() => setShown(value));
++    return () => { cancelled = true; if (frame.current) cancelAnimationFrame(frame.current); };
++  }, [value, duration]);
++  return shown;
++}
++
++// Donut of the breakdown with the total in the middle. Segments use each
++// category's own colour, in the backend's fixed order.
++export function CarbonDonut({ breakdown, total, size = 168 }: {
++  breakdown: Partial<Record<CarbonCategoryKey, number>>; total: number; size?: number;
++}) {
++  const styles = useStyles();
++  const { colors } = useTheme();
++  const stroke = 22;
++  const r = (size - stroke) / 2;
++  const circ = 2 * Math.PI * r;
++  const parts = CARBON_CATEGORY_ORDER
++    .map((key) => ({ key, kg: breakdown[key] ?? 0 }))
++    .filter((p) => p.kg > 0);
++  const sum = parts.reduce((s, p) => s + p.kg, 0) || 1;
++  const gap = parts.length > 1 ? 2 : 0; // px gap between segments
++  let offset = 0;
++  const shownTotal = useCountUp(total);
++  return (
++    <View style={{ width: size, height: size }} accessible accessibilityLabel={`Footprint ${formatKg(total)} kilograms a month. ${parts.map((p) => `${CARBON_CATEGORIES[p.key].label} ${Math.round((p.kg / sum) * 100)} percent`).join(', ')}`}>
++      {/* Rotated a quarter turn so the first slice starts at 12 o'clock */}
++      <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
++          <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.surfaceAlt} strokeWidth={stroke} fill="none" />
++          {parts.map((p) => {
++            const len = (p.kg / sum) * circ;
++            const seg = (
++              <Circle
++                key={p.key}
++                cx={size / 2} cy={size / 2} r={r}
++                stroke={CARBON_CATEGORIES[p.key].color}
++                strokeWidth={stroke}
++                fill="none"
++                strokeDasharray={`${Math.max(len - gap, 0.5)} ${circ}`}
++                strokeDashoffset={-offset}
++              />
++            );
++            offset += len;
++            return seg;
++          })}
++      </Svg>
++      <View style={[styles.donutCenter, { pointerEvents: 'none' }]}>
++        <Text style={styles.donutValue}>{formatKg(Math.round(shownTotal * 10) / 10)}</Text>
++        <Text style={styles.donutUnit}>kg / month</Text>
++      </View>
++    </View>
++  );
++}
++
++// Six topic icons for the interview: done (green tick), current (highlighted), to do.
++export function TopicStepper({ answered, current }: { answered: CarbonCategoryKey[]; current: CarbonCategoryKey | null }) {
++  const styles = useStyles();
++  return (
++    <View style={styles.stepper} accessible accessibilityLabel={`${answered.length} of ${CARBON_CATEGORY_ORDER.length} topics done${current ? `, now ${CARBON_CATEGORIES[current].label}` : ''}`}>
++      {CARBON_CATEGORY_ORDER.map((key, i) => {
++        const done = answered.includes(key);
++        const now = key === current;
++        const c = CARBON_CATEGORIES[key];
++        return (
++          <React.Fragment key={key}>
++            {i > 0 && <View style={[styles.stepLine, (done || now) && styles.stepLineOn]} />}
++            <View style={[styles.stepDot, done && styles.stepDone, now && styles.stepNow]}>
++              {done ? <Check size={14} color="#052e16" strokeWidth={3} /> : <c.Icon size={14} color={now ? '#052e16' : 'rgba(255,255,255,0.55)'} />}
++            </View>
++          </React.Fragment>
++        );
++      })}
++    </View>
++  );
++}
++
++const useStyles = makeStyles((c) => ({
++  donutCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
++  donutValue: { fontSize: 28, fontWeight: '900', color: c.text, letterSpacing: -0.5 },
++  donutUnit: { fontSize: 11.5, fontWeight: '700', color: c.textMuted },
++
++  stepper: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, maxWidth: 800, width: '100%', alignSelf: 'center' },
++  stepLine: { flex: 1, height: 2, backgroundColor: 'rgba(255,255,255,0.18)', marginHorizontal: 4 },
++  stepLineOn: { backgroundColor: '#86efac' },
++  stepDot: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
++  stepDone: { backgroundColor: '#86efac', borderColor: '#86efac' },
++  stepNow: { backgroundColor: '#fcd34d', borderColor: '#fcd34d', transform: [{ scale: 1.12 }] },
++}));
+diff --git a/src/components/carbon/EarthBuddy.tsx b/src/components/carbon/EarthBuddy.tsx
+new file mode 100644
+index 0000000..562aebf
+--- /dev/null
++++ b/src/components/carbon/EarthBuddy.tsx
+@@ -0,0 +1,112 @@
++import React, { useEffect, useRef, useState } from 'react';
++import { View, Image, Animated, Easing, Platform, AccessibilityInfo } from 'react-native';
++import { makeStyles } from '../../theme';
++
++// Earth Buddy, the KarmaVerse mascot, animated from the same layered artwork as
++// MascotPopupBanner: a mouth-closed base, the smiling (mouth-open) frame on top,
++// an eyes-closed frame for blinks, and the thumbs-up arm as a separate piece.
++//
++//   size     — box size in px. The arm and face crop scale with it.
++//   face     — round avatar cropped to the head (for chat bubbles); no arm.
++//   animate  — blink and gently float. Off = a still image (cheap for long lists).
++//   talking  — mouth flaps for a moment, like it's speaking.
++//   wave     — thumbs-up arm waves back and forth.
++//   cheer    — pops in with a bounce when it first appears.
++// Every motion is skipped when the user has turned on "reduce motion".
++
++const BASE = require('../../../assets/mascot-mouth-closed-transparent.png');
++const SMILE = require('../../../assets/mascot-earth-buddy-transparent.png');
++const BLINK = require('../../../assets/mascot-blink-transparent.png');
++const ARM = require('../../../assets/mascot-arm-raised-transparent.png');
++
++const nativeDriver = Platform.OS !== 'web';
++const timing = (v: Animated.Value, toValue: number, duration: number, easing = Easing.inOut(Easing.quad)) =>
++  Animated.timing(v, { toValue, duration, easing, useNativeDriver: nativeDriver });
++
++export function EarthBuddy({ size = 72, face = false, animate = true, talking = false, wave = false, cheer = false }: {
++  size?: number; face?: boolean; animate?: boolean; talking?: boolean; wave?: boolean; cheer?: boolean;
++}) {
++  const styles = useStyles();
++  const [reduce, setReduce] = useState(false);
++  const blink = useRef(new Animated.Value(0)).current;
++  const mouth = useRef(new Animated.Value(1)).current; // 1 = smiling frame visible
++  const float = useRef(new Animated.Value(0)).current;
++  const arm = useRef(new Animated.Value(0)).current;
++  const pop = useRef(new Animated.Value(cheer ? 0 : 1)).current;
++
++  useEffect(() => {
++    let alive = true;
++    AccessibilityInfo.isReduceMotionEnabled().then((r) => { if (alive) setReduce(r); }).catch(() => {});
++    return () => { alive = false; };
++  }, []);
++
++  useEffect(() => {
++    if (reduce || !animate) { pop.setValue(1); mouth.setValue(1); return; }
++    const loops: Animated.CompositeAnimation[] = [];
++    // Blink every few seconds, driven by a timer (a looped Animated.delay never
++    // fired on web). The random gap keeps several buddies out of sync.
++    let blinkTimer: ReturnType<typeof setTimeout> | undefined;
++    let alive = true;
++    const scheduleBlink = () => {
++      blinkTimer = setTimeout(() => {
++        if (!alive) return;
++        Animated.sequence([timing(blink, 1, 80), Animated.delay(60), timing(blink, 0, 100)]).start(() => { if (alive) scheduleBlink(); });
++      }, 2200 + Math.random() * 2200);
++    };
++    scheduleBlink();
++    if (!face) loops.push(Animated.loop(Animated.sequence([timing(float, -size * 0.05, 1100, Easing.inOut(Easing.sin)), timing(float, 0, 1100, Easing.inOut(Easing.sin))])));
++    if (wave && !face) loops.push(Animated.loop(Animated.sequence([timing(arm, 1, 380), timing(arm, -1, 760), timing(arm, 0, 380), Animated.delay(1400)])));
++    if (talking) loops.push(Animated.loop(Animated.sequence([timing(mouth, 0, 150), timing(mouth, 1, 150)]), { iterations: 5 }));
++    loops.forEach((l) => l.start());
++    if (cheer) Animated.spring(pop, { toValue: 1, friction: 4, tension: 70, useNativeDriver: nativeDriver }).start();
++    return () => { alive = false; if (blinkTimer) clearTimeout(blinkTimer); loops.forEach((l) => l.stop()); mouth.setValue(1); blink.setValue(0); };
++  }, [reduce, animate, talking, wave, cheer, face, size]);
++
++  // Face crop: draw the artwork larger and shift it so the head fills the circle.
++  const img = face ? size * 1.7 : size;
++  const offset = face ? { left: size / 2 - img * 0.5, top: size / 2 - img * 0.31 } : { left: 0, top: 0 };
++  const layer = [{ position: 'absolute' as const, width: img, height: img }, offset];
++  const scale = pop.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] });
++  const rotate = arm.interpolate({ inputRange: [-1, 1], outputRange: ['-14deg', '14deg'] });
++  // Arm box within the artwork (from MascotPopupBanner, where 76 px = the full image).
++  const k = img / 76;
++
++  return (
++    <Animated.View
++      style={[{ width: size, height: size }, face && styles.faceRing, { transform: [{ translateY: float }, { scale }] }]}
++      accessible
++      accessibilityRole="image"
++      accessibilityLabel="Earth Buddy, the KarmaVerse mascot"
++    >
++      <View style={[{ width: size, height: size }, face && { borderRadius: size / 2, overflow: 'hidden' }]}>
++        <Image source={BASE} style={layer} resizeMode="contain" />
++        <Animated.Image source={SMILE} style={[layer, { opacity: mouth }]} resizeMode="contain" />
++        <Animated.Image source={BLINK} style={[layer, { opacity: blink }]} resizeMode="contain" />
++        {!face && (
++          <Animated.View style={{ position: 'absolute', left: 51 * k, top: 24 * k, width: 19 * k, height: 22 * k, transform: [{ rotate }] }}>
++            <Image source={ARM} style={{ width: 19 * k, height: 22 * k }} resizeMode="contain" />
++          </Animated.View>
++        )}
++      </View>
++    </Animated.View>
++  );
++}
++
++// Three dots that pulse in turn, for "Earth Buddy is thinking…".
++export function TypingDots({ color = '#16a34a' }: { color?: string }) {
++  const dots = [useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current];
++  useEffect(() => {
++    const loop = Animated.loop(Animated.stagger(160, dots.map((d) => Animated.sequence([timing(d, 1, 260), timing(d, 0.3, 260)]))));
++    loop.start();
++    return () => loop.stop();
++  }, []);
++  return (
++    <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center', height: 18 }} accessibilityLabel="Thinking">
++      {dots.map((d, i) => <Animated.View key={i} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color, opacity: d }} />)}
++    </View>
++  );
++}
++
++const useStyles = makeStyles((c) => ({
++  faceRing: { borderRadius: 999, backgroundColor: c.primarySoft },
++}));
 diff --git a/src/navigation/RootNavigator.tsx b/src/navigation/RootNavigator.tsx
 index b9c5728..2bc6434 100644
 --- a/src/navigation/RootNavigator.tsx
@@ -250,15 +696,15 @@ index c2e1b4b..07e3784 100644
    // Pinned to the very top (Flipkart-style). The tab bar is rendered after the
 diff --git a/src/screens/CarbonAssessmentScreen.tsx b/src/screens/CarbonAssessmentScreen.tsx
 new file mode 100644
-index 0000000..415336d
+index 0000000..2bcaae0
 --- /dev/null
 +++ b/src/screens/CarbonAssessmentScreen.tsx
-@@ -0,0 +1,511 @@
+@@ -0,0 +1,519 @@
 +import React, { useEffect, useRef, useState } from 'react';
 +import { View, Text, ScrollView, TouchableOpacity, TextInput, StatusBar, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 +import { SafeAreaView } from 'react-native-safe-area-context';
 +import { LinearGradient } from 'expo-linear-gradient';
-+import { X, Leaf, Mic, Send, CheckCircle2 } from 'lucide-react-native';
++import { X, Mic, Send } from 'lucide-react-native';
 +import {
 +  carbonService, CarbonResult, CarbonSession, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER,
 +} from '../services/carbon';
@@ -267,6 +713,8 @@ index 0000000..415336d
 +import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber } from '../utils/carbonQuestions';
 +import { showAlert } from '../utils/alert';
 +import { useTheme, makeStyles } from '../theme';
++import { TopicStepper, useCountUp } from '../components/carbon/CarbonVisuals';
++import { EarthBuddy, TypingDots } from '../components/carbon/EarthBuddy';
 +
 +type Phase = 'loading' | 'intro' | 'starting' | 'chat' | 'sending' | 'result';
 +type LoggedAnswer = { field: Field; label: string };
@@ -284,12 +732,14 @@ index 0000000..415336d
 +  return labels.length > 1 ? `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}` : labels[0] ?? '';
 +};
 +
++// Earth Buddy is the chatbot: its face is the avatar on every message. Only the
++// newest ("live") message animates and talks; older ones stay still to keep long
++// chats light.
 +function BotBubble({ children, live }: { children: React.ReactNode; live?: boolean }) {
 +  const styles = useStyles();
-+  const { colors } = useTheme();
 +  return (
 +    <View style={styles.botRow} accessibilityLiveRegion={live ? 'polite' : 'none'}>
-+      <View style={styles.avatar}><Leaf size={14} color={colors.primary} /></View>
++      <EarthBuddy face size={34} animate={!!live} talking={!!live} />
 +      <View style={styles.botBubble}>{children}</View>
 +    </View>
 +  );
@@ -498,6 +948,7 @@ index 0000000..415336d
 +      }, null)
 +    : null;
 +  const band = result?.category ? BAND_LABELS[result.category] : undefined;
++  const shownResult = useCountUp(result?.totalKgCO2ePerMonth ?? 0);
 +
 +  // Transcript: one section label whenever the category changes.
 +  let lastCategory: CarbonCategoryKey | null = null;
@@ -518,9 +969,8 @@ index 0000000..415336d
 +          <Text style={styles.headerTitle}>Carbon footprint</Text>
 +          <Text style={styles.headerCount}>{inProgress ? `${stepNo} of ${TOTAL}` : ''}</Text>
 +        </View>
-+        <View style={styles.progressTrack} accessible accessibilityLabel={inProgress && category ? `Topic ${stepNo} of ${TOTAL}, ${CARBON_CATEGORIES[category].label}` : phase === 'result' ? 'Complete' : 'Not started'}>
-+          <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
-+        </View>
++        {/* One icon per topic: done (tick), current (highlighted), still to come */}
++        <TopicStepper answered={phase === 'result' ? CARBON_CATEGORY_ORDER : answered} current={inProgress ? category : null} />
 +      </LinearGradient>
 +
 +      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -531,7 +981,12 @@ index 0000000..415336d
 +          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
 +          showsVerticalScrollIndicator={false}
 +        >
-+          <BotBubble>
++          <View style={styles.hello}>
++            <EarthBuddy size={120} wave cheer />
++            <Text style={styles.helloName}>I'm Earth Buddy</Text>
++            <Text style={styles.helloSub}>Your guide to a lighter footprint</Text>
++          </View>
++          <BotBubble live={phase === 'intro' || phase === 'loading'}>
 +            <Text style={styles.botText}>
 +              Hi{ctx.firstName ? ` ${ctx.firstName}` : ''}! Let's work out your carbon footprint{ctx.city ? ` in ${ctx.city}` : ''}.
 +            </Text>
@@ -625,9 +1080,9 @@ index 0000000..415336d
 +
 +          {phase === 'sending' && (
 +            <BotBubble live>
-+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-+                <ActivityIndicator size="small" color={colors.primary} accessibilityLabel={lastIsFinal ? 'Calculating' : 'Saving'} />
-+                <Text style={styles.botText}>{lastIsFinal ? 'Calculating your footprint…' : 'Saving…'}</Text>
++              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityLabel={lastIsFinal ? 'Calculating' : 'Saving'}>
++                <TypingDots color={colors.primary} />
++                <Text style={styles.botText}>{lastIsFinal ? 'Crunching your numbers…' : 'Got it!'}</Text>
 +              </View>
 +            </BotBubble>
 +          )}
@@ -636,8 +1091,8 @@ index 0000000..415336d
 +            <>
 +              <BotBubble live><Text style={styles.botText}>That's everything! Here's your carbon footprint.</Text></BotBubble>
 +              <View style={styles.resultCard}>
-+                <View style={styles.tick}><CheckCircle2 size={28} color="#16a34a" /></View>
-+                <Text style={styles.resultValue}>{formatKg(result.totalKgCO2ePerMonth)}</Text>
++                <EarthBuddy size={112} wave cheer />
++                <Text style={styles.resultValue}>{formatKg(Math.round(shownResult * 10) / 10)}</Text>
 +                <Text style={styles.resultUnit}>kg CO₂e / month</Text>
 +                {band && <Text style={[styles.band, { color: band.color }]}>{band.label}</Text>}
 +                {top && (
@@ -717,12 +1172,12 @@ index 0000000..415336d
 +  headerTitle: { fontSize: 17, fontWeight: '800', color: 'white' },
 +  headerCount: { width: 56, textAlign: 'right', fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
 +  closeBtn: { width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-+  progressTrack: { marginHorizontal: 20, height: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3, overflow: 'hidden', maxWidth: 760, width: '100%', alignSelf: 'center' },
-+  progressFill: { height: '100%', backgroundColor: '#86efac', borderRadius: 3 },
 +
 +  thread: { padding: 16, paddingBottom: 24, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
 +  botRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '90%' },
-+  avatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center' },
++  hello: { alignItems: 'center', paddingTop: 4, paddingBottom: 6, gap: 2 },
++  helloName: { fontSize: 18, fontWeight: '900', color: c.text, marginTop: 6 },
++  helloSub: { fontSize: 13, fontWeight: '600', color: c.textMuted },
 +  botBubble: { flexShrink: 1, backgroundColor: c.surface, borderRadius: 16, borderBottomLeftRadius: 4, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: c.border, elevation: 2, shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
 +  botText: { fontSize: 15, lineHeight: 21, fontWeight: '600', color: c.text },
 +  botFine: { fontSize: 11.5, lineHeight: 16, fontWeight: '500', color: c.textMuted, marginTop: 6 },
@@ -748,7 +1203,6 @@ index 0000000..415336d
 +  ghostBtnText: { color: c.primary, fontSize: 14.5, fontWeight: '800' },
 +
 +  resultCard: { backgroundColor: c.surface, borderRadius: 24, padding: 20, alignItems: 'center', elevation: 8, shadowColor: c.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 16 },
-+  tick: { width: 56, height: 56, borderRadius: 28, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
 +  resultValue: { fontSize: 44, fontWeight: '900', color: c.text, letterSpacing: -1 },
 +  resultUnit: { fontSize: 13, fontWeight: '600', color: c.textMuted },
 +  band: { fontSize: 13, fontWeight: '900', marginTop: 8, letterSpacing: 0.3 },
@@ -767,14 +1221,14 @@ index 0000000..415336d
 +}));
 diff --git a/src/screens/CarbonFootprintScreen.tsx b/src/screens/CarbonFootprintScreen.tsx
 new file mode 100644
-index 0000000..18b955d
+index 0000000..d991d7a
 --- /dev/null
 +++ b/src/screens/CarbonFootprintScreen.tsx
-@@ -0,0 +1,451 @@
+@@ -0,0 +1,522 @@
 +import React, { useEffect, useState } from 'react';
 +import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
 +import { LinearGradient } from 'expo-linear-gradient';
-+import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2 } from 'lucide-react-native';
++import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock } from 'lucide-react-native';
 +import { WebFooter } from '../components/shared/WebFooter';
 +import { useTheme, makeStyles } from '../theme';
 +import {
@@ -782,9 +1236,14 @@ index 0000000..18b955d
 +} from '../services/carbon';
 +import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError } from '../utils/carbon';
 +import { showAlert } from '../utils/alert';
++import { CarbonDonut, useCountUp } from '../components/carbon/CarbonVisuals';
++import { EarthBuddy } from '../components/carbon/EarthBuddy';
 +
 +// Logging green actions has no backend yet.
 +const comingSoon = () => showCarbonError('', new CarbonApiNotReadyError());
++
++// Results are monthly; after this many days the hub invites a fresh check-in.
++const CHECK_IN_DAYS = 30;
 +
 +const GOAL_OPTIONS = [
 +  { percent: 5, meta: 'A gentle start' },
@@ -879,6 +1338,22 @@ index 0000000..18b955d
 +    ? { title: 'Tip for you', body: latest.tips[0] }
 +    : top ? CARBON_CATEGORIES[top.key].tip : null;
 +  const band = latest?.category ? BAND_LABELS[latest.category] : undefined;
++  const shownTotal = useCountUp(total);
++  // Monthly habit loop: days since the latest result, and when the next check-in is due.
++  const daysSince = latest ? Math.max(0, Math.floor((Date.now() - new Date(latest.createdAt).getTime()) / 86400000)) : null;
++  const checkInDue = daysSince !== null && daysSince >= CHECK_IN_DAYS;
++  const daysLeft = daysSince !== null ? CHECK_IN_DAYS - daysSince : null;
++
++  // What Earth Buddy says in the hero card. Words only; every number comes from the backend.
++  const buddySays = !latest
++    ? (inProgress ? "You're partway through. Let's finish it together!" : "Hi! Let's find out your footprint together.")
++    : goalState?.progress.achieved ? "Goal reached! I'm so proud of you 🎉"
++    : comparison?.improved && typeof delta === 'number' && delta < 0 ? `You cut ${formatKg(Math.abs(delta))} kg since last time. Amazing! 🎉`
++    : comparison && typeof delta === 'number' && delta > 0 ? "It went up this time. Let's look at where it comes from."
++    : checkInDue ? "It's been a month. Shall we check in?"
++    : latest.category === 'low' ? 'Your footprint is low. Keep it up! 🌱'
++    : latest.category === 'high' ? "Let's bring this down together, one step at a time."
++    : 'Nice start! Small changes add up.';
 +  const delta = comparison?.deltaKgCO2ePerMonth;
 +
 +  return (
@@ -914,12 +1389,34 @@ index 0000000..18b955d
 +              )}
 +            </View>
 +            <TouchableOpacity style={styles.bigRow} onPress={latest ? openJourney : startAssessment} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={latest ? `${formatKg(total)} kilograms CO2e per month. Open my carbon journey` : 'Calculate my footprint'}>
-+              <Leaf size={40} color="#86efac" />
-+              <View>
-+                <Text style={styles.bigValue}>{latest ? formatKg(total) : '—'}</Text>
-+                <Text style={styles.unitTag} numberOfLines={1}>{latest ? `kg CO₂e / month${band ? ` · ${band.label}` : ''}` : 'Not calculated yet'}</Text>
++              <View style={{ flex: 1 }}>
++                <Text style={styles.bigValue}>{latest ? formatKg(Math.round(shownTotal * 10) / 10) : '—'}</Text>
++                <Text style={styles.unitTag} numberOfLines={2}>{latest ? `kg CO₂e / month${band ? ` · ${band.label}` : ''}` : 'Not calculated yet'}</Text>
 +              </View>
++              <EarthBuddy size={88} wave cheer />
 +            </TouchableOpacity>
++
++            {/* Earth Buddy's speech bubble, pointing up at the mascot */}
++            <View style={styles.speech} accessibilityLiveRegion="polite">
++              <View style={styles.speechTail} />
++              <Text style={styles.speechText}>{buddySays}</Text>
++            </View>
++
++            {latest && daysLeft !== null && (
++              <TouchableOpacity
++                style={[styles.checkIn, checkInDue && styles.checkInDue]}
++                onPress={startAssessment}
++                activeOpacity={0.8}
++                accessibilityRole="button"
++                accessibilityLabel={checkInDue ? 'Time for your monthly check-in. Recalculate' : `Next check-in in ${daysLeft} days. Recalculate now`}
++              >
++                <CalendarClock size={14} color={checkInDue ? '#052e16' : '#86efac'} />
++                <Text style={[styles.checkInText, checkInDue && { color: '#052e16' }]}>
++                  {checkInDue ? 'Time for your monthly check-in' : daysLeft === 1 ? 'Next check-in tomorrow' : `Next check-in in ${daysLeft} days`}
++                </Text>
++                <ChevronRight size={14} color={checkInDue ? '#052e16' : '#86efac'} />
++              </TouchableOpacity>
++            )}
 +
 +            <View style={styles.cardDivider} />
 +
@@ -1036,10 +1533,10 @@ index 0000000..18b955d
 +          ) : !latest ? (
 +            <View style={styles.ctaCard}>
 +              <View style={styles.ctaTop}>
-+                <View style={[styles.iconTile, { backgroundColor: tint('#f0fdf4') }]}><Calculator size={20} color="#16a34a" /></View>
++                <EarthBuddy size={76} wave />
 +                <View style={{ flex: 1, marginLeft: 12 }}>
-+                  <Text style={styles.rowTitle}>Find out your footprint</Text>
-+                  <Text style={styles.rowMeta}>Six quick questions about your day · about 2 minutes</Text>
++                  <Text style={styles.ctaTitle}>{inProgress ? 'Pick up where you left off' : "What's your carbon footprint?"}</Text>
++                  <Text style={styles.rowMeta}>Six quick questions about travel, home, food and more · about 2 minutes</Text>
 +                </View>
 +              </View>
 +              <TouchableOpacity style={styles.primaryPill} onPress={startAssessment} activeOpacity={0.8} accessibilityRole="button">
@@ -1054,6 +1551,18 @@ index 0000000..18b955d
 +            </View>
 +          ) : (
 +            <View style={styles.list}>
++              <View style={styles.donutCard}>
++                <CarbonDonut breakdown={latest.breakdown ?? {}} total={total} />
++                <View style={styles.legend}>
++                  {[...rows].sort((a, b) => b.kg - a.kg).map((r) => (
++                    <View key={r.key} style={styles.legendRow}>
++                      <View style={[styles.legendDot, { backgroundColor: CARBON_CATEGORIES[r.key].color }]} />
++                      <Text style={styles.legendLabel} numberOfLines={1}>{CARBON_CATEGORIES[r.key].label}</Text>
++                      <Text style={styles.legendPct}>{total > 0 ? Math.round((r.kg / total) * 100) : 0}%</Text>
++                    </View>
++                  ))}
++                </View>
++              </View>
 +              {rows.map((r) => {
 +                const cat = CARBON_CATEGORIES[r.key];
 +                const isTop = r.key === top?.key;
@@ -1201,6 +1710,22 @@ index 0000000..18b955d
 +  ctaTop: { flexDirection: 'row', alignItems: 'center' },
 +  primaryPill: { backgroundColor: '#16a34a', borderRadius: 100, paddingVertical: 13, alignItems: 'center' },
 +  primaryPillText: { color: 'white', fontWeight: '800', fontSize: 14 },
++
++  checkIn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 14, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.12)' },
++  checkInDue: { backgroundColor: '#fcd34d' },
++  checkInText: { color: 'white', fontSize: 12, fontWeight: '800' },
++
++  donutCard: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 20, padding: 18, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border },
++  legend: { flexGrow: 1, flexBasis: 160, maxWidth: 320, gap: 8 },
++  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
++  legendDot: { width: 10, height: 10, borderRadius: 5 },
++  legendLabel: { flex: 1, fontSize: 13, fontWeight: '700', color: c.text },
++  legendPct: { fontSize: 13, fontWeight: '800', color: c.textMuted, fontVariant: ['tabular-nums'] },
++
++  speech: { marginTop: 10, backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 14, paddingVertical: 9, paddingHorizontal: 13 },
++  speechTail: { position: 'absolute', top: -6, right: 34, width: 12, height: 12, backgroundColor: 'rgba(255,255,255,0.95)', transform: [{ rotate: '45deg' }] },
++  speechText: { color: '#14532d', fontSize: 13, fontWeight: '800', lineHeight: 18 },
++  ctaTitle: { fontSize: 16, fontWeight: '900', color: c.text, marginBottom: 3 },
 +
 +  goalCard: { marginTop: 16, marginHorizontal: 16, padding: 14, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, maxWidth: 800, width: '100%', alignSelf: 'center', gap: 8 },
 +  goalTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -1961,7 +2486,7 @@ index 0000000..af707cd
 +  footnote: { fontSize: 12, color: c.textFaint, marginTop: 12, textAlign: 'center' },
 +}));
 diff --git a/src/screens/DashboardScreen.tsx b/src/screens/DashboardScreen.tsx
-index abaeb9f..9d55d76 100644
+index abaeb9f..38700c0 100644
 --- a/src/screens/DashboardScreen.tsx
 +++ b/src/screens/DashboardScreen.tsx
 @@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Modal, Animated, Dimensions,
@@ -1973,7 +2498,15 @@ index abaeb9f..9d55d76 100644
  import { useTheme, makeStyles } from '../theme';
  import { KarmaCoin } from '../components/shared/KarmaCoin';
  import { NotificationPanel } from '../components/shared/NotificationPanel';
-@@ -49,6 +49,20 @@ const FEATURES = [
+@@ -22,6 +22,7 @@ import { getLocalDateStr, getLocalYesterdayStr } from '../utils/quizDate';
+ import { bookingService } from '../services/booking';
+ import { BACKEND_BASE } from '../services/api';
+ import { REDEEM_INFO_MESSAGE, showRedeemInfoOnce } from '../utils/redeemInfo';
++import { CarbonImpactCard } from '../components/carbon/CarbonImpactCard';
+ import { getStableUserSuffix } from '../utils/userId';
+ import { isLaunchDay } from '../utils/launchDay';
+ import { EARLY_BIRD_COINS } from '../utils/earlyBird';
+@@ -49,6 +50,20 @@ const FEATURES = [
      navTarget: 'SchedulePickup',
      ctaLabel: 'Schedule now',
    },
@@ -1994,37 +2527,21 @@ index abaeb9f..9d55d76 100644
    {
      id: 'earn',
      emoji: '🪙',
-@@ -489,6 +503,28 @@ export function DashboardScreen({ navigation, route }: any) {
+@@ -489,6 +504,12 @@ export function DashboardScreen({ navigation, route }: any) {
          />
        </View>
  
 +      {/* Impact — carbon footprint entry (reuses the Recent orders card styles) */}
 +      <View style={styles.section}>
 +        <Text style={styles.sectionTitle}>Your impact</Text>
-+        <TouchableOpacity
-+          style={styles.orderCard}
-+          onPress={() => navigation.navigate('CarbonFootprint')}
-+          activeOpacity={0.8}
-+          accessibilityRole="button"
-+          accessibilityLabel="Carbon footprint. Track and reduce your impact"
-+        >
-+          <View style={styles.orderIconBg}><Leaf size={20} color={colors.primary} /></View>
-+          <View style={{ flex: 1 }}>
-+            <Text style={styles.orderTitle}>Carbon footprint</Text>
-+            <Text style={styles.orderSub}>Track and reduce your impact</Text>
-+          </View>
-+          <View style={styles.seeAllBtn}>
-+            <Text style={styles.seeAllText}>View</Text>
-+            <ChevronRight size={14} color={colors.primary} />
-+          </View>
-+        </TouchableOpacity>
++        <CarbonImpactCard onPress={() => navigation.navigate('CarbonFootprint')} />
 +      </View>
 +
        {/* Impact Cards */}
        {/* Feature Discovery — Swipeable Cards */}
        <View style={styles.section}>
 diff --git a/src/screens/DashboardScreen.web.tsx b/src/screens/DashboardScreen.web.tsx
-index bccb1e0..df43475 100644
+index bccb1e0..8465398 100644
 --- a/src/screens/DashboardScreen.web.tsx
 +++ b/src/screens/DashboardScreen.web.tsx
 @@ -1,7 +1,9 @@
@@ -2038,7 +2555,15 @@ index bccb1e0..df43475 100644
  import AsyncStorage from '@react-native-async-storage/async-storage';
  import { getToken } from '../utils/tokenStore';
  import { KarmaCoin } from '../components/shared/KarmaCoin';
-@@ -27,6 +29,14 @@ const FEATURE_DETAILS = [
+@@ -11,6 +13,7 @@ import { profileService } from '../services/profile';
+ import { bookingService } from '../services/booking';
+ import { getLocalDateStr, getLocalYesterdayStr } from '../utils/quizDate';
+ import { REDEEM_INFO_MESSAGE, showRedeemInfoOnce } from '../utils/redeemInfo';
++import { CarbonImpactCard } from '../components/carbon/CarbonImpactCard';
+ import { getStableUserSuffix } from '../utils/userId';
+ import { isLaunchDay } from '../utils/launchDay';
+ import { EARLY_BIRD_COINS } from '../utils/earlyBird';
+@@ -27,6 +30,14 @@ const FEATURE_DETAILS = [
      gradient: ['#881337', '#e11d48'] as [string, string],
      accent: '#fb7185',
    },
@@ -2053,7 +2578,7 @@ index bccb1e0..df43475 100644
    {
      id: 'knowledge', title: 'Knowledge hub', emoji: '📚', icon: BookOpen,
      desc: 'Learn about sustainable living with curated articles, tips, and guides on the circular economy and greener everyday choices.',
-@@ -96,6 +106,8 @@ export function DashboardScreen({ navigation, route }: any) {
+@@ -96,6 +107,8 @@ export function DashboardScreen({ navigation, route }: any) {
    const [selectedFeature, setSelectedFeature] = useState<typeof FEATURE_DETAILS[0] | null>(null);
    const [showLaunchPopup, setShowLaunchPopup] = useState(false);
    const [showWelcomeBonusBanner, setShowWelcomeBonusBanner] = useState(false);
@@ -2062,7 +2587,7 @@ index bccb1e0..df43475 100644
  
    // New signup arriving straight from the Welcome Celebration scratch card —
    // show the "coins added" banner once, then clear the param so it doesn't
-@@ -183,8 +195,23 @@ export function DashboardScreen({ navigation, route }: any) {
+@@ -183,8 +196,23 @@ export function DashboardScreen({ navigation, route }: any) {
            <View style={[z.heroGrid, isMobile && { flexDirection: 'column', gap: 20, alignItems: 'stretch' }]}>
              {/* Left: Greeting + Balance */}
              <View style={z.heroLeft}>
@@ -2088,7 +2613,7 @@ index bccb1e0..df43475 100644
                <View style={z.heroBalance}>
                  <View style={z.heroCoinGlow}>
                    <KarmaCoin size={isMobile ? 52 : 64} glow animated />
-@@ -319,6 +346,32 @@ export function DashboardScreen({ navigation, route }: any) {
+@@ -319,6 +347,17 @@ export function DashboardScreen({ navigation, route }: any) {
        </View>
  
  
@@ -2100,28 +2625,13 @@ index bccb1e0..df43475 100644
 +            <Text style={z.sectionTitle}>Your impact</Text>
 +          </View>
 +        </View>
-+        <TouchableOpacity
-+          style={[z.mobileOrderCard, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}
-+          onPress={() => nav('CarbonFootprint')}
-+          activeOpacity={0.8}
-+          accessibilityRole="button"
-+          accessibilityLabel="Carbon footprint. Track and reduce your impact"
-+        >
-+          <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
-+            <Leaf size={20} color={colors.primary} />
-+          </View>
-+          <View style={{ flex: 1 }}>
-+            <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>Carbon footprint</Text>
-+            <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textMuted, marginTop: 2 }}>Track and reduce your impact</Text>
-+          </View>
-+          <Text style={z.viewAll}>View →</Text>
-+        </TouchableOpacity>
++        <CarbonImpactCard onPress={() => nav('CarbonFootprint')} />
 +      </View>
 +
        {/* ════════ DISCOVER FEATURES ════════ */}
        <View style={[z.container, { marginTop: 28, paddingHorizontal: pad }]}>
          <View style={z.sectionHead}>
-@@ -436,6 +489,16 @@ export function DashboardScreen({ navigation, route }: any) {
+@@ -436,6 +475,16 @@ export function DashboardScreen({ navigation, route }: any) {
        <View style={{ height: 60 }} />
        <WebFooter />
  
@@ -2138,7 +2648,7 @@ index bccb1e0..df43475 100644
        {/* ════════ FEATURE DETAIL MODAL ════════ */}
        {selectedFeature && (
          <Modal visible transparent animationType="fade" onRequestClose={() => setSelectedFeature(null)}>
-@@ -488,6 +551,9 @@ const useStyles = makeStyles((c) => ({
+@@ -488,6 +537,9 @@ const useStyles = makeStyles((c) => ({
    heroDecor2: { position: 'absolute', bottom: -50, left: '25%', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.02)' },
    heroGrid: { flexDirection: 'row', gap: 32, alignItems: 'center' },
    heroLeft: { flex: 1 },

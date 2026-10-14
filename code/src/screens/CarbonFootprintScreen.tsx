@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2 } from 'lucide-react-native';
+import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
 import {
@@ -9,9 +9,14 @@ import {
 } from '../services/carbon';
 import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError } from '../utils/carbon';
 import { showAlert } from '../utils/alert';
+import { CarbonDonut, useCountUp } from '../components/carbon/CarbonVisuals';
+import { EarthBuddy } from '../components/carbon/EarthBuddy';
 
 // Logging green actions has no backend yet.
 const comingSoon = () => showCarbonError('', new CarbonApiNotReadyError());
+
+// Results are monthly; after this many days the hub invites a fresh check-in.
+const CHECK_IN_DAYS = 30;
 
 const GOAL_OPTIONS = [
   { percent: 5, meta: 'A gentle start' },
@@ -106,6 +111,22 @@ export function CarbonFootprintScreen({ navigation }: any) {
     ? { title: 'Tip for you', body: latest.tips[0] }
     : top ? CARBON_CATEGORIES[top.key].tip : null;
   const band = latest?.category ? BAND_LABELS[latest.category] : undefined;
+  const shownTotal = useCountUp(total);
+  // Monthly habit loop: days since the latest result, and when the next check-in is due.
+  const daysSince = latest ? Math.max(0, Math.floor((Date.now() - new Date(latest.createdAt).getTime()) / 86400000)) : null;
+  const checkInDue = daysSince !== null && daysSince >= CHECK_IN_DAYS;
+  const daysLeft = daysSince !== null ? CHECK_IN_DAYS - daysSince : null;
+
+  // What Earth Buddy says in the hero card. Words only; every number comes from the backend.
+  const buddySays = !latest
+    ? (inProgress ? "You're partway through. Let's finish it together!" : "Hi! Let's find out your footprint together.")
+    : goalState?.progress.achieved ? "Goal reached! I'm so proud of you 🎉"
+    : comparison?.improved && typeof delta === 'number' && delta < 0 ? `You cut ${formatKg(Math.abs(delta))} kg since last time. Amazing! 🎉`
+    : comparison && typeof delta === 'number' && delta > 0 ? "It went up this time. Let's look at where it comes from."
+    : checkInDue ? "It's been a month. Shall we check in?"
+    : latest.category === 'low' ? 'Your footprint is low. Keep it up! 🌱'
+    : latest.category === 'high' ? "Let's bring this down together, one step at a time."
+    : 'Nice start! Small changes add up.';
   const delta = comparison?.deltaKgCO2ePerMonth;
 
   return (
@@ -141,12 +162,34 @@ export function CarbonFootprintScreen({ navigation }: any) {
               )}
             </View>
             <TouchableOpacity style={styles.bigRow} onPress={latest ? openJourney : startAssessment} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={latest ? `${formatKg(total)} kilograms CO2e per month. Open my carbon journey` : 'Calculate my footprint'}>
-              <Leaf size={40} color="#86efac" />
-              <View>
-                <Text style={styles.bigValue}>{latest ? formatKg(total) : '—'}</Text>
-                <Text style={styles.unitTag} numberOfLines={1}>{latest ? `kg CO₂e / month${band ? ` · ${band.label}` : ''}` : 'Not calculated yet'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.bigValue}>{latest ? formatKg(Math.round(shownTotal * 10) / 10) : '—'}</Text>
+                <Text style={styles.unitTag} numberOfLines={2}>{latest ? `kg CO₂e / month${band ? ` · ${band.label}` : ''}` : 'Not calculated yet'}</Text>
               </View>
+              <EarthBuddy size={88} wave cheer />
             </TouchableOpacity>
+
+            {/* Earth Buddy's speech bubble, pointing up at the mascot */}
+            <View style={styles.speech} accessibilityLiveRegion="polite">
+              <View style={styles.speechTail} />
+              <Text style={styles.speechText}>{buddySays}</Text>
+            </View>
+
+            {latest && daysLeft !== null && (
+              <TouchableOpacity
+                style={[styles.checkIn, checkInDue && styles.checkInDue]}
+                onPress={startAssessment}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={checkInDue ? 'Time for your monthly check-in. Recalculate' : `Next check-in in ${daysLeft} days. Recalculate now`}
+              >
+                <CalendarClock size={14} color={checkInDue ? '#052e16' : '#86efac'} />
+                <Text style={[styles.checkInText, checkInDue && { color: '#052e16' }]}>
+                  {checkInDue ? 'Time for your monthly check-in' : daysLeft === 1 ? 'Next check-in tomorrow' : `Next check-in in ${daysLeft} days`}
+                </Text>
+                <ChevronRight size={14} color={checkInDue ? '#052e16' : '#86efac'} />
+              </TouchableOpacity>
+            )}
 
             <View style={styles.cardDivider} />
 
@@ -263,10 +306,10 @@ export function CarbonFootprintScreen({ navigation }: any) {
           ) : !latest ? (
             <View style={styles.ctaCard}>
               <View style={styles.ctaTop}>
-                <View style={[styles.iconTile, { backgroundColor: tint('#f0fdf4') }]}><Calculator size={20} color="#16a34a" /></View>
+                <EarthBuddy size={76} wave />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.rowTitle}>Find out your footprint</Text>
-                  <Text style={styles.rowMeta}>Six quick questions about your day · about 2 minutes</Text>
+                  <Text style={styles.ctaTitle}>{inProgress ? 'Pick up where you left off' : "What's your carbon footprint?"}</Text>
+                  <Text style={styles.rowMeta}>Six quick questions about travel, home, food and more · about 2 minutes</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.primaryPill} onPress={startAssessment} activeOpacity={0.8} accessibilityRole="button">
@@ -281,6 +324,18 @@ export function CarbonFootprintScreen({ navigation }: any) {
             </View>
           ) : (
             <View style={styles.list}>
+              <View style={styles.donutCard}>
+                <CarbonDonut breakdown={latest.breakdown ?? {}} total={total} />
+                <View style={styles.legend}>
+                  {[...rows].sort((a, b) => b.kg - a.kg).map((r) => (
+                    <View key={r.key} style={styles.legendRow}>
+                      <View style={[styles.legendDot, { backgroundColor: CARBON_CATEGORIES[r.key].color }]} />
+                      <Text style={styles.legendLabel} numberOfLines={1}>{CARBON_CATEGORIES[r.key].label}</Text>
+                      <Text style={styles.legendPct}>{total > 0 ? Math.round((r.kg / total) * 100) : 0}%</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
               {rows.map((r) => {
                 const cat = CARBON_CATEGORIES[r.key];
                 const isTop = r.key === top?.key;
@@ -428,6 +483,22 @@ const useStyles = makeStyles((c) => ({
   ctaTop: { flexDirection: 'row', alignItems: 'center' },
   primaryPill: { backgroundColor: '#16a34a', borderRadius: 100, paddingVertical: 13, alignItems: 'center' },
   primaryPillText: { color: 'white', fontWeight: '800', fontSize: 14 },
+
+  checkIn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 14, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.12)' },
+  checkInDue: { backgroundColor: '#fcd34d' },
+  checkInText: { color: 'white', fontSize: 12, fontWeight: '800' },
+
+  donutCard: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 20, padding: 18, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border },
+  legend: { flexGrow: 1, flexBasis: 160, maxWidth: 320, gap: 8 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendLabel: { flex: 1, fontSize: 13, fontWeight: '700', color: c.text },
+  legendPct: { fontSize: 13, fontWeight: '800', color: c.textMuted, fontVariant: ['tabular-nums'] },
+
+  speech: { marginTop: 10, backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 14, paddingVertical: 9, paddingHorizontal: 13 },
+  speechTail: { position: 'absolute', top: -6, right: 34, width: 12, height: 12, backgroundColor: 'rgba(255,255,255,0.95)', transform: [{ rotate: '45deg' }] },
+  speechText: { color: '#14532d', fontSize: 13, fontWeight: '800', lineHeight: 18 },
+  ctaTitle: { fontSize: 16, fontWeight: '900', color: c.text, marginBottom: 3 },
 
   goalCard: { marginTop: 16, marginHorizontal: 16, padding: 14, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, maxWidth: 800, width: '100%', alignSelf: 'center', gap: 8 },
   goalTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
