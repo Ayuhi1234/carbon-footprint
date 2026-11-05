@@ -47,6 +47,30 @@ export interface CarbonQuestion {
   questionText: string;
 }
 
+// One field of a question as served by GET /questions (backend: carbon.questions.js).
+export interface ServerQuestionField {
+  key: string;
+  type: 'number' | 'choice' | 'boolean';
+  label?: string;
+  ask?: string;
+  // Optional wording per profile employment (e.g. student, employed). Any "{city}"
+  // in a question is replaced with " in <city>" when the profile has one.
+  askByEmployment?: Record<string, string>;
+  hint?: string;
+  unit?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: { value: string | boolean; label: string }[];
+  quickOptions?: { value: number; label: string }[];
+}
+
+export interface ServerQuestion {
+  category: CarbonCategoryKey;
+  questionText: string;
+  fields: ServerQuestionField[];
+}
+
 export interface CarbonSession {
   sessionId: string;
   status: 'in_progress' | string;
@@ -113,6 +137,19 @@ const answeredBefore = (next?: CarbonCategoryKey | null) =>
   next ? CARBON_CATEGORY_ORDER.slice(0, Math.max(CARBON_CATEGORY_ORDER.indexOf(next), 0)) : [...CARBON_CATEGORY_ORDER];
 
 export const carbonService = {
+  // The question list (wording, tap options, typed-number limits) from the backend's
+  // single source of truth. Public route. null on any failure: the chat then uses the
+  // copy bundled in the app (utils/carbonQuestions.ts).
+  getQuestions: async (): Promise<ServerQuestion[] | null> => {
+    if (!CARBON_API_READY) return null;
+    try {
+      const data = unwrap(await api.get(`${BASE}/questions`));
+      return Array.isArray(data?.questions) ? data.questions : null;
+    } catch {
+      return null;
+    }
+  },
+
   // Starts a new interview, or resumes the one in progress.
   startSession: async (): Promise<CarbonSession> => {
     if (!CARBON_API_READY) return notReady();

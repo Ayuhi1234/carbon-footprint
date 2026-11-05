@@ -38,6 +38,30 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Dev only: with CARBON_QUESTIONS_FROM set (e.g. http://localhost:6000), the carbon
+  // question list comes from a backend running on this laptop, so edits to its
+  // carbon.questions.js show up in the app. Everything else is unchanged.
+  if (process.env.CARBON_QUESTIONS_FROM && req.url.split('?')[0] === '/api/v1/carbon-footprint/questions') {
+    const target = new URL(process.env.CARBON_QUESTIONS_FROM);
+    const localReq = http.request(
+      { hostname: target.hostname, port: target.port, path: req.url, method: 'GET' },
+      (localRes) => {
+        const headers = { ...localRes.headers, 'access-control-allow-origin': origin, 'access-control-allow-credentials': 'true' };
+        delete headers['content-security-policy'];
+        delete headers['cross-origin-resource-policy'];
+        delete headers['cross-origin-opener-policy'];
+        res.writeHead(localRes.statusCode || 502, headers);
+        localRes.pipe(res);
+      }
+    );
+    localReq.on('error', (err) => {
+      res.writeHead(502, { 'Access-Control-Allow-Origin': origin, 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: 'Local backend not reachable: ' + err.message }));
+    });
+    localReq.end();
+    return;
+  }
+
   if (carbonMock && carbonMock(req, res, origin)) return;
 
   const proxyReq = https.request(

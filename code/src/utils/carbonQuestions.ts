@@ -1,4 +1,4 @@
-import { CarbonCategoryKey, CarbonAnswers } from '../services/carbon';
+import { CarbonCategoryKey, CarbonAnswers, ServerQuestion, CARBON_CATEGORY_ORDER } from '../services/carbon';
 
 // What the chat asks for each backend category, one field at a time. Each field
 // maps 1:1 to a field of the backend's answer shape (see CarbonAnswers), so the
@@ -116,6 +116,53 @@ export const FIELDS: Field[] = [
     options: [{ label: 'None', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3–5', value: 4 }, { label: '6 or more', value: 8 }],
   },
 ];
+
+// ── Questions from the backend ───────────────────────────────────────────────
+// GET /carbon-footprint/questions serves the backend's single question list
+// (carbon.questions.js). applyServerQuestions() replaces FIELDS with that list, so
+// editing that one backend file changes what the chat asks (including the
+// profile-based commute wording), its tap options and the typed-number limits.
+// FIELDS above stays as the fallback when the list can't be loaded. One app-side
+// behaviour is kept from the bundled fields: the distance being filled in
+// automatically for walk/cycle and "don't travel".
+// Returns false and changes nothing if the list looks incomplete or unexpected.
+
+// The question for this user: the wording for their employment if the backend has
+// one, else the default; "{city}" becomes " in <city>" (or nothing).
+function personalisedAsk(sf: ServerQuestion['fields'][number], ctx: UserContext): string {
+  const employment = (ctx.employment || '').toLowerCase();
+  const template = sf.askByEmployment?.[employment] ?? sf.ask ?? '';
+  return template.replace('{city}', ctx.city ? ` in ${ctx.city}` : '');
+}
+
+export function applyServerQuestions(questions: ServerQuestion[]): boolean {
+  const bundled = new Map(FIELDS.map((f) => [f.key, f]));
+  const next: Field[] = [];
+  for (const category of CARBON_CATEGORY_ORDER) {
+    const question = questions.find((q) => q.category === category);
+    if (!question || !Array.isArray(question.fields) || question.fields.length === 0) return false;
+    for (const sf of question.fields) {
+      const local = bundled.get(sf.key);
+      if (!local || !sf.ask) return false;
+      const isNumber = sf.type === 'number';
+      const options = (isNumber ? sf.quickOptions : sf.options) ?? [];
+      if (isNumber && (typeof sf.min !== 'number' || typeof sf.max !== 'number')) return false;
+      if (!isNumber && options.length === 0) return false;
+      next.push({
+        key: sf.key,
+        category,
+        ask: (ctx) => personalisedAsk(sf, ctx),
+        hint: sf.hint,
+        options: options.map((o) => ({ label: o.label, value: o.value })),
+        number: isNumber ? { min: sf.min as number, max: sf.max as number, unit: sf.unit ?? '' } : undefined,
+        auto: local.auto,
+      });
+    }
+  }
+  if (next.length !== bundled.size) return false;
+  FIELDS.splice(0, FIELDS.length, ...next);
+  return true;
+}
 
 export const fieldsFor = (category: CarbonCategoryKey) => FIELDS.filter((f) => f.category === category);
 

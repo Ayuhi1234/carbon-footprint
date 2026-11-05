@@ -8,7 +8,7 @@ import {
 } from '../services/carbon';
 import { profileService } from '../services/profile';
 import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, showCarbonError } from '../utils/carbon';
-import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber, matchOptions, QOption } from '../utils/carbonQuestions';
+import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber, matchOptions, QOption, applyServerQuestions } from '../utils/carbonQuestions';
 import { showAlert } from '../utils/alert';
 import { useTheme, makeStyles } from '../theme';
 import { TopicStepper, useCountUp, Confetti } from '../components/carbon/CarbonVisuals';
@@ -95,9 +95,11 @@ export function CarbonAssessmentScreen({ navigation }: any) {
         employment: p?.demographics?.employment || p?.employment || undefined,
       }))
       .catch(() => {});
-    carbonService.getSession()
-      .then((s) => setResumable(s?.nextQuestion ? s : null))
-      .finally(() => setPhase('intro'));
+    // The question list comes from the backend (one source of truth) before the chat
+    // can start; if it can't be loaded, the copy bundled in the app is used.
+    const questions = carbonService.getQuestions().then((q) => { if (q) applyServerQuestions(q); });
+    const session = carbonService.getSession().then((s) => setResumable(s?.nextQuestion ? s : null));
+    Promise.allSettled([questions, session]).finally(() => setPhase('intro'));
     return () => recRef.current?.stop?.();
   }, []);
 
