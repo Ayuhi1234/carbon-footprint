@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Leaf, History, ChevronLeft, ChevronRight, Target, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock, Share2 } from 'lucide-react-native';
+import { Leaf, History, ChevronLeft, ChevronRight, Target, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock, Share2, X } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
 import {
@@ -379,7 +379,12 @@ export function CarbonFootprintScreen({ navigation }: any) {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setGoalSheet(false)}>
           <TouchableOpacity style={styles.sheet} activeOpacity={1}>
             <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Set a monthly goal</Text>
+            <View style={styles.sheetTitleRow}>
+              <Text style={[styles.sheetTitle, { marginBottom: 0 }]}>Set a monthly goal</Text>
+              <TouchableOpacity onPress={() => setGoalSheet(false)} accessibilityRole="button" accessibilityLabel="Close" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <X size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
             <Text style={styles.sheetHint}>
               {goalState
                 ? `Choosing a new goal starts your progress again from your latest result (${formatKg(total)} kg a month).`
@@ -520,6 +525,7 @@ const useStyles = makeStyles((c) => ({
   },
   sheetHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
   sheetTitle: { fontSize: 18, fontWeight: '900', color: c.text, marginBottom: 4 },
+  sheetTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   sheetHint: { fontSize: 12.5, color: c.textMuted, fontWeight: '600', lineHeight: 18, marginTop: 6 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceAlt, marginTop: 12 },
   optionIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
