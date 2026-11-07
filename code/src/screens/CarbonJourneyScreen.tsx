@@ -103,7 +103,7 @@ export function CarbonJourneyScreen({ navigation }: any) {
               </View>
               <View style={styles.colDivider} />
               <View style={styles.col}>
-                <Text style={styles.colLabel}>Since first</Text>
+                <Text style={styles.colLabel}>Since your first</Text>
                 <Text style={styles.colValue}>{vsFirst !== null ? `${vsFirst > 0 ? '+' : ''}${vsFirst}%` : '—'}</Text>
                 <Text style={styles.colSub}>{first && first !== current ? `First on ${formatAssessed(first)}` : `${assessments.length.toLocaleString()} ${assessments.length === 1 ? 'assessment' : 'assessments'}`}</Text>
               </View>
@@ -122,7 +122,7 @@ export function CarbonJourneyScreen({ navigation }: any) {
           <View style={styles.section}>
             <View style={styles.stateBox}>
               <History size={48} color={colors.textFaint} />
-              <Text style={styles.emptyTitle}>No assessments yet.</Text>
+              <Text style={styles.emptyTitle}>No assessments yet</Text>
               <Text style={styles.emptyHint}>Calculate your footprint to start your journey.</Text>
               <TouchableOpacity style={[styles.primaryPill, { marginTop: 20, paddingHorizontal: 24 }]} onPress={calculate} activeOpacity={0.8} accessibilityRole="button">
                 <Text style={styles.primaryPillText}>Calculate my footprint</Text>

@@ -190,7 +190,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
                 onPress={startAssessment}
                 activeOpacity={0.8}
                 accessibilityRole="button"
-                accessibilityLabel={checkInDue ? 'Time for your monthly check-in. Recalculate' : `Next check-in in ${daysLeft} days. Recalculate now`}
+                accessibilityLabel={checkInDue ? 'Time for your monthly check-in. Calculate again' : daysLeft === 1 ? 'Next check-in tomorrow. Calculate again now' : `Next check-in in ${daysLeft} days. Calculate again now`}
               >
                 <CalendarClock size={14} color={checkInDue ? '#052e16' : '#86efac'} />
                 <Text style={[styles.checkInText, checkInDue && { color: '#052e16' }]}>
@@ -206,7 +206,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
               <View style={styles.col}>
                 <View style={styles.colLabelRow}>
                   <LineChart size={13} color="#fcd34d" />
-                  <Text style={styles.colLabel}>Average</Text>
+                  <Text style={styles.colLabel}>All-time average</Text>
                 </View>
                 <Text style={styles.colValue}>{summary ? `${formatKg(summary.averageKgCO2ePerMonth)} kg` : '—'}</Text>
                 <Text style={styles.colSub}>
@@ -217,10 +217,10 @@ export function CarbonFootprintScreen({ navigation }: any) {
               <View style={styles.col}>
                 <View style={styles.colLabelRow}>
                   <Award size={13} color="#86efac" />
-                  <Text style={styles.colLabel}>Best</Text>
+                  <Text style={styles.colLabel}>Lowest</Text>
                 </View>
                 <Text style={styles.colValue}>{summary ? `${formatKg(summary.bestKgCO2ePerMonth)} kg` : '—'}</Text>
-                <Text style={styles.colSub}>lowest per month</Text>
+                <Text style={styles.colSub}>your lowest so far</Text>
               </View>
             </View>
           </View>
@@ -248,7 +248,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
             </View>
             {top?.key === 'waste' && (
               <TouchableOpacity style={styles.tipBtn} onPress={() => navigation.navigate('SchedulePickup')} activeOpacity={0.8} accessibilityRole="button">
-                <Text style={styles.tipBtnText}>Schedule</Text>
+                <Text style={styles.tipBtnText}>Book pickup</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -297,7 +297,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
             <Text style={styles.sectionTitle}>Where it comes from</Text>
             {latest && (
               <TouchableOpacity style={styles.linkBtn} onPress={startAssessment} activeOpacity={0.8} accessibilityRole="button">
-                <Text style={styles.linkText}>Recalculate</Text>
+                <Text style={styles.linkText}>Calculate again</Text>
                 <ChevronRight size={14} color={colors.primary} />
               </TouchableOpacity>
             )}
@@ -314,7 +314,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
                 <EarthBuddy size={76} wave />
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.ctaTitle}>{inProgress ? 'Pick up where you left off' : "What's your carbon footprint?"}</Text>
-                  <Text style={styles.rowMeta}>Six quick questions about travel, home, food and more · about 2 minutes</Text>
+                  <Text style={styles.rowMeta}>6 quick questions about travel, home, food and more · about 2 minutes</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.primaryPill} onPress={startAssessment} activeOpacity={0.8} accessibilityRole="button">
@@ -324,7 +324,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
           ) : rows.length === 0 ? (
             <View style={styles.stateBox}>
               <Leaf size={48} color={colors.textFaint} />
-              <Text style={styles.emptyTitle}>No breakdown yet.</Text>
+              <Text style={styles.emptyTitle}>No breakdown yet</Text>
               <Text style={styles.emptyHint}>Your category details will show here.</Text>
             </View>
           ) : (
@@ -363,7 +363,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
                 );
               })}
               <Text style={styles.footnote}>
-                Calculated {formatAssessed(latest)}{latest.emissionFactorVersion ? ` · emission factors ${latest.emissionFactorVersion}` : ''}
+                Calculated {formatAssessed(latest)}{latest.emissionFactorVersion ? ` · emission factors ${formatPeriod(latest.emissionFactorVersion) ? `as of ${formatPeriod(latest.emissionFactorVersion)}` : latest.emissionFactorVersion}` : ''}
               </Text>
             </View>
           )}

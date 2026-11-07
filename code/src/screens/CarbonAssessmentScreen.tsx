@@ -7,7 +7,7 @@ import {
   carbonService, CarbonResult, CarbonSession, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER,
 } from '../services/carbon';
 import { profileService } from '../services/profile';
-import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, showCarbonError } from '../utils/carbon';
+import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError } from '../utils/carbon';
 import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber, matchOptions, QOption, applyServerQuestions } from '../utils/carbonQuestions';
 import { showAlert } from '../utils/alert';
 import { useTheme, makeStyles } from '../theme';
@@ -328,9 +328,9 @@ export function CarbonAssessmentScreen({ navigation }: any) {
           </BotBubble>
           <BotBubble>
             <Text style={styles.botText}>
-              I'll ask about travel, home energy, food, waste, water and flights — about 2 minutes. Tap an answer, or type a number if you know it. Your answers save as you go.
+              I'll ask about travel, home energy, food, waste, water and flights — about 2 minutes. Tap an answer, or type or say it. Your answers are saved as you go.
             </Text>
-            <Text style={styles.botFine}>Your footprint is worked out with fixed formulas and standard emission factors.</Text>
+            <Text style={styles.botFine}>Your footprint is worked out with fixed formulas and standard emission factors, in kg CO₂e (all greenhouse gases counted as CO₂).</Text>
           </BotBubble>
 
           {phase === 'loading' && <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Loading" />}
@@ -475,7 +475,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
                 )}
                 {!!result.tips?.[0] && <Text style={styles.resultTip}>{result.tips[0]}</Text>}
                 <Text style={styles.fine}>
-                  Calculated {formatAssessed(result)}{result.emissionFactorVersion ? ` · emission factors ${result.emissionFactorVersion}` : ''}
+                  Calculated {formatAssessed(result)}{result.emissionFactorVersion ? ` · emission factors ${formatPeriod(result.emissionFactorVersion) ? `as of ${formatPeriod(result.emissionFactorVersion)}` : result.emissionFactorVersion}` : ''}
                 </Text>
                 <TouchableOpacity style={[styles.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => navigation.replace('CarbonJourney')} activeOpacity={0.8} accessibilityRole="button">
                   <Text style={styles.primaryBtnText}>View my journey</Text>

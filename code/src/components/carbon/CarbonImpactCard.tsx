@@ -129,14 +129,14 @@ export function CarbonImpactCard({ onPress }: { onPress: () => void }) {
             <>
               <View style={styles.valueRow}>
                 <Text style={[styles.value, compact && { fontSize: 32 }]}>{formatKg(Math.round(shown * 10) / 10)}</Text>
-                <Text style={styles.unit}>kg CO₂e{'\n'}a month</Text>
+                <Text style={styles.unit}>kg CO₂e{'\n'}/ month</Text>
               </View>
               <View style={styles.metaRow}>
                 {band && <View style={[styles.band, { backgroundColor: band.color }]}><Text style={styles.bandText}>{band.label}</Text></View>}
                 {daysLeft !== null && (
                   <View style={[styles.chip, due && styles.chipDue]}>
                     <CalendarClock size={12} color={due ? '#052e16' : '#bbf7d0'} />
-                    <Text style={[styles.chipText, due && { color: '#052e16' }]}>{due ? 'Check-in due' : `Check-in in ${daysLeft} days`}</Text>
+                    <Text style={[styles.chipText, due && { color: '#052e16' }]}>{due ? 'Check-in due' : daysLeft === 1 ? 'Check-in tomorrow' : `Check-in in ${daysLeft} days`}</Text>
                   </View>
                 )}
               </View>

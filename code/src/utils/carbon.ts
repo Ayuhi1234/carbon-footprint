@@ -13,7 +13,7 @@ export const CARBON_CATEGORIES: Record<CarbonCategoryKey, {
 }> = {
   transport: {
     label: 'Transport', Icon: Bus, color: '#0ea5e9', bg: '#f0f9ff',
-    tip: { title: 'Transport is your biggest source', body: 'Try the metro or bus twice this week, then log it here.' },
+    tip: { title: 'Transport is your biggest source', body: 'Try the metro or bus twice this week.' },
   },
   electricity: {
     label: 'Home energy', Icon: Zap, color: '#d97706', bg: '#fffbeb',
@@ -25,7 +25,7 @@ export const CARBON_CATEGORIES: Record<CarbonCategoryKey, {
   },
   waste: {
     label: 'Waste', Icon: Recycle, color: '#16a34a', bg: '#f0fdf4',
-    tip: { title: 'Waste is your biggest source', body: 'Schedule a KarmaVerse pickup for your recyclables.' },
+    tip: { title: 'Waste is your biggest source', body: 'Schedule a KarmaVer$e pickup for your recyclables.' },
   },
   water: {
     label: 'Water', Icon: Droplets, color: '#0284c7', bg: '#f0f9ff',

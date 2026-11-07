@@ -302,7 +302,7 @@ export function CarbonInsightsScreen({ navigation }: any) {
           <View style={styles.section}>
             <View style={styles.stateBox}>
               <BarChart3 size={48} color={colors.textFaint} />
-              <Text style={styles.emptyTitle}>No insights yet.</Text>
+              <Text style={styles.emptyTitle}>No insights yet</Text>
               <Text style={styles.emptyHint}>Calculate your footprint to see your charts here.</Text>
               <TouchableOpacity style={[styles.primaryPill, { marginTop: 20, paddingHorizontal: 24 }]} onPress={() => navigation.navigate('CarbonAssessment')} activeOpacity={0.8} accessibilityRole="button">
                 <Text style={styles.primaryPillText}>Calculate my footprint</Text>
@@ -325,7 +325,7 @@ export function CarbonInsightsScreen({ navigation }: any) {
 
             {/* KPI row */}
             <View style={styles.tiles}>
-              <StatTile label="Average" value={`${formatKg(avg)} kg`} sub={`per month · ${points.length.toLocaleString()} ${points.length === 1 ? 'result' : 'results'}`} />
+              <StatTile label="Average" value={`${formatKg(avg)} kg`} sub={`per month · ${points.length.toLocaleString()} ${points.length === 1 ? 'assessment' : 'assessments'}`} />
               <StatTile label="Lowest" value={lowest ? `${formatKg(lowest.totalKgCO2ePerMonth)} kg` : '—'} sub={lowest ? formatAssessed(lowest) : undefined} />
               <StatTile label="Assessments" value={(summary?.totalAssessments ?? assessments.length).toLocaleString()} sub="in total" />
             </View>
@@ -390,7 +390,7 @@ export function CarbonInsightsScreen({ navigation }: any) {
             {points.length >= 2 && (
               <View style={[styles.section, { marginBottom: 32 }]}>
                 <Text style={[styles.sectionTitle, { marginBottom: 4 }]}>How each area is changing</Text>
-                <Text style={styles.sectionSub}>Change vs your previous result</Text>
+                <Text style={styles.sectionSub}>Compared with your previous assessment</Text>
                 <CategoryMultiples points={points} />
               </View>
             )}

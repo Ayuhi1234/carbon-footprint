@@ -74,7 +74,7 @@ export function CarbonDonut({ breakdown, total, size = 168 }: {
       </Svg>
       <View style={[styles.donutCenter, { pointerEvents: 'none' }]}>
         <Text style={styles.donutValue}>{formatKg(Math.round(shownTotal * 10) / 10)}</Text>
-        <Text style={styles.donutUnit}>kg / month</Text>
+        <Text style={styles.donutUnit}>kg CO₂e / month</Text>
       </View>
     </View>
   );
