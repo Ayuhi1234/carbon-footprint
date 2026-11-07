@@ -38,10 +38,10 @@ export const CARBON_CATEGORIES: Record<CarbonCategoryKey, {
 };
 
 // The backend's footprint band for a result ("low" | "medium" | "high").
-export const BAND_LABELS: Record<string, { label: string; color: string }> = {
-  low: { label: 'Low footprint', color: '#16a34a' },
-  medium: { label: 'Medium footprint', color: '#d97706' },
-  high: { label: 'High footprint', color: '#e11d48' },
+export const BAND_LABELS: Record<string, { label: string; color: string; lightText: string }> = {
+  low: { label: 'Low footprint', color: '#16a34a', lightText: '#15803d' },
+  medium: { label: 'Medium footprint', color: '#d97706', lightText: '#b45309' },
+  high: { label: 'High footprint', color: '#e11d48', lightText: '#e11d48' },
 };
 
 export const formatKg = (kg: number) => kg.toLocaleString(undefined, { maximumFractionDigits: 1 });

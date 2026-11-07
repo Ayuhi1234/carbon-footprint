@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator,
 import { LinearGradient } from 'expo-linear-gradient';
 import { Leaf, History, ChevronLeft, ChevronRight, Target, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock, Share2, X } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
-import { useTheme, makeStyles } from '../theme';
+import { useTheme, makeStyles, lightColors } from '../theme';
 import {
   carbonService, CarbonResult, CarbonComparison, CarbonSummary, CarbonGoalState, CARBON_CATEGORY_ORDER, CarbonCategoryKey,
 } from '../services/carbon';
@@ -257,12 +257,12 @@ export function CarbonFootprintScreen({ navigation }: any) {
         {/* Action buttons — same pills as Wallet */}
         <View style={styles.actionRow}>
           <TouchableOpacity style={[styles.actionBtn, styles.actionBtnAmber]} onPress={openGoalSheet} activeOpacity={0.8} accessibilityRole="button">
-            <Target size={18} color="#d97706" />
-            <Text style={[styles.actionLabel, { color: '#d97706' }]} numberOfLines={1}>{goalState ? 'My goal' : 'Set goal'}</Text>
+            <Target size={18} color={isDark ? '#d97706' : '#b45309'} />
+            <Text style={[styles.actionLabel, { color: isDark ? '#d97706' : '#b45309' }]} numberOfLines={1}>{goalState ? 'My goal' : 'Set goal'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSky]} onPress={() => navigation.navigate('CarbonInsights')} activeOpacity={0.8} accessibilityRole="button">
-            <BarChart3 size={18} color="#0ea5e9" />
-            <Text style={[styles.actionLabel, { color: '#0ea5e9' }]} numberOfLines={1}>Insights</Text>
+            <BarChart3 size={18} color={isDark ? '#0ea5e9' : '#0369a1'} />
+            <Text style={[styles.actionLabel, { color: isDark ? '#0ea5e9' : '#0369a1' }]} numberOfLines={1}>Insights</Text>
           </TouchableOpacity>
         </View>
 
@@ -358,7 +358,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
                       </View>
                       <Text style={styles.rowMeta}>{isTop ? `Biggest source · ${pct}% of your footprint` : `${pct}% of your footprint`}</Text>
                     </View>
-                    <Text style={[styles.rowValue, { color: isTop ? '#e11d48' : '#d97706' }]}>{formatKg(r.kg)} kg</Text>
+                    <Text style={[styles.rowValue, { color: isTop ? '#e11d48' : isDark ? '#d97706' : '#b45309' }]}>{formatKg(r.kg)} kg</Text>
                   </View>
                 );
               })}
@@ -433,20 +433,20 @@ const useStyles = makeStyles((c) => ({
     maxWidth: 800, width: '100%', alignSelf: 'center',
   },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, minHeight: 26, gap: 8 },
-  cardLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '700', letterSpacing: 0.3, flexShrink: 1 },
+  cardLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '700', letterSpacing: 0.3, flexShrink: 1 },
   pill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 6 },
   pillText: { color: 'white', fontSize: 11, fontWeight: '800' },
   bigRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bigValue: { fontSize: 44, fontWeight: '900', color: 'white', letterSpacing: -1 },
-  unitTag: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600', letterSpacing: 0.3, marginTop: -2, flexShrink: 0 },
+  unitTag: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '600', letterSpacing: 0.3, marginTop: -2, flexShrink: 0 },
   cardDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 16 },
   colsRow: { flexDirection: 'row', alignItems: 'stretch' },
   col: { flex: 1 },
   colDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 14 },
   colLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 },
-  colLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '700' },
+  colLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '700' },
   colValue: { color: 'white', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
-  colSub: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '600', marginTop: 4 },
+  colSub: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '600', marginTop: 4 },
 
   resumeBanner: {
     marginTop: 16, marginHorizontal: 16, padding: 14, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -461,7 +461,7 @@ const useStyles = makeStyles((c) => ({
   },
   tipTitle: { color: '#0369a1', fontSize: 13, fontWeight: '900', marginBottom: 2 },
   tipText: { color: '#0c4a6e', fontSize: 12, fontWeight: '600', lineHeight: 17 },
-  tipBtn: { backgroundColor: '#0ea5e9', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100, minWidth: 76, alignItems: 'center' },
+  tipBtn: { backgroundColor: c === lightColors ? '#0369a1' : '#0ea5e9', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100, minWidth: 76, alignItems: 'center' },
   tipBtnText: { color: 'white', fontWeight: '800', fontSize: 13 },
 
   actionRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginTop: 20, maxWidth: 800, width: '100%', alignSelf: 'center' },
@@ -476,8 +476,8 @@ const useStyles = makeStyles((c) => ({
   linkBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   linkText: { fontSize: 12, color: c.primary, fontWeight: '600' },
   stateBox: { alignItems: 'center', paddingVertical: 40 },
-  emptyTitle: { color: c.textFaint, marginTop: 12, fontWeight: '600' },
-  emptyHint: { color: c.textFaint, fontSize: 12, marginTop: 4, textAlign: 'center' },
+  emptyTitle: { color: c.textMuted, marginTop: 12, fontWeight: '600' },
+  emptyHint: { color: c.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' },
 
   list: { gap: 10 },
   rowCard: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border, elevation: 2, shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
@@ -488,7 +488,7 @@ const useStyles = makeStyles((c) => ({
   rowValue: { fontSize: 15, fontWeight: '900' },
   barTrack: { height: 6, borderRadius: 3, backgroundColor: c.surfaceAlt, marginTop: 3, marginBottom: 5, overflow: 'hidden' },
   barFill: { height: 6, borderRadius: 3 },
-  footnote: { fontSize: 12, color: c.textFaint, marginTop: 6, textAlign: 'center' },
+  footnote: { fontSize: 12, color: c.textMuted, marginTop: 6, textAlign: 'center' },
 
   ctaCard: { padding: 14, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border, elevation: 2, shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, gap: 14 },
   ctaTop: { flexDirection: 'row', alignItems: 'center' },
@@ -530,5 +530,5 @@ const useStyles = makeStyles((c) => ({
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceAlt, marginTop: 12 },
   optionIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   optionName: { fontSize: 15, fontWeight: '800', color: c.text, marginBottom: 2 },
-  optionMeta: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
+  optionMeta: { fontSize: 12, color: c === lightColors ? '#475569' : c.textMuted, fontWeight: '600' },
 }));

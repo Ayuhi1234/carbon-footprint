@@ -411,11 +411,11 @@ const useStyles = makeStyles((c) => ({
   headerTitle: { fontSize: 26, fontWeight: '900', color: 'white', flexShrink: 1 },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   heroCard: { borderRadius: 24, padding: 20, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', maxWidth: 800, width: '100%', alignSelf: 'center' },
-  cardLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '700', letterSpacing: 0.3, marginBottom: 14 },
+  cardLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '700', letterSpacing: 0.3, marginBottom: 14 },
   bigRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bigValue: { fontSize: 44, fontWeight: '900', color: 'white', letterSpacing: -1 },
-  unitTag: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600', letterSpacing: 0.3, marginTop: -2 },
-  heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 12.5, fontWeight: '700', marginTop: 14 },
+  unitTag: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '600', letterSpacing: 0.3, marginTop: -2 },
+  heroSub: { color: 'rgba(255,255,255,0.9)', fontSize: 12.5, fontWeight: '700', marginTop: 14 },
 
   filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginTop: 20, maxWidth: 800, width: '100%', alignSelf: 'center', flexWrap: 'wrap' },
   filterPill: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 100, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, minHeight: 40, justifyContent: 'center' },
@@ -427,7 +427,7 @@ const useStyles = makeStyles((c) => ({
   tile: { flex: 1, padding: 12, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border, elevation: 2, shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
   tileLabel: { fontSize: 11, fontWeight: '700', color: c.textMuted },
   tileValue: { fontSize: 18, fontWeight: '900', color: c.text, marginTop: 4, letterSpacing: -0.3 },
-  tileSub: { fontSize: 10.5, fontWeight: '600', color: c.textFaint, marginTop: 2 },
+  tileSub: { fontSize: 10.5, fontWeight: '600', color: c.textMuted, marginTop: 2 },
 
   section: { paddingHorizontal: 16, marginTop: 28, maxWidth: 800, width: '100%', alignSelf: 'center' },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
@@ -456,7 +456,7 @@ const useStyles = makeStyles((c) => ({
   multiValue: { fontSize: 17, fontWeight: '900', color: c.text },
   deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
   deltaText: { fontSize: 12, fontWeight: '800' },
-  deltaMuted: { fontSize: 11.5, fontWeight: '600', color: c.textFaint },
+  deltaMuted: { fontSize: 11.5, fontWeight: '600', color: c.textMuted },
 
   tr: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border },
   trHead: { paddingTop: 0 },
@@ -465,8 +465,8 @@ const useStyles = makeStyles((c) => ({
   num: { flex: 1, textAlign: 'right', fontVariant: ['tabular-nums'] },
 
   stateBox: { alignItems: 'center', paddingVertical: 40 },
-  emptyTitle: { color: c.textFaint, marginTop: 12, fontWeight: '600' },
-  emptyHint: { color: c.textFaint, fontSize: 12, marginTop: 4, textAlign: 'center' },
+  emptyTitle: { color: c.textMuted, marginTop: 12, fontWeight: '600' },
+  emptyHint: { color: c.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' },
   primaryPill: { backgroundColor: '#16a34a', borderRadius: 100, paddingVertical: 13, alignItems: 'center' },
   primaryPillText: { color: 'white', fontWeight: '800', fontSize: 14 },
 }));

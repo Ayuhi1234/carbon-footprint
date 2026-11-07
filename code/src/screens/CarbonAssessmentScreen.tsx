@@ -62,7 +62,7 @@ function SectionLabel({ category }: { category: CarbonCategoryKey }) {
 // on later. The sixth answer returns the calculated result.
 export function CarbonAssessmentScreen({ navigation }: any) {
   const styles = useStyles();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [ctx, setCtx] = useState<UserContext>({});
   const [phase, setPhase] = useState<Phase>('loading');
   const [resumable, setResumable] = useState<CarbonSession | null>(null);
@@ -467,7 +467,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
                 <EarthBuddy size={112} wave cheer />
                 <Text style={styles.resultValue}>{formatKg(Math.round(shownResult * 10) / 10)}</Text>
                 <Text style={styles.resultUnit}>kg CO₂e / month</Text>
-                {band && <Text style={[styles.band, { color: band.color }]}>{band.label}</Text>}
+                {band && <Text style={[styles.band, { color: isDark ? band.color : band.lightText }]}>{band.label}</Text>}
                 {top && (
                   <Text style={styles.resultBody}>
                     Your biggest source is <Text style={{ fontWeight: '800', color: colors.text }}>{CARBON_CATEGORIES[top.key].label.toLowerCase()}</Text> — {formatKg(top.kg)} kg.
@@ -591,7 +591,7 @@ const useStyles = makeStyles((c) => ({
   band: { fontSize: 13, fontWeight: '900', marginTop: 8, letterSpacing: 0.3 },
   resultBody: { fontSize: 14, color: c.textMuted, lineHeight: 21, textAlign: 'center', marginTop: 10 },
   resultTip: { fontSize: 13, color: c.text, lineHeight: 19, textAlign: 'center', marginTop: 10, fontWeight: '600' },
-  fine: { fontSize: 12, color: c.textFaint, marginTop: 10, textAlign: 'center' },
+  fine: { fontSize: 12, color: c.textMuted, marginTop: 10, textAlign: 'center' },
 
   composer: { backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 28 : 12 },
   composerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 640, width: '100%', alignSelf: 'center' },
