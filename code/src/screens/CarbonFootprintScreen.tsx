@@ -145,16 +145,6 @@ export function CarbonFootprintScreen({ navigation }: any) {
               </TouchableOpacity>
               <Text style={styles.headerTitle} numberOfLines={2} accessibilityRole="header">My carbon footprint</Text>
             </View>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              {latest && (
-                <TouchableOpacity style={styles.iconBtn} onPress={shareResult} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Share my result">
-                  <Share2 size={18} color="white" />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.iconBtn} onPress={openJourney} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="My carbon journey">
-                <History size={18} color="white" />
-              </TouchableOpacity>
-            </View>
           </View>
 
           {/* Glass card */}
@@ -170,13 +160,13 @@ export function CarbonFootprintScreen({ navigation }: any) {
                 </View>
               )}
             </View>
-            <TouchableOpacity style={styles.bigRow} onPress={latest ? openJourney : startAssessment} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={latest ? `${formatKg(total)} kilograms CO2e per month. Open my carbon journey` : 'Calculate my footprint'}>
+            <View style={styles.bigRow} accessible accessibilityLabel={latest ? `${formatKg(total)} kilograms CO2e per month` : 'Not calculated yet'}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.bigValue}>{latest ? formatKg(Math.round(shownTotal * 10) / 10) : '—'}</Text>
                 <Text style={styles.unitTag} numberOfLines={2}>{latest ? `kg CO₂e / month${band ? ` · ${band.label}` : ''}` : 'Not calculated yet'}</Text>
               </View>
               <EarthBuddy size={88} wave cheer />
-            </TouchableOpacity>
+            </View>
 
             {/* Earth Buddy's speech bubble, pointing up at the mascot */}
             <View style={styles.speech} accessibilityLiveRegion="polite">
@@ -263,6 +253,16 @@ export function CarbonFootprintScreen({ navigation }: any) {
           <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSky]} onPress={() => navigation.navigate('CarbonInsights')} activeOpacity={0.8} accessibilityRole="button">
             <BarChart3 size={18} color={isDark ? '#0ea5e9' : '#0369a1'} />
             <Text style={[styles.actionLabel, { color: isDark ? '#0ea5e9' : '#0369a1' }]} numberOfLines={1}>Insights</Text>
+          </TouchableOpacity>
+          {latest && (
+            <TouchableOpacity style={[styles.actionBtn, styles.actionBtnViolet]} onPress={shareResult} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Share my result">
+              <Share2 size={18} color={isDark ? '#a78bfa' : '#7c3aed'} />
+              <Text style={[styles.actionLabel, { color: isDark ? '#a78bfa' : '#7c3aed' }]} numberOfLines={1}>Share</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnGreen]} onPress={openJourney} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="View my carbon journey">
+            <History size={18} color={isDark ? '#4ade80' : '#15803d'} />
+            <Text style={[styles.actionLabel, { color: isDark ? '#4ade80' : '#15803d' }]} numberOfLines={1}>View journey</Text>
           </TouchableOpacity>
         </View>
 
@@ -464,10 +464,12 @@ const useStyles = makeStyles((c) => ({
   tipBtn: { backgroundColor: c === lightColors ? '#0369a1' : '#0ea5e9', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100, minWidth: 76, alignItems: 'center' },
   tipBtnText: { color: 'white', fontWeight: '800', fontSize: 13 },
 
-  actionRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginTop: 20, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 6, borderRadius: 100, borderWidth: 1.5, backgroundColor: c.surface },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 10, marginTop: 20, maxWidth: 800, width: '100%', alignSelf: 'center' },
+  actionBtn: { flex: 1, minWidth: 140, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 6, borderRadius: 100, borderWidth: 1.5, backgroundColor: c.surface },
   actionBtnAmber: { borderColor: '#fcd34d' },
   actionBtnSky: { borderColor: '#bae6fd' },
+  actionBtnViolet: { borderColor: '#c4b5fd' },
+  actionBtnGreen: { borderColor: '#86efac' },
   actionLabel: { fontWeight: '800', fontSize: 13, flexShrink: 1 },
 
   section: { paddingHorizontal: 16, marginTop: 28, maxWidth: 800, width: '100%', alignSelf: 'center' },
