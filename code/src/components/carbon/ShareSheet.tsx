@@ -9,24 +9,25 @@ import { buildCarbonShare } from '../../utils/carbon';
 // targets (WhatsApp, X, LinkedIn, Facebook, Email), Copy message, and "More"
 // for the device's own share menu. Every action gives visible feedback, unlike
 // the browser's bare share call, which can fail or close silently on desktop.
-export function ShareSheet({ result, visible, onClose, reducedKg }: { result: CarbonResult | null; visible: boolean; onClose: () => void; reducedKg?: number | null }) {
+export function ShareSheet({ result, visible, onClose, reducedKg, past }: { result: CarbonResult | null; visible: boolean; onClose: () => void; reducedKg?: number | null; past?: boolean }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [copied, setCopied] = useState(false);
   useEffect(() => { if (!visible) setCopied(false); }, [visible]);
   if (!result) return null;
 
-  const { text, url } = buildCarbonShare(result, reducedKg);
-  const full = `${text} ${url}`;
+  const share = buildCarbonShare(result, reducedKg, past); // one message per channel
+  const { text, url } = share;
+  const full = `${text}\n${url}`;
   const nav: any = typeof navigator !== 'undefined' ? navigator : null;
   const hasMore = Platform.OS !== 'web' || !!nav?.share;
 
   const targets = [
-    { key: 'whatsapp', label: 'WhatsApp', Icon: MessageCircle, color: '#25D366', href: `https://api.whatsapp.com/send?text=${encodeURIComponent(full)}` /* direct: the wa.me redirect breaks emoji */ },
-    { key: 'x', label: 'X', Icon: Twitter, color: '#0f172a', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
+    { key: 'whatsapp', label: 'WhatsApp', Icon: MessageCircle, color: '#25D366', href: `https://api.whatsapp.com/send?text=${encodeURIComponent(`${share.whatsapp}\n${url}`)}` /* direct: the wa.me redirect breaks emoji */ },
+    { key: 'x', label: 'X', Icon: Twitter, color: '#0f172a', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(share.x)}&url=${encodeURIComponent(url)}` },
     { key: 'linkedin', label: 'LinkedIn', Icon: Linkedin, color: '#0A66C2', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}` },
     { key: 'facebook', label: 'Facebook', Icon: Facebook, color: '#1877F2', href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
-    { key: 'email', label: 'Email', Icon: Mail, color: '#ea4335', href: `mailto:?subject=${encodeURIComponent('My carbon footprint')}&body=${encodeURIComponent(`${text}\n\n${url}`)}` },
+    { key: 'email', label: 'Email', Icon: Mail, color: '#ea4335', href: `mailto:?subject=${encodeURIComponent(share.emailSubject)}&body=${encodeURIComponent(share.emailBody)}` },
   ];
 
   const open = (href: string) => {

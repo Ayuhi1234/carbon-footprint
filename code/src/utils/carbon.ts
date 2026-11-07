@@ -71,17 +71,66 @@ export function showCarbonError(title: string, error: any) {
   showAlert(title, error?.response?.data?.message || 'Please try again.');
 }
 
-// The share message and link for a result. The link opens the carbon footprint
-// screen (logged-out visitors log in first and land there). reducedKg = how much
-// lower this result is than the one before it; mentioned only when it went down.
-export function buildCarbonShare(r: CarbonResult, reducedKg?: number | null): { text: string; url: string } {
+// Emoji for the biggest source in share messages.
+const SHARE_EMOJI: Record<CarbonCategoryKey, string> = { transport: '🚗', electricity: '⚡', diet: '🍽️', waste: '♻️', water: '💧', flights: '✈️' };
+
+export type CarbonShare = { text: string; whatsapp: string; x: string; emailSubject: string; emailBody: string; url: string };
+
+// The share messages for a result, one per channel, plus the link. The link opens the carbon
+// footprint screen (logged-out visitors log in first and land there).
+// reducedKg = how much lower this result is than the one before it (mentioned only when it went down).
+// past = an older result shared from My carbon journey, so the wording uses "was" and its month.
+export function buildCarbonShare(r: CarbonResult, reducedKg?: number | null, past = false): CarbonShare {
   const top = CARBON_CATEGORY_ORDER.reduce<CarbonCategoryKey | null>(
     (best, k) => ((r.breakdown?.[k] ?? 0) > (best ? r.breakdown?.[best] ?? 0 : 0) ? k : best), null,
   );
   const origin = Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://karmaverse.earth';
-  const text = `My carbon footprint is ${formatKg(r.totalKgCO2ePerMonth)} kg CO₂e a month 🌍.`
-    + (reducedKg && reducedKg >= 0.1 ? ` That's ${formatKg(reducedKg)} kg less than my last check 🌱.` : '')
-    + (top ? ` My biggest source is ${CARBON_CATEGORIES[top].label.toLowerCase()}.` : '')
-    + ' Find out yours in 2 minutes on KarmaVer$e:';
-  return { text, url: `${origin}/CarbonFootprint` };
+  const url = `${origin}/CarbonFootprint`;
+  const kg = formatKg(r.totalKgCO2ePerMonth);
+  const red = reducedKg && reducedKg >= 0.1 ? formatKg(reducedKg) : null;
+  const band = r.category ? BAND_LABELS[r.category] : undefined;
+  const bandText = band ? band.label.toLowerCase() : null; // e.g. "low footprint"
+  const when = formatPeriod(r.periodLabel) || formatDate(r.createdAt); // e.g. "Oct 2026"
+  const source = top ? CARBON_CATEGORIES[top].label.toLowerCase() : null;
+  const sourceEmoji = top ? SHARE_EMOJI[top] : '';
+
+  // WhatsApp and the general text (Copy, More): a short, friendly card. WhatsApp shows *text* in bold.
+  const card = (b: string) => [
+    past ? '🌍 A look back at my carbon footprint on KarmaVer$e!' : '🌍 Just checked my carbon footprint on KarmaVer$e!',
+    '',
+    `${past ? `In ${when}` : 'My number'}: ${b}${kg} kg CO₂e a month${b}${bandText ? `, a ${bandText}${r.category === 'low' ? ' 💚' : ''}` : ''}`,
+    ...(red ? [past ? `🎉 That was ${red} kg less than the check before!` : `🎉 That's ${red} kg less than my last check!`] : []),
+    ...(source ? [`My biggest source${past ? ' then' : ''}: ${source} ${sourceEmoji}`] : []),
+    '',
+    'Think you can go lower? Take the 2-minute check 👇',
+  ].join('\n');
+
+  // X: one line, well under 280 characters even for the longest numbers (the link counts as 23).
+  const x = `My carbon footprint${past ? ` in ${when}` : ''}: ${kg} kg CO₂e/month 🌍`
+    + (red ? ` (${red} kg less than ${past ? 'the check before' : 'last time'} 🌱)` : '')
+    + '.'
+    + (source ? ` Biggest source: ${source}.` : '')
+    + " What's yours? Find out in 2 min on KarmaVer$e #CarbonFootprint #ClimateAction #ZeroWaste";
+
+  // Email: a subject line and a short letter that ends with the link.
+  const details = `${kg} kg CO₂e a month`
+    + (bandText ? `, a ${bandText}` : '')
+    + (red ? `, and ${red} kg less than ${past ? 'the check before' : 'my last check'} 🎉` : '')
+    + '.';
+  const emailSubject = past
+    ? `🌍 My carbon footprint was ${kg} kg a month in ${when}. What's yours?`
+    : `🌍 My carbon footprint is ${kg} kg a month. What's yours?`;
+  const emailBody = [
+    'Hi!',
+    '',
+    (past
+      ? `I've been tracking my carbon footprint with KarmaVer$e's 2-minute check. In ${when} it was ${details}`
+      : `I just took KarmaVer$e's 2-minute carbon check. My footprint is ${details}`)
+      + (source ? ` My biggest source ${past ? 'was' : 'is'} ${source}.` : ''),
+    '',
+    'It shows exactly where your footprint comes from and how to cut it. Think you can go lower? Try it here:',
+    url,
+  ].join('\n');
+
+  return { text: card(''), whatsapp: card('*'), x, emailSubject, emailBody, url };
 }

@@ -214,6 +214,7 @@ export function CarbonJourneyScreen({ navigation }: any) {
         visible={!!shareFor}
         onClose={() => setShareFor(null)}
         reducedKg={shareFor && shareOlder ? shareOlder.totalKgCO2ePerMonth - shareFor.totalKgCO2ePerMonth : null}
+        past={!!shareFor && shareFor !== assessments[0]}
       />
     </View>
   );
