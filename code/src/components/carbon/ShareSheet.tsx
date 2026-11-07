@@ -9,14 +9,14 @@ import { buildCarbonShare } from '../../utils/carbon';
 // targets (WhatsApp, X, LinkedIn, Facebook, Email), Copy message, and "More"
 // for the device's own share menu. Every action gives visible feedback, unlike
 // the browser's bare share call, which can fail or close silently on desktop.
-export function ShareSheet({ result, visible, onClose }: { result: CarbonResult | null; visible: boolean; onClose: () => void }) {
+export function ShareSheet({ result, visible, onClose, reducedKg }: { result: CarbonResult | null; visible: boolean; onClose: () => void; reducedKg?: number | null }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [copied, setCopied] = useState(false);
   useEffect(() => { if (!visible) setCopied(false); }, [visible]);
   if (!result) return null;
 
-  const { text, url } = buildCarbonShare(result);
+  const { text, url } = buildCarbonShare(result, reducedKg);
   const full = `${text} ${url}`;
   const nav: any = typeof navigator !== 'undefined' ? navigator : null;
   const hasMore = Platform.OS !== 'web' || !!nav?.share;

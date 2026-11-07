@@ -372,7 +372,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
         {Platform.OS === 'web' && <WebFooter />}
       </ScrollView>
 
-      <ShareSheet result={latest} visible={shareOpen} onClose={() => setShareOpen(false)} />
+      <ShareSheet result={latest} visible={shareOpen} onClose={() => setShareOpen(false)} reducedKg={typeof delta === 'number' && delta < 0 ? -delta : null} />
 
       {/* Set goal — web: centred dialog; native: bottom sheet (same as Wallet) */}
       <Modal visible={goalSheet} transparent animationType="fade" onRequestClose={() => setGoalSheet(false)}>

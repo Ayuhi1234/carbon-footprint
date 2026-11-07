@@ -72,13 +72,15 @@ export function showCarbonError(title: string, error: any) {
 }
 
 // The share message and link for a result. The link opens the carbon footprint
-// screen (logged-out visitors log in first and land there).
-export function buildCarbonShare(r: CarbonResult): { text: string; url: string } {
+// screen (logged-out visitors log in first and land there). reducedKg = how much
+// lower this result is than the one before it; mentioned only when it went down.
+export function buildCarbonShare(r: CarbonResult, reducedKg?: number | null): { text: string; url: string } {
   const top = CARBON_CATEGORY_ORDER.reduce<CarbonCategoryKey | null>(
     (best, k) => ((r.breakdown?.[k] ?? 0) > (best ? r.breakdown?.[best] ?? 0 : 0) ? k : best), null,
   );
   const origin = Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://karmaverse.earth';
   const text = `My carbon footprint is ${formatKg(r.totalKgCO2ePerMonth)} kg CO₂e a month 🌍.`
+    + (reducedKg && reducedKg >= 0.1 ? ` That's ${formatKg(reducedKg)} kg less than my last check 🌱.` : '')
     + (top ? ` My biggest source is ${CARBON_CATEGORIES[top].label.toLowerCase()}.` : '')
     + ' Find out yours in 2 minutes on KarmaVer$e:';
   return { text, url: `${origin}/CarbonFootprint` };

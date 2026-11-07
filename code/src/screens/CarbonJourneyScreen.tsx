@@ -35,6 +35,8 @@ export function CarbonJourneyScreen({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(true);
   // The assessment being shared from the history list (null = share pop-up closed).
   const [shareFor, setShareFor] = useState<CarbonResult | null>(null);
+  // The assessment just before the shared one (the list is newest first), to show how much it went down.
+  const shareOlder = shareFor ? assessments[assessments.indexOf(shareFor) + 1] : undefined;
 
   const fetchData = async () => {
     try {
@@ -207,7 +209,12 @@ export function CarbonJourneyScreen({ navigation }: any) {
         {Platform.OS === 'web' && <WebFooter />}
       </ScrollView>
 
-      <ShareSheet result={shareFor} visible={!!shareFor} onClose={() => setShareFor(null)} />
+      <ShareSheet
+        result={shareFor}
+        visible={!!shareFor}
+        onClose={() => setShareFor(null)}
+        reducedKg={shareFor && shareOlder ? shareOlder.totalKgCO2ePerMonth - shareFor.totalKgCO2ePerMonth : null}
+      />
     </View>
   );
 }

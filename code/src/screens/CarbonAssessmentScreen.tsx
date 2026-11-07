@@ -79,6 +79,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
   const [suggest, setSuggest] = useState<{ fieldKey: string; text: string; options: QOption[] } | null>(null);
   // Celebration shown on the result card (first result, lower footprint, goal reached).
   const [milestone, setMilestone] = useState<{ emoji: string; title: string; body: string } | null>(null);
+  const [reducedKg, setReducedKg] = useState<number | null>(null); // for the share message
   const [cardBox, setCardBox] = useState<{ width: number; height: number } | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const recRef = useRef<any>(null);
@@ -205,6 +206,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
   const detectMilestone = (r: CarbonResult) => {
     Promise.all([carbonService.getLatestResult(), carbonService.getGoal()]).then(([latest, goal]) => {
       if (latest?.result?._id && latest.result._id !== r._id) return; // not this result
+      if (latest?.comparison && latest.comparison.deltaKgCO2ePerMonth < 0) setReducedKg(-latest.comparison.deltaKgCO2ePerMonth);
       if (goal?.progress.achieved && goal.progress.currentKgCO2ePerMonth === r.totalKgCO2ePerMonth) {
         setMilestone({ emoji: '🏆', title: 'Goal reached!', body: `You're under your target of ${formatKg(goal.goal.targetKgCO2ePerMonth)} kg a month.` });
       } else if (latest?.comparison?.improved && latest.comparison.deltaKgCO2ePerMonth < 0) {
@@ -538,7 +540,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
           </View>
         )}
       </KeyboardAvoidingView>
-      <ShareSheet result={result} visible={shareOpen} onClose={() => setShareOpen(false)} />
+      <ShareSheet result={result} visible={shareOpen} onClose={() => setShareOpen(false)} reducedKg={reducedKg} />
     </SafeAreaView>
   );
 }
