@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, LineChart, TrendingDown, TrendingUp, History, Clock } from 'lucide-react-native';
+import { ChevronLeft, LineChart, TrendingDown, TrendingUp, History, Clock, Share2 } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
 import { carbonService, CarbonResult } from '../services/carbon';
 import { formatKg, formatAssessed, formatPeriod } from '../utils/carbon';
+import { ShareSheet } from '../components/carbon/ShareSheet';
 
 // Percentage change between two stored results — display only; the results
 // themselves are calculated and stored by the backend and never edited here.
@@ -32,6 +33,8 @@ export function CarbonJourneyScreen({ navigation }: any) {
   const tint = (bg: string) => (isDark ? colors.surfaceAlt : bg);
   const [assessments, setAssessments] = useState<CarbonResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // The assessment being shared from the history list (null = share pop-up closed).
+  const [shareFor, setShareFor] = useState<CarbonResult | null>(null);
 
   const fetchData = async () => {
     try {
@@ -186,6 +189,9 @@ export function CarbonJourneyScreen({ navigation }: any) {
                         </View>
                       </View>
                       {older ? <ChangeText pct={pct} /> : <Text style={styles.firstTag}>First</Text>}
+                      <TouchableOpacity style={styles.shareBtn} onPress={() => setShareFor(a)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`Share this result from ${formatAssessed(a)}`} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Share2 size={16} color={colors.primary} />
+                      </TouchableOpacity>
                     </View>
                   );
                 })}
@@ -200,6 +206,8 @@ export function CarbonJourneyScreen({ navigation }: any) {
 
         {Platform.OS === 'web' && <WebFooter />}
       </ScrollView>
+
+      <ShareSheet result={shareFor} visible={!!shareFor} onClose={() => setShareFor(null)} />
     </View>
   );
 }
@@ -241,6 +249,7 @@ const useStyles = makeStyles((c) => ({
   rowMeta: { fontSize: 11, color: c.textMuted, fontWeight: '500' },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   firstTag: { fontSize: 12, fontWeight: '800', color: c.textMuted },
+  shareBtn: { marginLeft: 10, width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceAlt },
 
   chartCard: { alignItems: 'flex-end', justifyContent: 'space-around', paddingTop: 18, gap: 8 },
   barCol: { flex: 1, alignItems: 'center', maxWidth: 64 },
