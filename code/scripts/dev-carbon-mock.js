@@ -145,6 +145,14 @@ function createCarbonMock() {
         const [r, prev] = u.results;
         return send(200, { result: r, comparison: prev ? { deltaKgCO2ePerMonth: r2(r.totalKgCO2ePerMonth - prev.totalKgCO2ePerMonth), improved: r.totalKgCO2ePerMonth < prev.totalKgCO2ePerMonth, previousPeriodLabel: prev.periodLabel } : null });
       }
+      // "Email me my report": like the real backend (404 / 3 per hour) but sends nothing.
+      if (req.method === 'POST' && p === '/result/email') {
+        if (!u.results.length) return send(404, null, 'No completed carbon footprint assessment found yet.');
+        u.emailsSent = (u.emailsSent || []).filter((t) => Date.now() - t < 60 * 60 * 1000);
+        if (u.emailsSent.length >= 3) return send(429, null, 'You can email your report up to 3 times an hour. Please try again later.');
+        u.emailsSent.push(Date.now());
+        return send(200, { sentTo: 'yo***@example.com' }, 'Your report is on its way to your email. (Local test: no email is sent.)');
+      }
       if (req.method === 'GET' && p === '/result/history') {
         const page = parseInt(url.searchParams.get('page') || '1', 10);
         const limit = parseInt(url.searchParams.get('limit') || '12', 10);

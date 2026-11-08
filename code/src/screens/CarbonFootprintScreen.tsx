@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Leaf, History, ChevronLeft, ChevronRight, Target, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock, Share2, X } from 'lucide-react-native';
+import { Leaf, History, ChevronLeft, ChevronRight, Target, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock, Share2, X, Mail } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles, lightColors } from '../theme';
 import {
@@ -69,6 +69,23 @@ export function CarbonFootprintScreen({ navigation }: any) {
 
   const [shareOpen, setShareOpen] = useState(false);
   const shareResult = () => setShareOpen(true);
+
+  // "Email me this report": the backend emails the latest result to the account's own address.
+  const [emailing, setEmailing] = useState(false);
+  const emailReport = async () => {
+    if (emailing) return;
+    setEmailing(true);
+    try {
+      const { sentTo } = await carbonService.emailReport();
+      showAlert('Report on its way', sentTo ? `We've sent your report to ${sentTo}.` : "We've sent your report to your email.");
+    } catch (error: any) {
+      // The 3-per-hour limit replies with plain text, so give it its own message.
+      if (error?.response?.status === 429) showAlert("Couldn't email your report", 'You can email your report up to 3 times an hour. Please try again later.');
+      else showCarbonError("Couldn't email your report", error);
+    } finally {
+      setEmailing(false);
+    }
+  };
 
   // A goal needs a result to start from.
   const openGoalSheet = () => {
@@ -362,6 +379,18 @@ export function CarbonFootprintScreen({ navigation }: any) {
                   </View>
                 );
               })}
+              <TouchableOpacity
+                style={styles.emailBtn}
+                onPress={emailReport}
+                disabled={emailing}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Email me this report"
+                accessibilityState={{ busy: emailing }}
+              >
+                {emailing ? <ActivityIndicator size="small" color={isDark ? '#4ade80' : '#15803d'} /> : <Mail size={16} color={isDark ? '#4ade80' : '#15803d'} />}
+                <Text style={[styles.emailText, { color: isDark ? '#4ade80' : '#15803d' }]}>{emailing ? 'Sending…' : 'Email me this report'}</Text>
+              </TouchableOpacity>
               <Text style={styles.footnote}>
                 Calculated {formatAssessed(latest)}{latest.emissionFactorVersion ? ` · emission factors ${formatPeriod(latest.emissionFactorVersion) ? `as of ${formatPeriod(latest.emissionFactorVersion)}` : latest.emissionFactorVersion}` : ''}
               </Text>
@@ -491,6 +520,8 @@ const useStyles = makeStyles((c) => ({
   barTrack: { height: 6, borderRadius: 3, backgroundColor: c.surfaceAlt, marginTop: 3, marginBottom: 5, overflow: 'hidden' },
   barFill: { height: 6, borderRadius: 3 },
   footnote: { fontSize: 12, color: c.textMuted, marginTop: 6, textAlign: 'center' },
+  emailBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, alignSelf: 'center', marginTop: 8, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 100, borderWidth: 1.5, borderColor: '#86efac', backgroundColor: c.surface },
+  emailText: { fontSize: 14, fontWeight: '600' },
 
   ctaCard: { padding: 14, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border, elevation: 2, shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, gap: 14 },
   ctaTop: { flexDirection: 'row', alignItems: 'center' },

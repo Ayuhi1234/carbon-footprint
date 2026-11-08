@@ -241,4 +241,12 @@ export const carbonService = {
     if (!CARBON_API_READY) return notReady();
     return unwrap(await api.post(`${BASE}/goal`, { reductionPercent }));
   },
+
+  // Emails the latest result to the account's own address ("Email me my report").
+  // The backend queues the email and returns a hidden-style address, e.g. "an***@gmail.com".
+  // 404 = no completed assessment, 400 = no email on the account, 429 = 3 per hour limit.
+  emailReport: async (): Promise<{ sentTo?: string }> => {
+    if (!CARBON_API_READY) return notReady();
+    return unwrap(await api.post(`${BASE}/result/email`)) ?? {};
+  },
 };
