@@ -8,7 +8,7 @@ import {
 } from '../services/carbon';
 import { profileService } from '../services/profile';
 import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError } from '../utils/carbon';
-import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, parseNumber, matchOptions, QOption, applyServerQuestions } from '../utils/carbonQuestions';
+import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, readNumber, matchOptions, otherQuestionHint, noMatchMessage, yesOrNo, QOption, applyServerQuestions } from '../utils/carbonQuestions';
 import { showAlert } from '../utils/alert';
 import { useTheme, makeStyles } from '../theme';
 import { TopicStepper, useCountUp, Confetti } from '../components/carbon/CarbonVisuals';
@@ -76,7 +76,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
   const [listening, setListening] = useState(false);
   const [result, setResult] = useState<CarbonResult | null>(null);
   // Typed answer waiting for the user to confirm one of the suggested options.
-  const [suggest, setSuggest] = useState<{ fieldKey: string; text: string; options: QOption[] } | null>(null);
+  const [suggest, setSuggest] = useState<{ fieldKey: string; text: string; options: QOption[]; message?: string; prompt?: string } | null>(null);
   // Celebration shown on the result card (first result, lower footprint, goal reached).
   const [milestone, setMilestone] = useState<{ emoji: string; title: string; body: string } | null>(null);
   const [reducedKg, setReducedKg] = useState<number | null>(null); // for the share message
@@ -228,19 +228,37 @@ export function CarbonAssessmentScreen({ navigation }: any) {
     if (buildAnswer(category, next)) send(category, next, f);
   };
 
-  // Typed (or spoken) answer: a number field takes the number directly; otherwise
-  // Earth Buddy suggests the matching options and the user taps one to confirm.
+  // Typed (or spoken) answer. A number field takes the number it can read; an answer
+  // that doesn't fit the question (wrong unit, per week instead of per day, several
+  // numbers, words that belong to another question) gets a clear message instead.
+  // Otherwise Earth Buddy suggests the matching options and the user taps one to confirm.
   const sendText = () => {
     if (!current) return;
     const text = input.trim();
     if (!text) return;
+    // A reply to "Did you mean…?": yes picks the only suggestion, no dismisses them,
+    // and naming one of the suggestions picks it. Anything else is a fresh answer.
+    if (suggest && suggest.fieldKey === current.key && suggest.options.length > 0) {
+      const reply = yesOrNo(text);
+      if (reply === 'yes' && suggest.options.length === 1) { answerField(current, suggest.options[0].value, suggest.options[0].label); return; }
+      if (reply === 'yes') { setSuggest({ ...suggest, text, prompt: 'Which one? Tap it, or say its name.' }); setInput(''); return; }
+      if (reply === 'no') { setSuggest({ fieldKey: current.key, text, options: [], message: 'No problem. Please tap the right option above.' }); setInput(''); return; }
+      const named = matchOptions({ ...current, options: suggest.options }, text);
+      if (named.length === 1) { answerField(current, named[0].value, named[0].label); return; }
+    }
     if (current.number) {
-      const n = parseNumber(current, text);
-      if (n !== null) { answerField(current, n, `${n.toLocaleString()} ${current.number.unit}`); return; }
+      const read = readNumber(current, text);
+      if (read.kind === 'value') { answerField(current, read.value, read.label); return; }
+      if (read.kind === 'error') { setInputError(read.message); return; }
     }
     const options = matchOptions(current, text);
-    if (current.number && options.length === 0) {
-      setInputError(`Enter a number from ${current.number.min.toLocaleString()} to ${current.number.max.toLocaleString()}.`);
+    if (options.length === 0) {
+      const message = otherQuestionHint(current, text) ?? noMatchMessage(current);
+      // Number questions show the message above the text box; tap questions in Earth Buddy's reply.
+      if (current.number) { setInputError(message); return; }
+      setSuggest({ fieldKey: current.key, text, options, message });
+      setInput('');
+      setInputError(null);
       return;
     }
     setSuggest({ fieldKey: current.key, text, options });
@@ -419,7 +437,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
                   </View>
                   <BotBubble live>
                     <Text style={styles.botText}>
-                      {suggest.options.length ? (suggest.options.length === 1 ? 'Did you mean this?' : 'Did you mean one of these?') : "Sorry, I didn't catch that. Please tap one of the options above."}
+                      {suggest.prompt ?? (suggest.options.length ? (suggest.options.length === 1 ? 'Did you mean this? You can say yes or no.' : 'Did you mean one of these?') : suggest.message) ?? "Sorry, I didn't catch that. Please tap one of the options above."}
                     </Text>
                   </BotBubble>
                   {suggest.options.length > 0 && (
@@ -498,7 +516,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
         {current && (
           <View style={styles.composer}>
             {(inputError || listening) && (
-              <Text style={[styles.voiceHint, inputError ? { color: colors.danger } : null]}>
+              <Text style={[styles.voiceHint, inputError ? { color: colors.danger } : null]} accessibilityLiveRegion="polite">
                 {inputError ?? 'Listening… tap the mic again to stop.'}
               </Text>
             )}

@@ -181,13 +181,158 @@ export function buildAnswer<K extends CarbonCategoryKey>(category: K, draft: Dra
   return answer as unknown as CarbonAnswers[K];
 }
 
-// A typed or spoken number ("about 15 km" → 15), or null if none / out of range.
-export function parseNumber(field: Field, text: string): number | null {
-  const match = text.replace(/,/g, '').match(/-?\d+(\.\d+)?/);
-  if (!match || !field.number) return null;
-  // A minus sign must not be dropped: "-5" is out of range, not 5.
-  const n = Number(match[0]);
-  return n >= field.number.min && n <= field.number.max ? n : null;
+// ── Typed or spoken numbers ──────────────────────────────────────────────────
+// Typed and spoken answers both arrive here as text (voice fills the text box).
+// readNumber() works out the one number the user meant for this question, or a
+// clear message when the answer doesn't fit it: a time instead of km, rupees
+// instead of units, "per week" for a per-day question, several numbers, etc.
+
+export type NumberRead =
+  | { kind: 'value'; value: number; label: string }
+  | { kind: 'error'; message: string }
+  | { kind: 'none' }; // no number in the text
+
+type UnitGroup = 'distance' | 'energy' | 'weight' | 'volume' | 'count' | 'time' | 'money' | 'people' | 'duration';
+type Period = 'day' | 'week' | 'month' | 'year';
+
+// What each question measures, keyed by its unit (from carbon.questions.js).
+const FIELD_UNITS: Record<string, { group: UnitGroup; period: Period; noun: string }> = {
+  km: { group: 'distance', period: 'day', noun: 'the distance in km' },
+  units: { group: 'energy', period: 'month', noun: 'the units from your electricity bill' },
+  kg: { group: 'weight', period: 'week', noun: 'the weight in kg' },
+  litres: { group: 'volume', period: 'day', noun: 'the amount in litres' },
+  flights: { group: 'count', period: 'year', noun: 'the number of flights' },
+};
+
+// Words that can follow a number. factor converts to the question's own unit
+// (only exact conversions: metres, miles, grams, millilitres).
+const UNIT_WORDS: Record<string, { group: UnitGroup; factor?: number; name: string }> = {};
+const addUnits = (words: string[], group: UnitGroup, name: string, factor?: number) =>
+  words.forEach((w) => { UNIT_WORDS[w] = { group, factor, name }; });
+addUnits(['km', 'kms', 'kilometre', 'kilometres', 'kilometer', 'kilometers'], 'distance', 'km');
+addUnits(['m', 'metre', 'metres', 'meter', 'meters', 'mtr', 'mtrs'], 'distance', 'metres', 0.001);
+addUnits(['mile', 'miles'], 'distance', 'miles', 1.609);
+addUnits(['unit', 'units', 'kwh'], 'energy', 'units');
+addUnits(['kg', 'kgs', 'kilo', 'kilos', 'kilogram', 'kilograms'], 'weight', 'kg');
+addUnits(['g', 'gm', 'gms', 'gram', 'grams'], 'weight', 'grams', 0.001);
+addUnits(['l', 'ltr', 'ltrs', 'litre', 'litres', 'liter', 'liters'], 'volume', 'litres');
+addUnits(['ml', 'millilitre', 'millilitres', 'milliliter', 'milliliters'], 'volume', 'millilitres', 0.001);
+addUnits(['bucket', 'buckets'], 'volume', 'buckets');
+addUnits(['flight', 'flights', 'trip', 'trips', 'time', 'times'], 'count', 'flights');
+addUnits(['minute', 'minutes', 'min', 'mins', 'hour', 'hours', 'hr', 'hrs', 'second', 'seconds', 'sec', 'secs'], 'time', 'time');
+addUnits(['rupee', 'rupees', 'rs', 'inr'], 'money', 'rupees');
+addUnits(['people', 'person', 'persons', 'member', 'members'], 'people', 'people');
+addUnits(['day', 'days', 'week', 'weeks', 'month', 'months', 'year', 'years'], 'duration', 'days');
+
+const NUMBER_WORDS: Record<string, number> = {
+  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19,
+  twenty: 20, thirty: 30, forty: 40, fourty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+};
+
+// "twenty two" → 22, "two hundred and fifty" → 250, "one and a half" → 1.5,
+// "half" → 0.5, "once"/"twice" → 1/2. Everything else is left as it is.
+function wordsToDigits(text: string): string {
+  const words = text.replace(/([a-z])-([a-z])/g, '$1 $2').split(/\s+/);
+  const out: string[] = [];
+  let i = 0;
+  while (i < words.length) {
+    const w = words[i];
+    if (w === 'once' || w === 'twice') { out.push(w === 'once' ? '1' : '2'); i += 1; continue; }
+    const starts = w in NUMBER_WORDS || w === 'half' || ((w === 'a' || w === 'one') && ['hundred', 'thousand'].includes(words[i + 1]));
+    if (!starts) { out.push(w); i += 1; continue; }
+    let total = 0;
+    let current = 0;
+    let used = false;
+    while (i < words.length) {
+      const t = words[i];
+      if (t in NUMBER_WORDS) { current += NUMBER_WORDS[t]; used = true; i += 1; }
+      else if (t === 'hundred') { current = (current || 1) * 100; used = true; i += 1; }
+      else if (t === 'thousand') { total += (current || 1) * 1000; current = 0; used = true; i += 1; }
+      else if (t === 'half') { current += 0.5; used = true; i += 1; }
+      else if (t === 'a' && ['hundred', 'thousand', 'half'].includes(words[i + 1])) { i += 1; }
+      else if (t === 'and' && used && (words[i + 1] in NUMBER_WORDS || (words[i + 1] === 'a' && words[i + 2] === 'half'))) { i += 1; }
+      else break;
+    }
+    out.push(used ? String(total + current) : w);
+  }
+  return out.join(' ');
+}
+
+const PERIOD_WORDS: Record<string, Period> = {
+  daily: 'day', day: 'day', weekly: 'week', week: 'week', monthly: 'month', month: 'month',
+  yearly: 'year', year: 'year', annually: 'year', annual: 'year',
+};
+
+type Found = { value: number; unit?: { group: UnitGroup; factor?: number; name: string }; range: boolean; money: boolean; after: string };
+
+const fmt = (n: number) => Number(n.toFixed(2)).toLocaleString();
+
+export function readNumber(field: Field, rawText: string): NumberRead {
+  if (!field.number) return { kind: 'none' };
+  const spec = FIELD_UNITS[field.number.unit];
+  const { min, max, unit } = field.number;
+  let text = ` ${rawText.toLowerCase()} `
+    .replace(/(\d),(?=\d)/g, '$1')           // 1,500 → 1500
+    .replace(/(\d)\s+and a half\b/g, '$1.5') // 2 and a half → 2.5
+    .replace(/[’']/g, '');
+  text = wordsToDigits(text);
+  if (unit !== 'km') text = text.replace(/(\d+(?:\.\d+)?)\s*k\b/g, (_, n) => String(Number(n) * 1000)); // 2k → 2000
+
+  // Every number in the text, with the word after it. "10 to 15" / "10-15" is one range.
+  const found: Found[] = [];
+  const re = /(-?)(\d+(?:\.\d+)?)(?:\s*(?:-|–|to|or)\s*(\d+(?:\.\d+)?))?/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    const a = Number(m[2]);
+    const b = m[3] !== undefined ? Number(m[3]) : undefined;
+    const isRange = b !== undefined && b > a;
+    const negative = m[1] === '-' && /[\s(]$/.test(text.slice(0, m.index));
+    const rest = text.slice(m.index + m[0].length);
+    const word = rest.match(/^\s*([a-z]+)/)?.[1];
+    const unitWord = word ? UNIT_WORDS[word] : undefined;
+    found.push({
+      value: isRange ? (a + (b as number)) / 2 : negative ? -a : a,
+      unit: unitWord,
+      range: isRange,
+      money: /(₹|\brs\.?)\s*$/.test(text.slice(Math.max(0, m.index - 6), m.index)),
+      after: unitWord ? rest.replace(/^\s*[a-z]+/, '') : rest,
+    });
+  }
+  if (found.length === 0) return { kind: 'none' };
+
+  const noun = spec?.noun ?? `a number of ${unit}`;
+  // Pick the number: the only one with this question's unit, or the only number.
+  const own = spec ? found.filter((f) => f.unit?.group === spec.group) : [];
+  const pick = own.length === 1 ? own[0] : own.length === 0 && found.length === 1 ? found[0] : null;
+  if (!pick) return { kind: 'error', message: `I found more than one number. Please give just one: ${noun}.` };
+
+  if (spec) {
+    if (pick.money || pick.unit?.group === 'money') {
+      return { kind: 'error', message: spec.group === 'energy' ? 'That sounds like your bill amount in rupees. Please give the units (kWh) from your bill.' : `That sounds like an amount in rupees. Please give ${noun}.` };
+    }
+    if (pick.unit && pick.unit.group !== spec.group) {
+      const g = pick.unit.group;
+      const message =
+        g === 'time' ? `That sounds like a time. Please give ${noun}.`
+        : g === 'people' ? `That sounds like a number of people. Please give ${noun}.`
+        : g === 'duration' ? `That sounds like a number of days, weeks or months. Please give ${noun}.`
+        : `That's in ${pick.unit.name}, not ${unit}. Please give ${noun}.`;
+      return { kind: 'error', message };
+    }
+    if (pick.unit?.name === 'buckets') return { kind: 'error', message: 'Please give litres. A bucket is about 20 litres.' };
+    // "20 km a week" when the question asks per day.
+    const said = pick.after.match(/^\s*(?:(?:per|a|an|every|each|in a|in an)\s+)?(daily|weekly|monthly|yearly|annually|annual|day|week|month|year)\b/)?.[1];
+    const period = said ? PERIOD_WORDS[said] : undefined;
+    if (period && period !== spec.period) return { kind: 'error', message: `That's per ${period}. This question asks per ${spec.period}.` };
+  }
+
+  const factor = pick.unit?.factor ?? 1;
+  const value = Number((pick.value * factor).toFixed(3));
+  if (value < min || value > max) return { kind: 'error', message: `Enter a number from ${min.toLocaleString()} to ${max.toLocaleString()} ${unit}.` };
+  if (spec?.group === 'count' && !Number.isInteger(value)) return { kind: 'error', message: `Please give a whole number of ${unit}.` };
+  const label = `${pick.range ? 'about ' : ''}${fmt(value)} ${unit}${factor !== 1 ? ` (${fmt(pick.value)} ${pick.unit?.name})` : ''}`;
+  return { kind: 'value', value, label };
 }
 
 // ── Typed answers → suggested options ────────────────────────────────────────
@@ -210,8 +355,8 @@ const KEYWORDS: Record<string, string[]> = {
   'dietType:vegan': ['vegan', 'plant based', 'no dairy', 'no milk'],
   'dietType:vegetarian': ['vegetarian', 'veg', 'pure veg', 'shakahari', 'no meat'],
   'dietType:eggetarian': ['eggetarian', 'egg', 'eggs', 'anda', 'veg and egg'],
-  'dietType:non_veg_moderate': ['sometimes', 'occasionally', 'weekends', 'few times', 'once a week', 'twice a week', 'non veg sometimes', 'nonveg sometimes'],
-  'dietType:non_veg_heavy': ['daily', 'every day', 'everyday', 'most days', 'non veg daily', 'chicken daily', 'meat daily', 'all the time'],
+  'dietType:non_veg_moderate': ['sometimes', 'occasionally', 'weekends', 'few times', 'once a week', 'twice a week', 'non veg sometimes', 'nonveg sometimes', 'non veg', 'nonveg', 'non vegetarian', 'chicken', 'meat', 'fish', 'mutton'],
+  'dietType:non_veg_heavy': ['daily', 'every day', 'everyday', 'most days', 'non veg daily', 'chicken daily', 'meat daily', 'all the time', 'non veg', 'nonveg', 'non vegetarian', 'chicken', 'meat', 'fish', 'mutton'],
   'segregatesWaste:true': ['yes', 'yeah', 'yep', 'haan', 'ha', 'ji', 'sure', 'i do', 'we do', 'always', 'separate', 'segregate', 'wet and dry'],
   'segregatesWaste:false': ['no', 'nope', 'nahi', 'nahin', 'never', 'dont', 'do not', 'not really', 'mix it', 'together'],
   'shortHaulPerYear:0': ['none', 'no', 'zero', 'never', 'nahi', 'no flights'],
@@ -220,17 +365,99 @@ const KEYWORDS: Record<string, string[]> = {
 
 const normalize = (t: string) => ` ${t.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').trim()} `;
 
+// "I don't take the bus" must not suggest Bus: a match is ignored when a negation
+// comes just before it (filler words like "take the" are skipped).
+const NEGATIONS = new Set(['not', 'no', 'dont', 'never', 'nahi', 'non', 'without', 'cant', 'doesnt', 'didnt']);
+const FILLER = new Set(['the', 'a', 'an', 'eat', 'use', 'take', 'have', 'go', 'by', 'really', 'any', 'much', 'ride', 'drive', 'travel', 'own', 'my', 'we', 'i', 'do', 'usually']);
+function heard(said: string, term: string): boolean {
+  if (!term.trim()) return false;
+  const termNegated = NEGATIONS.has(term.trim().split(' ')[0]);
+  let from = 0;
+  for (;;) {
+    const at = said.indexOf(term, from);
+    if (at < 0) return false;
+    const before = said.slice(0, at).trim().split(' ').filter(Boolean);
+    let k = before.length - 1;
+    let skipped = 0;
+    while (k >= 0 && skipped < 3 && FILLER.has(before[k])) { k -= 1; skipped += 1; }
+    if (termNegated || k < 0 || !NEGATIONS.has(before[k])) return true;
+    from = at + 1;
+  }
+}
+
+// Generic words (yes/no, frequency, sizes) and bare numbers don't say which
+// question an answer belongs to, so they don't count when checking other questions.
+const GENERIC = new Set(['yes', 'yeah', 'yep', 'haan', 'ha', 'ji', 'sure', 'no', 'nope', 'nahi', 'nahin', 'never', 'none', 'zero', 'dont', 'do not', 'not really', 'always', 'sometimes', 'occasionally', 'daily', 'every day', 'everyday', 'most days', 'all the time', 'weekends', 'few times', 'once a week', 'twice a week', 'i do', 'we do', 'normal', 'regular', 'both', 'mix', 'together', 'average', 'careful', 'a lot', 'quite a lot', 'more than that', 'local', 'board', 'government']);
+
+function scoreOptions(field: Field, text: string, specificOnly: boolean) {
+  const said = normalize(text);
+  if (said.trim().length < 2) return [];
+  return field.options.map((o) => {
+    const terms = [o.label.replace(/\(.*?\)/g, ''), ...(KEYWORDS[`${field.key}:${String(o.value)}`] ?? [])]
+      .map(normalize)
+      .filter((t) => !specificOnly || (!GENERIC.has(t.trim()) && !/^[\d\s]+$/.test(t)));
+    const score = terms.reduce((sum, term) => (heard(said, term) ? sum + term.trim().split(' ').length : sum), 0);
+    return { o, score };
+  });
+}
+
 // The options a typed answer most likely means: best-scoring first, at most 3.
 // Longer phrases score more, so "petrol car" beats a bare "car".
 export function matchOptions(field: Field, text: string): QOption[] {
-  const said = normalize(text);
-  if (said.trim().length < 2) return [];
-  const scored = field.options.map((o) => {
-    const terms = [o.label.replace(/\(.*?\)/g, ''), ...(KEYWORDS[`${field.key}:${String(o.value)}`] ?? [])].map(normalize);
-    const score = terms.reduce((sum, term) => (term.trim() && said.includes(term) ? sum + term.trim().split(' ').length : sum), 0);
-    return { o, score };
-  });
+  const scored = scoreOptions(field, text, false);
   const best = Math.max(0, ...scored.map((x) => x.score));
   if (best === 0) return [];
   return scored.filter((x) => x.score === best).slice(0, 3).map((x) => x.o);
+}
+
+// ── Answers that fit a different question ────────────────────────────────────
+const TOPIC: Record<string, string> = {
+  mode: 'how you travel', kmPerDay: 'how far you travel', unitsKwhPerMonth: 'your electricity units',
+  source: 'where your electricity comes from', dietType: 'what you eat', segregatesWaste: 'separating your waste',
+  kgPerWeek: 'how much waste you throw out', litersPerDay: 'your water use', shortHaulPerYear: 'flights', longHaulPerYear: 'flights',
+};
+const topic = (f: Field) => TOPIC[f.key] ?? 'this question';
+
+// A number followed by one of a unit group's words, e.g. "10 km" for distance.
+const hasUnit = (text: string, group: UnitGroup) =>
+  new RegExp(`\\d\\s*(${Object.keys(UNIT_WORDS).filter((w) => UNIT_WORDS[w].group === group).join('|')})\\b`).test(text.toLowerCase());
+
+// When an answer doesn't fit this question: a message if it clearly fits another
+// one ("bus" to the diet question, "10 km" to the travel-mode question), else null.
+export function otherQuestionHint(field: Field, text: string): string | null {
+  const ownGroup = field.number ? FIELD_UNITS[field.number.unit]?.group : undefined;
+  for (const other of FIELDS) {
+    if (other.key === field.key || topic(other) === topic(field)) continue;
+    const otherGroup = other.number ? FIELD_UNITS[other.number.unit]?.group : undefined;
+    const fits = scoreOptions(other, text, true).some((x) => x.score > 0)
+      || (!!otherGroup && otherGroup !== ownGroup && otherGroup !== 'count' && hasUnit(text, otherGroup));
+    if (fits) {
+      // Same topic, later question (e.g. "10 km" while asked how you travel): answer this one first.
+      const later = other.category === field.category && FIELDS.indexOf(other) > FIELDS.indexOf(field);
+      return later
+        ? `That sounds like ${topic(other)}. First, tell me ${topic(field)}.`
+        : `That sounds like an answer about ${topic(other)}. This question is about ${topic(field)}.`;
+    }
+  }
+  return null;
+}
+
+// ── Replies to "Did you mean…?" ──────────────────────────────────────────────
+// A short yes or no (typed or spoken) while Earth Buddy is asking "Did you mean…?".
+// "no, I take the metro" is not a plain no: it's left for normal matching.
+const YES = new Set(['yes', 'yeah', 'yep', 'yup', 'ya', 'yah', 'haan', 'han', 'ha', 'ji', 'ok', 'okay', 'correct', 'right', 'sure', 'exactly', 'absolutely']);
+const NO = new Set(['no', 'nope', 'nah', 'nahi', 'nahin', 'na', 'none', 'neither', 'wrong']);
+export function yesOrNo(text: string): 'yes' | 'no' | null {
+  const words = normalize(text).trim().split(' ').filter(Boolean);
+  if (words.length === 0) return null;
+  if (YES.has(words[0]) && words.length <= 4) return 'yes';
+  if (NO.has(words[0]) && (words.length <= 2 || ['of these', 'of them', 'not that', 'not this'].includes(words.slice(1).join(' ')))) return 'no';
+  return null;
+}
+
+// The message when an answer can't be matched to this question at all.
+export function noMatchMessage(field: Field): string {
+  if (field.number) return `Please enter a number from ${field.number.min.toLocaleString()} to ${field.number.max.toLocaleString()} ${field.number.unit}, or tap an option above.`;
+  const examples = field.options.slice(0, 2).map((o) => `“${o.label}”`).join(' or ');
+  return `I couldn't match that to this question. Please tap one of the options above${examples ? `, or try words like ${examples}` : ''}.`;
 }
