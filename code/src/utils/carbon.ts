@@ -44,6 +44,41 @@ export const BAND_LABELS: Record<string, { label: string; color: string; lightTe
   high: { label: 'High footprint', color: '#e11d48', lightText: '#e11d48' },
 };
 
+// What each band means, in plain words. `top` is the biggest source's label (e.g. "home energy").
+export function bandMeaning(category: string | undefined, top?: string): string | null {
+  const start = top ? `${top.charAt(0).toUpperCase()}${top.slice(1)} is the best place to start.` : 'Your biggest source is the best place to start.';
+  if (category === 'low') return 'Well done! Keep your habits going.';
+  if (category === 'medium') return `There's room to cut. ${start}`;
+  if (category === 'high') return `There's a lot you can cut. ${start}`;
+  return null;
+}
+
+export const CO2E_EXPLAINED = 'CO₂e (carbon dioxide equivalent) counts all greenhouse gases as the amount of CO₂ with the same warming effect.';
+
+// The same petrol-car factor the backend uses (emission factors 2026-09: car_petrol_km = 0.227 kg CO₂e
+// per km). Only used to explain a total in everyday terms ("like driving 73 km a day").
+export const PETROL_CAR_KG_PER_KM = 0.227;
+export const KM_PER_MILE = 1.609;
+
+// A category's share of the total, as shown to people: "36%", or "under 1%" when it's
+// small but not zero (so 1.2 kg of water doesn't read as "0% of your footprint").
+export function formatShare(kg: number, total: number): string {
+  if (!(total > 0) || !(kg > 0)) return '0%';
+  const pct = Math.round((kg / total) * 100);
+  return pct < 1 ? 'under 1%' : `${pct}%`;
+}
+
+// The biggest sources of a result with their share, largest first (at most `n`).
+export function topSources(breakdown: Partial<Record<CarbonCategoryKey, number>> | undefined, total: number, n = 3) {
+  if (!breakdown || !(total > 0)) return [];
+  return (Object.keys(breakdown) as CarbonCategoryKey[])
+    .map((key) => ({ key, kg: breakdown[key] ?? 0 }))
+    .filter((s) => s.kg > 0 && CARBON_CATEGORIES[s.key])
+    .sort((a, b) => b.kg - a.kg)
+    .slice(0, n)
+    .map((s) => ({ ...s, label: CARBON_CATEGORIES[s.key].label, pct: Math.round((s.kg / total) * 100) }));
+}
+
 export const formatKg = (kg: number) => kg.toLocaleString(undefined, { maximumFractionDigits: 1 });
 
 export const formatDate = (iso?: string) =>

@@ -7,11 +7,12 @@ import { useTheme, makeStyles, lightColors } from '../theme';
 import {
   carbonService, CarbonResult, CarbonComparison, CarbonSummary, CarbonGoalState, CARBON_CATEGORY_ORDER, CarbonCategoryKey,
 } from '../services/carbon';
-import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError } from '../utils/carbon';
+import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError, formatShare } from '../utils/carbon';
 import { showAlert } from '../utils/alert';
 import { CarbonDonut, useCountUp } from '../components/carbon/CarbonVisuals';
 import { EarthBuddy } from '../components/carbon/EarthBuddy';
 import { ShareSheet } from '../components/carbon/ShareSheet';
+import { DrivingComparison } from '../components/carbon/CarbonExplain';
 
 // Results are monthly; after this many days the hub invites a fresh check-in.
 const CHECK_IN_DAYS = 30;
@@ -184,6 +185,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
               </View>
               <EarthBuddy size={88} wave cheer />
             </View>
+            {latest && <DrivingComparison totalKgPerMonth={total} onDark />}
 
             {/* Earth Buddy's speech bubble, pointing up at the mascot */}
             <View style={styles.speech} accessibilityLiveRegion="polite">
@@ -353,7 +355,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
                     <View key={r.key} style={styles.legendRow}>
                       <View style={[styles.legendDot, { backgroundColor: CARBON_CATEGORIES[r.key].color }]} />
                       <Text style={styles.legendLabel} numberOfLines={1}>{CARBON_CATEGORIES[r.key].label}</Text>
-                      <Text style={styles.legendPct}>{total > 0 ? Math.round((r.kg / total) * 100) : 0}%</Text>
+                      <Text style={styles.legendPct}>{formatShare(r.kg, total)}</Text>
                     </View>
                   ))}
                 </View>
@@ -361,10 +363,10 @@ export function CarbonFootprintScreen({ navigation }: any) {
               {rows.map((r) => {
                 const cat = CARBON_CATEGORIES[r.key];
                 const isTop = r.key === top?.key;
-                const pct = total > 0 ? Math.round((r.kg / total) * 100) : 0;
+                const share = formatShare(r.kg, total);
                 const width = maxKg > 0 ? `${Math.max((r.kg / maxKg) * 100, r.kg > 0 ? 4 : 0)}%` : '0%';
                 return (
-                  <View key={r.key} style={styles.rowCard} accessible accessibilityLabel={`${cat.label}, ${formatKg(r.kg)} kilograms CO2e, ${pct} percent`}>
+                  <View key={r.key} style={styles.rowCard} accessible accessibilityLabel={`${cat.label}, ${formatKg(r.kg)} kilograms CO2e, ${share.replace('%', ' percent')}`}>
                     <View style={[styles.iconTile, { backgroundColor: tint(cat.bg) }]}>
                       <cat.Icon size={20} color={cat.color} />
                     </View>
@@ -373,7 +375,7 @@ export function CarbonFootprintScreen({ navigation }: any) {
                       <View style={styles.barTrack}>
                         <View style={[styles.barFill, { width: width as any, backgroundColor: cat.color }]} />
                       </View>
-                      <Text style={styles.rowMeta}>{isTop ? `Biggest source · ${pct}% of your footprint` : `${pct}% of your footprint`}</Text>
+                      <Text style={styles.rowMeta}>{isTop ? `Biggest source · ${share} of your footprint` : `${share} of your footprint`}</Text>
                     </View>
                     <Text style={[styles.rowValue, { color: isTop ? '#e11d48' : isDark ? '#d97706' : '#b45309' }]}>{formatKg(r.kg)} kg</Text>
                   </View>

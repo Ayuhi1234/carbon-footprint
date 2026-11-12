@@ -7,13 +7,14 @@ import {
   carbonService, CarbonResult, CarbonSession, CarbonCategoryKey, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER,
 } from '../services/carbon';
 import { profileService } from '../services/profile';
-import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError } from '../utils/carbon';
+import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError, bandMeaning, topSources, CO2E_EXPLAINED } from '../utils/carbon';
 import { Field, Draft, FieldValue, UserContext, fieldsToAsk, buildAnswer, readNumber, matchOptions, otherQuestionHint, noMatchMessage, yesOrNo, QOption, applyServerQuestions } from '../utils/carbonQuestions';
 import { showAlert } from '../utils/alert';
-import { useTheme, makeStyles } from '../theme';
+import { useTheme, makeStyles, lightColors } from '../theme';
 import { TopicStepper, useCountUp, Confetti } from '../components/carbon/CarbonVisuals';
 import { EarthBuddy, TypingDots } from '../components/carbon/EarthBuddy';
 import { ShareSheet } from '../components/carbon/ShareSheet';
+import { DrivingComparison } from '../components/carbon/CarbonExplain';
 
 type Phase = 'loading' | 'intro' | 'starting' | 'chat' | 'sending' | 'result';
 type LoggedAnswer = { field: Field; label: string };
@@ -304,6 +305,10 @@ export function CarbonAssessmentScreen({ navigation }: any) {
     : null;
   const band = result?.category ? BAND_LABELS[result.category] : undefined;
   const shownResult = useCountUp(result?.totalKgCO2ePerMonth ?? 0);
+  // Clearer results: what the band means, the top 3 sources, and a tap-to-explain CO₂e.
+  const meaning = bandMeaning(result?.category, top ? CARBON_CATEGORIES[top.key].label.toLowerCase() : undefined);
+  const sources = topSources(result?.breakdown, result?.totalKgCO2ePerMonth ?? 0);
+  const [showCo2e, setShowCo2e] = useState(false);
 
   // Transcript: one section label whenever the category changes.
   let lastCategory: CarbonCategoryKey | null = null;
@@ -487,13 +492,27 @@ export function CarbonAssessmentScreen({ navigation }: any) {
                 <EarthBuddy size={112} wave cheer />
                 <Text style={styles.resultValue}>{formatKg(Math.round(shownResult * 10) / 10)}</Text>
                 <Text style={styles.resultUnit}>kg CO₂e / month</Text>
+                <DrivingComparison totalKgPerMonth={result.totalKgCO2ePerMonth} />
                 {band && <Text style={[styles.band, { color: isDark ? band.color : band.lightText }]}>{band.label}</Text>}
-                {top && (
-                  <Text style={styles.resultBody}>
-                    Your biggest source is <Text style={{ fontWeight: '800', color: colors.text }}>{CARBON_CATEGORIES[top.key].label.toLowerCase()}</Text> — {formatKg(top.kg)} kg.
-                  </Text>
+                {meaning && <Text style={styles.resultBody}>{meaning}</Text>}
+                {sources.length > 0 && (
+                  <View style={styles.sources} accessible accessibilityLabel={`Where it comes from: ${sources.map((s) => `${s.label} ${s.pct} percent`).join(', ')}`}>
+                    <Text style={styles.sourcesTitle}>Where it comes from</Text>
+                    <View style={styles.sourceChips}>
+                      {sources.map((s) => (
+                        <View key={s.key} style={styles.sourceChip}>
+                          <View style={[styles.sourceDot, { backgroundColor: CARBON_CATEGORIES[s.key].color }]} />
+                          <Text style={styles.sourceText}>{s.label} {s.pct}%</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
                 )}
                 {!!result.tips?.[0] && <Text style={styles.resultTip}>{result.tips[0]}</Text>}
+                <TouchableOpacity onPress={() => setShowCo2e((v) => !v)} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ expanded: showCo2e }} style={{ marginTop: 10 }}>
+                  <Text style={styles.linkFine}>{showCo2e ? 'Hide' : 'What is CO₂e?'}</Text>
+                </TouchableOpacity>
+                {showCo2e && <Text style={styles.fine}>{CO2E_EXPLAINED}</Text>}
                 <Text style={styles.fine}>
                   Calculated {formatAssessed(result)}{result.emissionFactorVersion ? ` · emission factors ${formatPeriod(result.emissionFactorVersion) ? `as of ${formatPeriod(result.emissionFactorVersion)}` : result.emissionFactorVersion}` : ''}
                 </Text>
@@ -612,6 +631,13 @@ const useStyles = makeStyles((c) => ({
   resultBody: { fontSize: 14, color: c.textMuted, lineHeight: 21, textAlign: 'center', marginTop: 10 },
   resultTip: { fontSize: 13, color: c.text, lineHeight: 19, textAlign: 'center', marginTop: 10, fontWeight: '600' },
   fine: { fontSize: 12, color: c.textMuted, marginTop: 10, textAlign: 'center' },
+  linkFine: { fontSize: 12, fontWeight: '700', color: c === lightColors ? '#15803d' : '#4ade80', textAlign: 'center', textDecorationLine: 'underline' },
+  sources: { alignSelf: 'stretch', marginTop: 12, alignItems: 'center' },
+  sourcesTitle: { fontSize: 12, fontWeight: '800', color: c.textMuted, letterSpacing: 0.3, marginBottom: 6 },
+  sourceChips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
+  sourceChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 100, backgroundColor: c.surfaceAlt },
+  sourceDot: { width: 8, height: 8, borderRadius: 4 },
+  sourceText: { fontSize: 12, fontWeight: '700', color: c.text },
 
   composer: { backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 28 : 12 },
   composerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 640, width: '100%', alignSelf: 'center' },
