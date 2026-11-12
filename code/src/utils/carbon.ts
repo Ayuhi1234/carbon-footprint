@@ -53,7 +53,7 @@ export function bandMeaning(category: string | undefined, top?: string): string 
   return null;
 }
 
-export const CO2E_EXPLAINED = 'CO₂e (carbon dioxide equivalent) counts all greenhouse gases as the amount of CO₂ with the same warming effect.';
+export const CO2E_EXPLAINED = 'CO₂e is a standard unit for the total warming effect of all greenhouse gases, counted as the amount of CO₂ that would warm the Earth the same.';
 
 // The same petrol-car factor the backend uses (emission factors 2026-09: car_petrol_km = 0.227 kg CO₂e
 // per km). Only used to explain a total in everyday terms ("like driving 73 km a day").

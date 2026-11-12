@@ -126,9 +126,11 @@ export function CarbonFootprintScreen({ navigation }: any) {
   // The backend's tips aren't tied to a category, so one never goes under a
   // "<category> is your biggest source" title; without one, use the app's tip
   // for the biggest category.
-  const tip = latest?.tips?.[0]
-    ? { title: 'Tip for you', body: latest.tips[0] }
-    : top ? CARBON_CATEGORIES[top.key].tip : null;
+  // Up to 3 tips from the backend, numbered when there's more than one.
+  const backendTips = (latest?.tips ?? []).slice(0, 3);
+  const tip = backendTips.length
+    ? { title: backendTips.length > 1 ? 'Ways to bring it down' : 'Tip for you', body: backendTips[0], items: backendTips }
+    : top ? { ...CARBON_CATEGORIES[top.key].tip, items: [] as string[] } : null;
   const band = latest?.category ? BAND_LABELS[latest.category] : undefined;
   const shownTotal = useCountUp(total);
   // Monthly habit loop: days since the latest result, and when the next check-in is due.
@@ -253,7 +255,16 @@ export function CarbonFootprintScreen({ navigation }: any) {
             <Lightbulb size={20} color="#0ea5e9" />
             <View style={{ flex: 1 }}>
               <Text style={styles.tipTitle}>{tip.title}</Text>
-              <Text style={styles.tipText}>{tip.body}</Text>
+              {tip.items.length > 1 ? (
+                tip.items.map((t, i) => (
+                  <View key={i} style={styles.tipRow}>
+                    <Text style={styles.tipNum}>{i + 1}</Text>
+                    <Text style={[styles.tipText, { flex: 1 }]}>{t}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.tipText}>{tip.body}</Text>
+              )}
             </View>
             {top?.key === 'waste' && (
               <TouchableOpacity style={styles.tipBtn} onPress={() => navigation.navigate('SchedulePickup')} activeOpacity={0.8} accessibilityRole="button">
@@ -492,6 +503,8 @@ const useStyles = makeStyles((c) => ({
   },
   tipTitle: { color: '#0369a1', fontSize: 13, fontWeight: '900', marginBottom: 2 },
   tipText: { color: '#0c4a6e', fontSize: 12, fontWeight: '600', lineHeight: 17 },
+  tipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 6 },
+  tipNum: { width: 18, height: 18, borderRadius: 9, overflow: 'hidden', textAlign: 'center', lineHeight: 18, fontSize: 11, fontWeight: '900', color: 'white', backgroundColor: '#0369a1' },
   tipBtn: { backgroundColor: c === lightColors ? '#0369a1' : '#0ea5e9', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100, minWidth: 76, alignItems: 'center' },
   tipBtnText: { color: 'white', fontWeight: '800', fontSize: 13 },
 

@@ -70,7 +70,12 @@ function calculate(a, sessionId, n) {
     totalKgCO2ePerYear: r2(total * 12),
     score: r2(Math.max(0, 100 - total / 20)),
     category: total < 250 ? 'low' : total < 450 ? 'medium' : 'high',
-    tips: [`Your biggest source is ${top}. (Local test data: these numbers are placeholders.)`],
+    // Same shape as the backend's tips (up to 3, each ending in a saving); placeholder numbers.
+    tips: [
+      `Cut back on ${top} first, it's your biggest source. That could save about ${Math.round(breakdown[top] * 0.1)} kg CO₂e a month. (Local test data: placeholder numbers.)`,
+      'Use 10% fewer electricity units: switch appliances off at the plug. That could save about 10 kg CO₂e a month. (Local test data.)',
+      'Take the train instead of one short flight a year. That could save about 5 kg CO₂e a month. (Local test data.)',
+    ],
     periodLabel: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),

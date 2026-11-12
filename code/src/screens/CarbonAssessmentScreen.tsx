@@ -355,7 +355,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
             <Text style={styles.botText}>
               I'll ask about travel, home energy, food, waste, water and flights — about 2 minutes. Tap an answer, or type or say it. Your answers are saved as you go.
             </Text>
-            <Text style={styles.botFine}>Your footprint is worked out with fixed formulas and standard emission factors, in kg CO₂e (all greenhouse gases counted as CO₂).</Text>
+            <Text style={styles.botFine}>Your footprint is worked out with fixed formulas and standard emission factors, in kg CO₂e (one number for all the gases that heat up the Earth).</Text>
           </BotBubble>
 
           {phase === 'loading' && <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Loading" />}
@@ -508,7 +508,17 @@ export function CarbonAssessmentScreen({ navigation }: any) {
                     </View>
                   </View>
                 )}
-                {!!result.tips?.[0] && <Text style={styles.resultTip}>{result.tips[0]}</Text>}
+                {!!result.tips?.length && (
+                  <View style={styles.tipsBox}>
+                    <Text style={styles.sourcesTitle}>{result.tips.length > 1 ? 'Ways to bring it down' : 'A way to bring it down'}</Text>
+                    {result.tips.slice(0, 3).map((t, i) => (
+                      <View key={i} style={styles.tipRow}>
+                        <Text style={styles.tipBullet}>{i + 1}</Text>
+                        <Text style={styles.tipText}>{t}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
                 <TouchableOpacity onPress={() => setShowCo2e((v) => !v)} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ expanded: showCo2e }} style={{ marginTop: 10 }}>
                   <Text style={styles.linkFine}>{showCo2e ? 'Hide' : 'What is CO₂e?'}</Text>
                 </TouchableOpacity>
@@ -629,7 +639,10 @@ const useStyles = makeStyles((c) => ({
   resultUnit: { fontSize: 13, fontWeight: '600', color: c.textMuted },
   band: { fontSize: 13, fontWeight: '900', marginTop: 8, letterSpacing: 0.3 },
   resultBody: { fontSize: 14, color: c.textMuted, lineHeight: 21, textAlign: 'center', marginTop: 10 },
-  resultTip: { fontSize: 13, color: c.text, lineHeight: 19, textAlign: 'center', marginTop: 10, fontWeight: '600' },
+  tipsBox: { alignSelf: 'stretch', marginTop: 14, alignItems: 'center' },
+  tipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, alignSelf: 'stretch', marginTop: 8, padding: 10, borderRadius: 12, backgroundColor: c.surfaceAlt },
+  tipBullet: { width: 22, height: 22, borderRadius: 11, overflow: 'hidden', textAlign: 'center', lineHeight: 22, fontSize: 12, fontWeight: '900', color: 'white', backgroundColor: c === lightColors ? '#15803d' : '#16a34a' },
+  tipText: { flex: 1, fontSize: 13, lineHeight: 19, color: c.text, fontWeight: '600' },
   fine: { fontSize: 12, color: c.textMuted, marginTop: 10, textAlign: 'center' },
   linkFine: { fontSize: 12, fontWeight: '700', color: c === lightColors ? '#15803d' : '#4ade80', textAlign: 'center', textDecorationLine: 'underline' },
   sources: { alignSelf: 'stretch', marginTop: 12, alignItems: 'center' },
