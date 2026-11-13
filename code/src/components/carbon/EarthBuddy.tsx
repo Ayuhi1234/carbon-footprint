@@ -10,6 +10,8 @@ import { makeStyles } from '../../theme';
 //   face     — round avatar cropped to the head (for chat bubbles); no arm.
 //   animate  — blink and gently float. Off = a still image (cheap for long lists).
 //   talking  — mouth flaps for a moment, like it's speaking.
+//   speaking — mouth keeps moving until set back to false (while audio plays).
+//              A simple loop, not lip-sync to the words.
 //   wave     — thumbs-up arm waves back and forth.
 //   cheer    — pops in with a bounce when it first appears.
 // Every motion is skipped when the user has turned on "reduce motion".
@@ -23,8 +25,8 @@ const nativeDriver = Platform.OS !== 'web';
 const timing = (v: Animated.Value, toValue: number, duration: number, easing = Easing.inOut(Easing.quad)) =>
   Animated.timing(v, { toValue, duration, easing, useNativeDriver: nativeDriver });
 
-export function EarthBuddy({ size = 72, face = false, animate = true, talking = false, wave = false, cheer = false }: {
-  size?: number; face?: boolean; animate?: boolean; talking?: boolean; wave?: boolean; cheer?: boolean;
+export function EarthBuddy({ size = 72, face = false, animate = true, talking = false, speaking = false, wave = false, cheer = false }: {
+  size?: number; face?: boolean; animate?: boolean; talking?: boolean; speaking?: boolean; wave?: boolean; cheer?: boolean;
 }) {
   const styles = useStyles();
   const [reduce, setReduce] = useState(false);
@@ -56,11 +58,12 @@ export function EarthBuddy({ size = 72, face = false, animate = true, talking = 
     scheduleBlink();
     if (!face) loops.push(Animated.loop(Animated.sequence([timing(float, -size * 0.05, 1100, Easing.inOut(Easing.sin)), timing(float, 0, 1100, Easing.inOut(Easing.sin))])));
     if (wave && !face) loops.push(Animated.loop(Animated.sequence([timing(arm, 1, 380), timing(arm, -1, 760), timing(arm, 0, 380), Animated.delay(1400)])));
-    if (talking) loops.push(Animated.loop(Animated.sequence([timing(mouth, 0, 150), timing(mouth, 1, 150)]), { iterations: 5 }));
+    if (speaking) loops.push(Animated.loop(Animated.sequence([timing(mouth, 0, 140), timing(mouth, 1, 160)])));
+    else if (talking) loops.push(Animated.loop(Animated.sequence([timing(mouth, 0, 150), timing(mouth, 1, 150)]), { iterations: 5 }));
     loops.forEach((l) => l.start());
     if (cheer) Animated.spring(pop, { toValue: 1, friction: 4, tension: 70, useNativeDriver: nativeDriver }).start();
     return () => { alive = false; if (blinkTimer) clearTimeout(blinkTimer); loops.forEach((l) => l.stop()); mouth.setValue(1); blink.setValue(0); };
-  }, [reduce, animate, talking, wave, cheer, face, size]);
+  }, [reduce, animate, talking, speaking, wave, cheer, face, size]);
 
   // Face crop: draw the artwork larger and shift it so the head fills the circle.
   const img = face ? size * 1.7 : size;

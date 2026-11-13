@@ -1,20 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Platform, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Leaf, History, ChevronLeft, ChevronRight, Target, Plus, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock, Share2 } from 'lucide-react-native';
+import { Leaf, History, ChevronLeft, ChevronRight, Target, Lightbulb, Calculator, LineChart, TrendingDown, TrendingUp, Award, BarChart3, CheckCircle2, CalendarClock, Share2 } from 'lucide-react-native';
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
 import {
-  carbonService, CarbonResult, CarbonComparison, CarbonSummary, CarbonGoalState, CarbonApiNotReadyError, CARBON_CATEGORY_ORDER, CarbonCategoryKey,
+  carbonService, CarbonResult, CarbonComparison, CarbonSummary, CarbonGoalState, CARBON_CATEGORY_ORDER, CarbonCategoryKey,
 } from '../services/carbon';
 import { CARBON_CATEGORIES, BAND_LABELS, formatKg, formatAssessed, formatPeriod, showCarbonError } from '../utils/carbon';
 import { showAlert } from '../utils/alert';
 import { CarbonDonut, useCountUp } from '../components/carbon/CarbonVisuals';
 import { EarthBuddy } from '../components/carbon/EarthBuddy';
 import { ShareSheet } from '../components/carbon/ShareSheet';
-
-// Logging green actions has no backend yet.
-const comingSoon = () => showCarbonError('', new CarbonApiNotReadyError());
 
 // Results are monthly; after this many days the hub invites a fresh check-in.
 const CHECK_IN_DAYS = 30;
@@ -121,6 +118,8 @@ export function CarbonFootprintScreen({ navigation }: any) {
   const checkInDue = daysSince !== null && daysSince >= CHECK_IN_DAYS;
   const daysLeft = daysSince !== null ? CHECK_IN_DAYS - daysSince : null;
 
+  const delta = comparison?.deltaKgCO2ePerMonth;
+
   // What Earth Buddy says in the hero card. Words only; every number comes from the backend.
   const buddySays = !latest
     ? (inProgress ? "You're partway through. Let's finish it together!" : "Hi! Let's find out your footprint together.")
@@ -131,7 +130,6 @@ export function CarbonFootprintScreen({ navigation }: any) {
     : latest.category === 'low' ? 'Your footprint is low. Keep it up! 🌱'
     : latest.category === 'high' ? "Let's bring this down together, one step at a time."
     : 'Nice start! Small changes add up.';
-  const delta = comparison?.deltaKgCO2ePerMonth;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -258,10 +256,6 @@ export function CarbonFootprintScreen({ navigation }: any) {
 
         {/* Action buttons — same pills as Wallet */}
         <View style={styles.actionRow}>
-          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnGreen]} onPress={comingSoon} activeOpacity={0.8} accessibilityRole="button">
-            <Plus size={18} color="#16a34a" />
-            <Text style={[styles.actionLabel, { color: '#16a34a' }]} numberOfLines={1}>Log activity</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, styles.actionBtnAmber]} onPress={openGoalSheet} activeOpacity={0.8} accessibilityRole="button">
             <Target size={18} color="#d97706" />
             <Text style={[styles.actionLabel, { color: '#d97706' }]} numberOfLines={1}>{goalState ? 'My goal' : 'Set goal'}</Text>
@@ -467,7 +461,6 @@ const useStyles = makeStyles((c) => ({
 
   actionRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginTop: 20, maxWidth: 800, width: '100%', alignSelf: 'center' },
   actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 6, borderRadius: 100, borderWidth: 1.5, backgroundColor: c.surface },
-  actionBtnGreen: { borderColor: '#86efac' },
   actionBtnAmber: { borderColor: '#fcd34d' },
   actionBtnSky: { borderColor: '#bae6fd' },
   actionLabel: { fontWeight: '800', fontSize: 13, flexShrink: 1 },

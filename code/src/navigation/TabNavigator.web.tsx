@@ -25,6 +25,7 @@ import { OrdersScreen } from '../screens/OrdersScreen';
 import { StoreScreen } from '../screens/StoreScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { navigationRef } from './navRef';
+import { VideoHelpButton } from '../components/support/VideoHelpButton';
 
 const Tab = createBottomTabNavigator();
 
@@ -197,6 +198,7 @@ export function TabNavigator() {
         <Tab.Screen name="Store" component={StoreScreen} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
+      <VideoHelpButton bottom={isMobile ? NAV_HEIGHT + 16 : 24} />
     </View>
   );
 }

@@ -17,6 +17,11 @@ const https = require('https');
 const TARGET = 'api.karmaverse.earth';
 const PORT = 8899; // kept clear of Expo's 8081/8082/8083 range
 
+// The live backend doesn't serve the carbon footprint routes yet. With
+// CARBON_MOCK=1 (the default in `npm run web:local`) they're answered locally
+// by scripts/dev-carbon-mock.js; everything else still goes to the live backend.
+const carbonMock = process.env.CARBON_MOCK === '1' ? require('./scripts/dev-carbon-mock').createCarbonMock() : null;
+
 const server = http.createServer((req, res) => {
   const origin = req.headers.origin || '*';
 
@@ -32,6 +37,8 @@ const server = http.createServer((req, res) => {
     res.end();
     return;
   }
+
+  if (carbonMock && carbonMock(req, res, origin)) return;
 
   const proxyReq = https.request(
     {
@@ -65,4 +72,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Dev CORS proxy running:  http://localhost:${PORT}  ->  https://${TARGET}`);
+  if (carbonMock) console.log('Carbon footprint API: local test mock (placeholder numbers). Use CARBON=live once the backend has the routes.');
 });

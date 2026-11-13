@@ -83,6 +83,7 @@ const CarbonFootprintScreen = lazyScreen(() => import('../screens/CarbonFootprin
 const CarbonAssessmentScreen = lazyScreen(() => import('../screens/CarbonAssessmentScreen'), (m) => m.CarbonAssessmentScreen);
 const CarbonJourneyScreen = lazyScreen(() => import('../screens/CarbonJourneyScreen'), (m) => m.CarbonJourneyScreen);
 const CarbonInsightsScreen = lazyScreen(() => import('../screens/CarbonInsightsScreen'), (m) => m.CarbonInsightsScreen);
+const SupportScreen = lazyScreen(() => import('../screens/SupportScreen'), (m) => m.SupportScreen);
 
 export function RootNavigator() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -169,12 +170,15 @@ export function RootNavigator() {
             CarbonAssessment: 'CarbonAssessment',
             CarbonJourney: 'CarbonJourney',
             CarbonInsights: 'CarbonInsights',
+            Support: 'support',
             NotFound: '*',
           }
         : {
             Splash: '', Login: 'login', Legal: 'legal/:type', AboutUs: 'AboutUs',
             // Public, token-based mailer destinations — openable while logged out.
             Feedback: 'feedback', Unsubscribe: 'unsubscribe', EmailPreferences: 'preferences',
+            // Help is open to logged-out visitors too (e.g. people who can't log in).
+            Support: 'support',
             NotFound: '*',
           },
     },
@@ -238,6 +242,7 @@ export function RootNavigator() {
         <Stack.Screen name="CarbonAssessment" component={CarbonAssessmentScreen} />
         <Stack.Screen name="CarbonJourney" component={CarbonJourneyScreen} />
         <Stack.Screen name="CarbonInsights" component={CarbonInsightsScreen} />
+        <Stack.Screen name="Support" component={SupportScreen} />
         <Stack.Screen name="NotFound" component={NotFoundScreen} />
       </Stack.Navigator>
     </NavigationContainer>

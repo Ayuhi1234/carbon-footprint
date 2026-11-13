@@ -6,8 +6,11 @@
 // CORS headers) and Expo web pointed at it, on port 8081 — the localhost port that
 // is an Authorized JavaScript origin for Google Sign-In. USE ONLY FOR LOCAL DEV.
 //
-// Optional: CARBON=1 npm run web:local  → also switches the carbon footprint
-// feature on (its backend routes must exist on the server you're pointing at).
+// Carbon footprint is ON by default, answered by a local test mock because the
+// live backend doesn't have its routes yet (scripts/dev-carbon-mock.js):
+//   npm run web:local                 carbon on, local mock (placeholder numbers)
+//   CARBON=live npm run web:local     carbon on, real backend routes (once deployed)
+//   CARBON=off npm run web:local      carbon off ("Coming soon!")
 
 const { spawn } = require('child_process');
 const path = require('path');
@@ -18,10 +21,11 @@ const PROXY_URL = 'http://localhost:8899';
 const run = (cmd, args, env) =>
   spawn(cmd, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32', env: { ...process.env, ...env } });
 
-const proxy = run('node', ['dev-cors-proxy.js']);
+const carbon = (process.env.CARBON || 'mock').toLowerCase();
+const proxy = run('node', ['dev-cors-proxy.js'], { CARBON_MOCK: carbon === 'off' || carbon === 'live' ? '0' : '1' });
 const web = run('npx', ['expo', 'start', '--web', '--port', '8081', '-c'], {
   EXPO_PUBLIC_API_URL: PROXY_URL,
-  ...(process.env.CARBON === '1' ? { EXPO_PUBLIC_CARBON_API: 'true' } : {}),
+  ...(carbon === 'off' ? {} : { EXPO_PUBLIC_CARBON_API: 'true' }),
 });
 
 // Stop both together.

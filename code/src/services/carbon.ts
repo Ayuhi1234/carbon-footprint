@@ -204,7 +204,4 @@ export const carbonService = {
     if (!CARBON_API_READY) return notReady();
     return unwrap(await api.post(`${BASE}/goal`, { reductionPercent }));
   },
-
-  // TODO(backend): no endpoint yet for logging green actions — the hub shows
-  // "Coming soon!" for Log activity.
 };
