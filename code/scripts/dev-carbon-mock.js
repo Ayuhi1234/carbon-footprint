@@ -133,10 +133,17 @@ function createCarbonMock() {
         if (!u.session) return send(404, null, 'No active session — call /session/start first');
         const { category, answer } = body;
         const expected = ORDER[u.session.answers.length];
-        if (category !== expected) return send(400, null, `Expected category "${expected}"`);
+        // Like the backend: an already-answered topic can be answered again (replaces it).
+        const earlier = ORDER.indexOf(category);
+        const isChange = earlier >= 0 && earlier < u.session.answers.length;
+        if (!isChange && category !== expected) return send(400, null, `Expected category "${expected}"`);
         const shape = SHAPES[category];
         const keys = Object.keys(answer || {});
         if (keys.length !== Object.keys(shape).length || !keys.every((k) => shape[k] && shape[k](answer[k]))) return send(400, null, `Invalid answer for ${category}`);
+        if (isChange) {
+          u.session.answers[earlier] = answer;
+          return send(200, { extracted: answer, nextQuestion: next(), completed: false, changed: true });
+        }
         u.session.answers.push(answer);
         if (u.session.answers.length < ORDER.length) return send(200, { extracted: answer, nextQuestion: next(), completed: false });
         const a = Object.fromEntries(ORDER.map((c, i) => [c, u.session.answers[i]]));

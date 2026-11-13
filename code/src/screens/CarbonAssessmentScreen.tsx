@@ -17,7 +17,7 @@ import { ShareSheet } from '../components/carbon/ShareSheet';
 import { DrivingComparison } from '../components/carbon/CarbonExplain';
 
 type Phase = 'loading' | 'intro' | 'starting' | 'chat' | 'sending' | 'result';
-type LoggedAnswer = { field: Field; label: string };
+type LoggedAnswer = { field: Field; label: string; value: FieldValue; updated?: boolean };
 
 const TOTAL = CARBON_CATEGORY_ORDER.length;
 
@@ -70,7 +70,10 @@ export function CarbonAssessmentScreen({ navigation }: any) {
   const [category, setCategory] = useState<CarbonCategoryKey | null>(null); // the one the backend expects
   const [answered, setAnswered] = useState<CarbonCategoryKey[]>([]);
   const [resumedFrom, setResumedFrom] = useState<CarbonCategoryKey[]>([]); // answered on an earlier visit
-  const [log, setLog] = useState<LoggedAnswer[]>([]); // sent this visit; read-only
+  const [log, setLog] = useState<LoggedAnswer[]>([]); // sent this visit
+  // Set while re-answering a topic that was already sent; resumeAt is the topic to go back to.
+  const [editing, setEditing] = useState<{ category: CarbonCategoryKey; resumeAt: CarbonCategoryKey } | null>(null);
+  const [justChanged, setJustChanged] = useState<CarbonCategoryKey | null>(null); // for the "updated" message
   const [draft, setDraft] = useState<Draft>({}); // the current category, not sent yet
   const [input, setInput] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
@@ -121,6 +124,8 @@ export function CarbonAssessmentScreen({ navigation }: any) {
     setLog([]);
     setResumedFrom([]);
     setDraft({});
+    setEditing(null);
+    setJustChanged(null);
     setPhase('intro');
   };
 
@@ -138,6 +143,8 @@ export function CarbonAssessmentScreen({ navigation }: any) {
       setResumedFrom(s.answeredCategories);
       setLog([]);
       setDraft({});
+      setEditing(null);
+      setJustChanged(null);
       setResumable(null);
       setPhase('chat');
     } catch (error) {
@@ -158,6 +165,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
     setCategory(s.nextQuestion.category);
     setAnswered(s.answeredCategories);
     setDraft({});
+    setEditing(null);
     setPhase('chat');
   };
 
@@ -168,8 +176,25 @@ export function CarbonAssessmentScreen({ navigation }: any) {
     setPhase('sending');
     try {
       const res = await carbonService.submitAnswer(cat, answer);
-      setLog((l) => [...l, ...fieldsToAsk(cat, next).map((field) => ({ field, label: next[field.key].label }))]);
-      setAnswered((a) => [...a, cat]);
+      const changing = answered.includes(cat);
+      const entries: LoggedAnswer[] = fieldsToAsk(cat, next).map((field) => ({ field, label: next[field.key].label, value: next[field.key].value, updated: changing || undefined }));
+      if (changing) {
+        // A changed answer replaces the old one where it was; the chat carries on from where it was.
+        setLog((l) => {
+          const at = l.findIndex((e) => e.field.category === cat);
+          const rest = l.filter((e) => e.field.category !== cat);
+          if (at < 0) return [...rest, ...entries];
+          rest.splice(at, 0, ...entries);
+          return rest;
+        });
+        setResumedFrom((r) => r.filter((c) => c !== cat));
+        setEditing(null);
+        setJustChanged(cat);
+      } else {
+        setLog((l) => [...l, ...entries]);
+        setAnswered((a) => [...a, cat]);
+        setJustChanged(null);
+      }
       setDraft({});
       if (res.completed) {
         setResult(res.result);
@@ -267,12 +292,36 @@ export function CarbonAssessmentScreen({ navigation }: any) {
     setInputError(null);
   };
 
-  // Undo the latest answer in this category (sent categories can't be changed).
+  // Undo the latest answer in the topic being answered (sent topics use startChange).
   const changeLast = () => {
     const last = drafted[drafted.length - 1];
     if (!last) return;
     setDraft((d) => { const next = { ...d }; delete next[last.key]; return next; });
     clearComposer();
+  };
+
+  // Answer a topic that was already sent again (before the last topic, which finishes
+  // the assessment). It starts at the tapped question: the answers before it in that
+  // topic are kept, that question and the ones after it are asked again, right where
+  // they are in the chat. The backend replaces the old answer; then the chat carries on.
+  const startChange = (cat: CarbonCategoryKey, fromKey?: string) => {
+    if (!category || busyRef.current || phase !== 'chat') return;
+    clearComposer();
+    const mine = log.filter((e) => e.field.category === cat);
+    const stop = fromKey ? mine.findIndex((e) => e.field.key === fromKey) : 0;
+    const keep = stop > 0 ? mine.slice(0, stop) : [];
+    setEditing((e) => ({ category: cat, resumeAt: e?.resumeAt ?? category }));
+    setJustChanged(null);
+    setCategory(cat);
+    setDraft(Object.fromEntries(keep.map((e) => [e.field.key, { value: e.value, label: e.label }])));
+  };
+
+  const cancelChange = () => {
+    if (!editing || busyRef.current) return;
+    clearComposer();
+    setCategory(editing.resumeAt);
+    setDraft({});
+    setEditing(null);
   };
 
   const toggleVoice = () => {
@@ -294,7 +343,7 @@ export function CarbonAssessmentScreen({ navigation }: any) {
   };
 
   const inProgress = phase === 'chat' || phase === 'sending';
-  const fieldShare = toAsk.length ? drafted.length / toAsk.length : 0;
+  const fieldShare = toAsk.length && !editing ? drafted.length / toAsk.length : 0;
   const progressPct = phase === 'result' ? 100 : inProgress ? ((answered.length + fieldShare) / TOTAL) * 100 : 0;
   const stepNo = Math.min(answered.length + 1, TOTAL);
   const top = result?.breakdown
@@ -318,89 +367,8 @@ export function CarbonAssessmentScreen({ navigation }: any) {
     return show ? <SectionLabel category={cat} /> : null;
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#064e3b" />
-      <LinearGradient colors={['#064e3b', '#166534']} style={styles.headerBg}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.closeBtn} onPress={close} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Close assessment">
-            <X size={22} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Carbon footprint</Text>
-          <Text style={styles.headerCount}>{inProgress ? `${stepNo} of ${TOTAL}` : ''}</Text>
-        </View>
-        {/* One icon per topic: done (tick), current (highlighted), still to come */}
-        <TopicStepper answered={phase === 'result' ? CARBON_CATEGORY_ORDER : answered} current={inProgress ? category : null} />
-      </LinearGradient>
-
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={styles.thread}
-          keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.hello}>
-            <EarthBuddy size={120} wave cheer />
-            <Text style={styles.helloName}>I'm Earth Buddy</Text>
-            <Text style={styles.helloSub}>Your guide to a lighter footprint</Text>
-          </View>
-          <BotBubble live={phase === 'intro' || phase === 'loading'}>
-            <Text style={styles.botText}>
-              Hi{ctx.firstName ? ` ${ctx.firstName}` : ''}! Let's work out your carbon footprint{ctx.city ? ` in ${ctx.city}` : ''}.
-            </Text>
-          </BotBubble>
-          <BotBubble>
-            <Text style={styles.botText}>
-              I'll ask about travel, home energy, food, waste, water and flights — about 2 minutes. Tap an answer, or type or say it. Your answers are saved as you go.
-            </Text>
-            <Text style={styles.botFine}>Your footprint is worked out with fixed formulas and standard emission factors, in kg CO₂e (one number for all the gases that heat up the Earth).</Text>
-          </BotBubble>
-
-          {phase === 'loading' && <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Loading" />}
-
-          {(phase === 'intro' || phase === 'starting') && (
-            <>
-              {resumable && (
-                <BotBubble live>
-                  <Text style={styles.botText}>
-                    Welcome back! You've already answered {listLabels(resumable.answeredCategories)}. Carry on where you left off?
-                  </Text>
-                </BotBubble>
-              )}
-              {phase === 'starting' ? (
-                <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Starting" />
-              ) : (
-                <View style={styles.chips}>
-                  <TouchableOpacity style={[styles.chip, styles.chipPrimary]} onPress={() => begin(false)} activeOpacity={0.8} accessibilityRole="button">
-                    <Text style={[styles.chipText, styles.chipTextPrimary]}>{resumable ? 'Carry on' : "Let's start"}</Text>
-                  </TouchableOpacity>
-                  {resumable && (
-                    <TouchableOpacity style={styles.chip} onPress={() => begin(true)} activeOpacity={0.8} accessibilityRole="button">
-                      <Text style={styles.chipText}>Start over</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-            </>
-          )}
-
-          {resumedFrom.length > 0 && phase !== 'intro' && phase !== 'starting' && (
-            <BotBubble><Text style={styles.botText}>Picking up where you left off — {listLabels(resumedFrom)} done.</Text></BotBubble>
-          )}
-
-          {log.map(({ field, label }, i) => (
-            <React.Fragment key={`${field.category}.${field.key}.${i}`}>
-              {sectionFor(field.category)}
-              <BotBubble><Text style={styles.botText}>{field.ask(ctx, {})}</Text></BotBubble>
-              <View style={styles.userRow}>
-                <View style={styles.userBubble}><Text style={styles.userText}>{label}</Text></View>
-              </View>
-            </React.Fragment>
-          ))}
-
-          {inProgress && drafted.map((f, i) => (
+  const renderDrafted = () => (
+    inProgress && drafted.map((f, i) => (
             <React.Fragment key={`${f.category}.${f.key}`}>
               {sectionFor(f.category)}
               <BotBubble><Text style={styles.botText}>{f.ask(ctx, draft)}</Text></BotBubble>
@@ -413,9 +381,10 @@ export function CarbonAssessmentScreen({ navigation }: any) {
                 )}
               </View>
             </React.Fragment>
-          ))}
-
-          {current && (
+          ))
+  );
+  const renderCurrent = () => (
+    current && (
             <>
               {sectionFor(current.category)}
               <BotBubble live>
@@ -467,7 +436,154 @@ export function CarbonAssessmentScreen({ navigation }: any) {
                 </>
               )}
             </>
+          )
+  );
+
+  // The topic being changed: shown in place of its old answers (or at the end, for a
+  // topic answered on an earlier visit), with a way to keep the old answer.
+  const editInPlace = !!editing && log.some((e) => e.field.category === editing.category);
+  const renderEdit = () => editing && (
+    <>
+      {sectionFor(editing.category)}
+      <BotBubble>
+        <Text style={styles.botText}>Let's change your {CARBON_CATEGORIES[editing.category].label.toLowerCase()} answer. Your other answers stay as they are.</Text>
+      </BotBubble>
+      {phase === 'chat' && (
+        <View style={styles.chips}>
+          <TouchableOpacity style={styles.chip} onPress={cancelChange} activeOpacity={0.8} accessibilityRole="button">
+            <Text style={styles.chipText}>Keep my old answer</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {renderDrafted()}
+      {renderCurrent()}
+    </>
+  );
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#064e3b" />
+      <LinearGradient colors={['#064e3b', '#166534']} style={styles.headerBg}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeBtn} onPress={close} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Close assessment">
+            <X size={22} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Carbon footprint</Text>
+          <Text style={styles.headerCount}>{inProgress ? `${stepNo} of ${TOTAL}` : ''}</Text>
+        </View>
+        {/* One icon per topic: done (tick), current (highlighted), still to come */}
+        <TopicStepper answered={phase === 'result' ? CARBON_CATEGORY_ORDER : answered} current={inProgress ? category : null} />
+      </LinearGradient>
+
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.thread}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => { if (!editInPlace) scrollRef.current?.scrollToEnd({ animated: true }); }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.hello}>
+            <EarthBuddy size={120} wave cheer />
+            <Text style={styles.helloName}>I'm Earth Buddy</Text>
+            <Text style={styles.helloSub}>Your guide to a lighter footprint</Text>
+          </View>
+          <BotBubble live={phase === 'intro' || phase === 'loading'}>
+            <Text style={styles.botText}>
+              Hi{ctx.firstName ? ` ${ctx.firstName}` : ''}! Let's work out your carbon footprint{ctx.city ? ` in ${ctx.city}` : ''}.
+            </Text>
+          </BotBubble>
+          <BotBubble>
+            <Text style={styles.botText}>
+              I'll ask about travel, home energy, food, waste, water and flights — about 2 minutes. Tap an answer, or type or say it. Your answers are saved as you go.
+            </Text>
+            <Text style={styles.botFine}>Your footprint is worked out with fixed formulas and standard emission factors, in kg CO₂e (one number for all the gases that heat up the Earth).</Text>
+          </BotBubble>
+
+          {phase === 'loading' && <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Loading" />}
+
+          {(phase === 'intro' || phase === 'starting') && (
+            <>
+              {resumable && (
+                <BotBubble live>
+                  <Text style={styles.botText}>
+                    Welcome back! You've already answered {listLabels(resumable.answeredCategories)}. Carry on where you left off?
+                  </Text>
+                </BotBubble>
+              )}
+              {phase === 'starting' ? (
+                <ActivityIndicator size="small" color={colors.primary} accessibilityLabel="Starting" />
+              ) : (
+                <View style={styles.chips}>
+                  <TouchableOpacity style={[styles.chip, styles.chipPrimary]} onPress={() => begin(false)} activeOpacity={0.8} accessibilityRole="button">
+                    <Text style={[styles.chipText, styles.chipTextPrimary]}>{resumable ? 'Carry on' : "Let's start"}</Text>
+                  </TouchableOpacity>
+                  {resumable && (
+                    <TouchableOpacity style={styles.chip} onPress={() => begin(true)} activeOpacity={0.8} accessibilityRole="button">
+                      <Text style={styles.chipText}>Start over</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </>
           )}
+
+          {resumedFrom.length > 0 && phase !== 'intro' && phase !== 'starting' && (
+            <>
+              <BotBubble><Text style={styles.botText}>Picking up where you left off — {listLabels(resumedFrom)} done.</Text></BotBubble>
+              {phase === 'chat' && !editing && (
+                <View style={styles.chips}>
+                  {resumedFrom.map((cat) => (
+                    <TouchableOpacity key={`chg-${cat}`} style={styles.chip} onPress={() => startChange(cat)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`Change your ${CARBON_CATEGORIES[cat].label.toLowerCase()} answer`}>
+                      <Text style={styles.chipText}>Change {CARBON_CATEGORIES[cat].label.toLowerCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+
+          {log.map(({ field, label, updated }, i) => {
+            if (editInPlace && field.category === editing?.category) {
+              // The topic being changed is asked again here, once, instead of its old answers.
+              return log.findIndex((e) => e.field.category === field.category) === i
+                ? <React.Fragment key={`edit-${field.category}`}>{renderEdit()}</React.Fragment>
+                : null;
+            }
+            return (
+              <React.Fragment key={`${field.category}.${field.key}.${i}`}>
+                {sectionFor(field.category)}
+                <BotBubble><Text style={styles.botText}>{field.ask(ctx, {})}</Text></BotBubble>
+                <View style={styles.userRow}>
+                  <View style={styles.userBubble}><Text style={styles.userText}>{label}</Text></View>
+                  {(updated || (phase === 'chat' && !editing)) && (
+                    <View style={styles.answerMeta}>
+                      {updated && <Text style={styles.updatedText}>✓ Updated</Text>}
+                      {phase === 'chat' && !editing && (
+                        <TouchableOpacity onPress={() => startChange(field.category, field.key)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`Change this answer: ${label}`} style={styles.changeBtn}>
+                          <Text style={styles.changeText}>Change</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </React.Fragment>
+            );
+          })}
+
+          {editing && !editInPlace && renderEdit()}
+
+          {!editing && justChanged && inProgress && (
+            <BotBubble>
+              <Text style={styles.botText}>Done, I've updated your {CARBON_CATEGORIES[justChanged].label.toLowerCase()} answer. Now, back to where we were.</Text>
+            </BotBubble>
+          )}
+
+          {!editing && renderDrafted()}
+          {!editing && renderCurrent()}
+
+
+
 
           {phase === 'sending' && (
             <BotBubble live>
@@ -612,6 +728,8 @@ const useStyles = makeStyles((c) => ({
   userBubble: { maxWidth: '80%', backgroundColor: '#16a34a', borderRadius: 16, borderBottomRightRadius: 4, paddingVertical: 10, paddingHorizontal: 14 },
   userText: { fontSize: 14, lineHeight: 20, fontWeight: '700', color: 'white' },
   changeBtn: { paddingVertical: 4, paddingHorizontal: 6 },
+  answerMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  updatedText: { fontSize: 12, fontWeight: '700', color: c.textMuted },
   changeText: { fontSize: 12, fontWeight: '700', color: c.primary },
 
   sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 10 },

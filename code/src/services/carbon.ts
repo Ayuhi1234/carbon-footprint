@@ -124,7 +124,7 @@ export interface CarbonGoalProgress {
 export type CarbonGoalState = { goal: CarbonGoal; progress: CarbonGoalProgress };
 
 export type AnswerResponse =
-  | { completed: false; nextQuestion: CarbonQuestion }
+  | { completed: false; nextQuestion: CarbonQuestion; changed?: boolean }
   | { completed: true; result: CarbonResult };
 
 const notReady = () => { throw new CarbonApiNotReadyError(); };
@@ -173,7 +173,7 @@ export const carbonService = {
   submitAnswer: async <K extends CarbonCategoryKey>(category: K, answer: CarbonAnswers[K]): Promise<AnswerResponse> => {
     if (!CARBON_API_READY) return notReady();
     const data = unwrap(await api.post(`${BASE}/session/answer`, { category, answer }));
-    return data.completed ? { completed: true, result: data.result } : { completed: false, nextQuestion: data.nextQuestion };
+    return data.completed ? { completed: true, result: data.result } : { completed: false, nextQuestion: data.nextQuestion, changed: !!data.changed };
   },
 
   // Throws away the interview in progress (used by "Start over").
