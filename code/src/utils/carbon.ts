@@ -97,6 +97,15 @@ export function formatPeriod(period?: string, short = false) {
   return new Date(y, m - 1, 1).toLocaleDateString('en-US', short ? { month: 'short' } : { month: 'short', year: 'numeric' });
 }
 
+// Chart label for one result, from its createdAt, as two lines: ["17 Nov", "2026"].
+// Every result gets its own date, so two results in the same month no longer both say "Nov".
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export function chartDateLines(r: { createdAt?: string }): [string, string] {
+  const d = r.createdAt ? new Date(r.createdAt) : null;
+  if (!d || isNaN(d.getTime())) return ['', ''];
+  return [`${d.getDate()} ${SHORT_MONTHS[d.getMonth()]}`, String(d.getFullYear())];
+}
+
 // Same "Coming soon!" wording Profile uses for features that aren't live yet.
 export function showCarbonError(title: string, error: any) {
   if (error instanceof CarbonApiNotReadyError) {

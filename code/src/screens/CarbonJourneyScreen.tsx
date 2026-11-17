@@ -5,7 +5,7 @@ import { ChevronLeft, LineChart, TrendingDown, TrendingUp, History, Clock, Share
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
 import { carbonService, CarbonResult } from '../services/carbon';
-import { formatKg, formatAssessed, formatPeriod } from '../utils/carbon';
+import { formatKg, formatAssessed, chartDateLines } from '../utils/carbon';
 import { ShareSheet } from '../components/carbon/ShareSheet';
 
 // Percentage change between two stored results — display only; the results
@@ -161,8 +161,8 @@ export function CarbonJourneyScreen({ navigation }: any) {
                       <View key={a._id} style={styles.barCol}>
                         <Text style={[styles.barValue, latest && { color: colors.text }]}>{formatKg(a.totalKgCO2ePerMonth)}</Text>
                         <View style={[styles.bar, { height: h, backgroundColor: colors.primary, opacity: latest ? 1 : 0.35 }]} />
-                        <Text style={styles.barLabel} numberOfLines={1}>
-                          {formatPeriod(a.periodLabel, true) || new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short' })}
+                        <Text style={styles.barLabel} numberOfLines={2}>
+                          {chartDateLines(a).join('\n')}
                         </Text>
                       </View>
                     );
@@ -263,7 +263,7 @@ const useStyles = makeStyles((c) => ({
   barCol: { flex: 1, alignItems: 'center', maxWidth: 64 },
   barValue: { fontSize: 11, fontWeight: '800', color: c.textMuted, marginBottom: 4 },
   bar: { width: '70%', maxWidth: 36, borderRadius: 6 },
-  barLabel: { fontSize: 11, fontWeight: '600', color: c.textMuted, marginTop: 6 },
+  barLabel: { fontSize: 11, fontWeight: '600', color: c.textMuted, marginTop: 6, textAlign: 'center' },
 
   primaryPill: { backgroundColor: '#16a34a', borderRadius: 100, paddingVertical: 13, alignItems: 'center' },
   primaryPillText: { color: 'white', fontWeight: '800', fontSize: 14 },

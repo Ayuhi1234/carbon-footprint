@@ -6,7 +6,7 @@ import { ChevronLeft, BarChart3, TrendingDown, TrendingUp, Table2, Minus, Target
 import { WebFooter } from '../components/shared/WebFooter';
 import { useTheme, makeStyles } from '../theme';
 import { carbonService, CarbonResult, CarbonSummary, CarbonGoalState, CarbonCategoryKey, CARBON_CATEGORY_ORDER } from '../services/carbon';
-import { CARBON_CATEGORIES, formatKg, formatAssessed, formatPeriod } from '../utils/carbon';
+import { CARBON_CATEGORIES, formatKg, formatAssessed, chartDateLines } from '../utils/carbon';
 
 // Carbon insights — the visual dashboard. Every number here comes from stored
 // results (GET /result/history) and the summary; the app only formats and compares
@@ -22,7 +22,6 @@ const RANGES: { key: Range; label: string; months: number | null }[] = [
 ];
 
 const pctChange = (current: number, previous: number) => (previous > 0 ? Math.round(((current - previous) / previous) * 100) : null);
-const monthLabel = (p: CarbonResult) => formatPeriod(p.periodLabel, true) || new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short' });
 const catKg = (a: CarbonResult | undefined, key: CarbonCategoryKey) => a?.breakdown?.[key];
 const SVG_FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' : undefined;
 
@@ -73,7 +72,8 @@ function TrendChart({ points, goal }: { points: CarbonResult[]; goal: number | n
   const [sel, setSel] = useState(points.length - 1);
   useEffect(() => setSel(points.length - 1), [points.length]);
 
-  const H = 170, X_BAND = 24, PAD_L = 36, PAD_R = 16, PAD_T = 22;
+  // X_BAND: room for the two-line date labels. PAD_R: room for half of the last label ("17 Nov") right of its point.
+  const H = 170, X_BAND = 38, PAD_L = 36, PAD_R = 28, PAD_T = 22;
   const max = Math.max(...points.map((p) => p.totalKgCO2ePerMonth), goal ?? 0);
   const { top, ticks } = niceScale(max);
   const plotW = Math.max(w - PAD_L - PAD_R, 1);
@@ -81,7 +81,7 @@ function TrendChart({ points, goal }: { points: CarbonResult[]; goal: number | n
   const y = (v: number) => PAD_T + (1 - v / top) * (H - PAD_T);
   const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.totalKgCO2ePerMonth)}`).join(' ');
   const area = `${line} L${x(points.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
-  const every = Math.ceil(points.length / 6); // at most ~6 month labels
+  const every = Math.ceil(points.length / 6); // at most ~6 date labels
   const s = points[sel];
 
   return (
@@ -112,9 +112,18 @@ function TrendChart({ points, goal }: { points: CarbonResult[]; goal: number | n
             {points.map((p, i) => (
               <Circle key={p._id} cx={x(i)} cy={y(p.totalKgCO2ePerMonth)} r={i === sel ? 6 : 4} fill={colors.primary} stroke={colors.surface} strokeWidth={2} />
             ))}
-            {points.map((p, i) => (i % every === 0 || i === points.length - 1) && (
-              <SvgText fontFamily={SVG_FONT} key={`x${p._id}`} x={x(i)} y={H + 16} fontSize={11} fontWeight={i === sel ? '700' : '400'} fill={i === sel ? colors.text : colors.textFaint} textAnchor="middle">{monthLabel(p)}</SvgText>
-            ))}
+            {points.map((p, i) => {
+              if (!(i % every === 0 || i === points.length - 1)) return null;
+              const [day, year] = chartDateLines(p);
+              const weight = i === sel ? '700' : '400';
+              const fill = i === sel ? colors.text : colors.textFaint;
+              return (
+                <React.Fragment key={`x${p._id}`}>
+                  <SvgText fontFamily={SVG_FONT} x={x(i)} y={H + 16} fontSize={11} fontWeight={weight} fill={fill} textAnchor="middle">{day}</SvgText>
+                  <SvgText fontFamily={SVG_FONT} x={x(i)} y={H + 30} fontSize={11} fontWeight={weight} fill={fill} textAnchor="middle">{year}</SvgText>
+                </React.Fragment>
+              );
+            })}
           </Svg>
           {/* Hit targets: bigger than the dots, focusable on web, announced on native */}
           {points.map((p, i) => (
